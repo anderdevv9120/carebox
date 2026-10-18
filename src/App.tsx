@@ -1,7 +1,8 @@
-import { useState } from 'react'
 import { PhoneFrame } from './ui/PhoneFrame'
+import { useStore } from './state/store'
+import { fmtTime } from './state/helpers'
+import type { Role } from './state/types'
 
-type Role = 'elder' | 'family' | 'ops'
 const ROLES: { id: Role; label: string }[] = [
   { id: 'elder', label: 'Người cao tuổi' },
   { id: 'family', label: 'Gia đình' },
@@ -9,7 +10,8 @@ const ROLES: { id: Role; label: string }[] = [
 ]
 
 export default function App() {
-  const [role, setRole] = useState<Role>('elder')
+  const { state, dispatch } = useStore()
+  const role = state.view.role
   return (
     <div className="app">
       <header className="app-header">
@@ -23,13 +25,13 @@ export default function App() {
         <span className="demo-note">Bản demo — không phải ứng dụng thật</span>
         <div className="role-switch">
           {ROLES.map((r) => (
-            <button key={r.id} className={r.id === role ? 'active' : ''} onClick={() => setRole(r.id)}>{r.label}</button>
+            <button key={r.id} className={r.id === role ? 'active' : ''} onClick={() => dispatch({ type: 'nav', role: r.id })}>{r.label}</button>
           ))}
         </div>
       </header>
       <div className="layout">
         <main className="stage">
-          <PhoneFrame time="07:00"><p className="empty">{role}</p></PhoneFrame>
+          <PhoneFrame time={fmtTime(state.now)}><p className="empty">{state.view.screen}</p></PhoneFrame>
         </main>
         <aside />
       </div>

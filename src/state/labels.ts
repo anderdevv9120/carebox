@@ -1,0 +1,66 @@
+import type { DeviceStatus, EventStatus, Priority, ReminderStatus, RequestStatus, ServiceType, Source } from './types'
+
+// Copy is verbatim from doc.pdf where the doc names the state.
+export const REQUEST_STATUS: Record<RequestStatus, string> = {
+  need_info: 'Chờ bổ sung thông tin',
+  await_confirm: 'Chờ xác nhận',
+  await_dispatch: 'Chờ điều phối',
+  in_progress: 'Đang xử lý',
+  done: 'Hoàn tất',
+  intervention: 'Cần can thiệp',
+  refused: 'Đã từ chối',
+}
+
+export const EVENT_STATUS: Record<EventStatus, string> = {
+  to_verify: 'Cần xác minh',
+  handling: 'Đang xử lý',
+  resolved: 'Đã xử lý',
+}
+
+export const PRIORITY: Record<Priority, string> = {
+  normal: 'Thông thường',
+  priority: 'Cần chú ý',
+  emergency: 'Khẩn cấp',
+  uncertain: 'Chưa chắc chắn',
+}
+
+export const SOURCE: Record<Source, string> = {
+  device: 'Thiết bị (giả lập)',
+  elder: 'Người cao tuổi báo',
+  staff: 'Nhân viên xác minh',
+  ai: 'AI tổng hợp',
+}
+
+export const SERVICE: Record<ServiceType, string> = {
+  medicine: 'Mua thuốc',
+  groceries: 'Đi chợ',
+  clinic: 'Đi khám bệnh',
+  daily_help: 'Hỗ trợ sinh hoạt',
+  contact_family: 'Liên hệ người thân',
+  add_reminder: 'Thêm lịch nhắc',
+}
+
+export const SERVICE_ICON: Record<ServiceType, string> = {
+  medicine: '💊',
+  groceries: '🛒',
+  clinic: '🏥',
+  daily_help: '🧹',
+  contact_family: '📞',
+  add_reminder: '⏰',
+}
+
+export const DEVICE_STATUS: Record<DeviceStatus, string> = {
+  normal: 'Bình thường theo ngưỡng đã cấu hình',
+  attention: 'Cần chú ý',
+  missing: 'Thiếu dữ liệu',
+  suspicious: 'Dữ liệu đáng nghi',
+}
+
+export const REMINDER_STATUS: Record<ReminderStatus, string> = {
+  upcoming: 'Sắp tới',
+  due: 'Đến giờ',
+  snoozed: 'Nhắc lại sau',
+  received: 'Đã nhận nhắc',
+  cant_do: 'Không thực hiện được',
+  no_confirm: 'Chưa có xác nhận',
+}
