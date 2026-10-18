@@ -123,6 +123,9 @@ h1, h2, h3, p { margin: 0; }
 .danger-text { color: var(--alert) !important; }
 
 /* ---------- elder ---------- */
+/* Every tap target in Bà Lan's app is at least 48px (overlay included) */
+.shell.is-elder button, .shell.is-elder .input { min-height: 48px; }
+.shell.is-elder .icon-btn, .shell.is-elder .mic-sm { width: 48px; height: 48px; }
 .elder { font-size: 17px; }
 .elder .muted { font-size: 14px; }
 .elder .small { font-size: 13px; }
