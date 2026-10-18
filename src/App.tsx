@@ -1,12 +1,8 @@
 import type { ReactNode } from 'react'
-import { PhoneFrame } from './ui/PhoneFrame'
-import { TabBar } from './ui/TabBar'
+import { TabBar, type TabItem } from './ui/TabBar'
 import { EmergencyOverlay } from './ui/EmergencyOverlay'
-import { ScenarioPanel } from './ui/ScenarioPanel'
 import { useStore } from './state/store'
-import { fmtTime } from './state/helpers'
-import { isFinal } from './state/cases'
-import type { EventCase, Role, Screen } from './state/types'
+import type { Screen } from './state/types'
 import { Home } from './elder/Home'
 import { Schedule } from './elder/Schedule'
 import { Health } from './elder/Health'
@@ -17,24 +13,18 @@ import { Dashboard } from './family/Dashboard'
 import { Profile } from './family/Profile'
 import { Notifications } from './family/Notifications'
 import { Report } from './family/Report'
-import { Board } from './ops/Board'
-import { CaseDetail } from './ops/CaseDetail'
-
-const ROLES: { id: Role; label: string }[] = [
-  { id: 'elder', label: 'Người cao tuổi' },
-  { id: 'family', label: 'Gia đình' },
-  { id: 'ops', label: 'Điều phối' },
-]
 
 const ELDER: Partial<Record<Screen, () => ReactNode>> = {
   home: Home, schedule: Schedule, health: Health, services: Services, requests: Requests, chat: Chat,
 }
-const ELDER_TABS: { id: Screen; label: string; icon: string }[] = [
+const ELDER_TABS: TabItem<Screen>[] = [
   { id: 'home', label: 'Trang chủ', icon: '🏠' },
   { id: 'schedule', label: 'Lịch trình', icon: '🗓️' },
   { id: 'health', label: 'Sức khỏe', icon: '❤️' },
   { id: 'services', label: 'Dịch vụ', icon: '🤝' },
   { id: 'requests', label: 'Yêu cầu', icon: '📋' },
+  // on phones the assistant opens from the Home mic, so the bottom bar keeps five tabs
+  { id: 'chat', label: 'Trợ lý', icon: '🤖', className: 'wide-only' },
 ]
 
 const FAMILY: Partial<Record<Screen, () => ReactNode>> = {
@@ -42,79 +32,48 @@ const FAMILY: Partial<Record<Screen, () => ReactNode>> = {
 }
 
 export default function App() {
-  const { state, dispatch } = useStore()
-  const { role, screen } = state.view
-  const go = (s: Screen) => dispatch({ type: 'nav', screen: s })
-  const time = fmtTime(state.now)
-  // Banner follows the open emergency event, not the elder's overlay: closing the overlay acknowledges nothing.
-  const openEmergency = state.cases.find((c): c is EventCase => c.kind === 'event' && c.priority === 'emergency' && !isFinal(c))
+  const { state, dispatch, view, session, logout } = useStore()
+  const go = (screen: Screen) => dispatch({ type: 'nav', screen })
+  const elder = session.role === 'elder'
 
-  let stage: ReactNode
-  if (role === 'elder') {
-    const View = ELDER[screen] ?? Home
-    stage = (
-      <PhoneFrame time={time} overlay={<EmergencyOverlay />} footer={<TabBar items={ELDER_TABS} active={screen} onSelect={go} />}>
-        <View />
-      </PhoneFrame>
-    )
-  } else if (role === 'family') {
-    const View = FAMILY[screen] ?? Dashboard
-    const unread = state.notifications.filter((n) => n.audience === 'family' && !n.read).length
-    const tabs = [
-      { id: 'f-dashboard' as const, label: 'Tổng quan', icon: '🏠' },
-      { id: 'f-profile' as const, label: 'Hồ sơ', icon: '👵' },
-      { id: 'f-notifications' as const, label: 'Thông báo', icon: '🔔', badge: unread },
-      { id: 'f-report' as const, label: 'Báo cáo', icon: '📄' },
-    ]
-    stage = (
-      <PhoneFrame time={time} className="family" footer={<TabBar<Screen> items={tabs} active={screen} onSelect={go} />}>
-        <View />
-      </PhoneFrame>
-    )
+  let View: () => ReactNode
+  let tabs: TabItem<Screen>[]
+  if (elder) {
+    View = ELDER[view.screen] ?? Home
+    tabs = ELDER_TABS
   } else {
-    stage = (
-      <section className="ops-panel">
-        <div className="ops-head">
-          <span className="bold">CAREBOX Operations</span>
-          <span className="row" style={{ gap: 8 }}><span className="demo-chip">Dữ liệu minh họa</span><span className="muted">{time} · {state.staff} (điều phối)</span></span>
-        </div>
-        {screen === 'ops-case' ? <CaseDetail key={state.view.caseId} /> : <Board />}
-      </section>
-    )
+    View = FAMILY[view.screen] ?? Dashboard
+    const toHandle = state.cases.filter((c) => c.status === 'await_family' || c.status === 'to_verify').length
+    tabs = [
+      { id: 'f-dashboard', label: 'Tổng quan', icon: '🏠' },
+      { id: 'f-requests', label: 'Yêu cầu của mẹ', icon: '📋', badge: toHandle },
+      { id: 'f-notifications', label: 'Thông báo', icon: '🔔', badge: state.notifications.filter((n) => !n.read).length },
+      { id: 'f-profile', label: 'Hồ sơ & thiết bị', icon: '👵' },
+      { id: 'f-report', label: 'Báo cáo', icon: '📄' },
+    ]
   }
 
+  const reset = () => confirm('Khôi phục dữ liệu demo cho cả hai tài khoản?') && dispatch({ type: 'reset' })
+
   return (
-    <div className="app">
-      <header className="app-header">
+    <div className={`shell ${elder ? 'is-elder' : 'is-family'}`}>
+      <header className="topbar">
         <div className="brand">
           <span className="brand-logo">🧡</span>
-          <div>
-            <div className="brand-name">CAREBOX</div>
-            <div className="brand-tag">AI watches. Family knows. CAREBOX steps in.</div>
-          </div>
+          <span className="brand-name">CAREBOX{!elder && <small> Family</small>}</span>
         </div>
-        <span className="demo-note">Bản demo — không phải ứng dụng thật</span>
-        <div className="role-switch">
-          {ROLES.map((r) => (
-            <button key={r.id} className={r.id === role ? 'active' : ''} onClick={() => dispatch({ type: 'nav', role: r.id })}>{r.label}</button>
-          ))}
+        <div className="topbar-right">
+          <span className="demo-chip">Dữ liệu minh họa</span>
+          <span className="who">{session.name}</span>
+          <button className="icon-btn" onClick={reset} title="Khôi phục dữ liệu demo" aria-label="Khôi phục dữ liệu demo">↺</button>
+          <button className="btn ghost sm" onClick={logout}>Đăng xuất</button>
         </div>
       </header>
-      <div className="layout">
-        <main className="stage">
-          {role !== 'elder' && openEmergency && (
-            <div className="emergency-banner">
-              <span>
-                🚨 Khẩn cấp {openEmergency.id}: {openEmergency.title} —{' '}
-                {openEmergency.status === 'to_verify' ? 'chưa có người xác nhận tiếp nhận.' : `${openEmergency.handler} đang xử lý, chưa đóng.`}
-              </span>
-              <button onClick={() => dispatch({ type: 'nav', role: 'ops', screen: 'ops-case', caseId: openEmergency.id })}>Xem</button>
-            </div>
-          )}
-          {stage}
-        </main>
-        <ScenarioPanel />
-      </div>
+      <TabBar items={tabs} active={view.screen} onSelect={go} />
+      <main className="content">
+        <View />
+      </main>
+      {elder && <EmergencyOverlay />}
     </div>
   )
 }

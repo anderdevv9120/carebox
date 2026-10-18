@@ -1,8 +1,9 @@
 import { useStore } from '../state/store'
 
 export function EmergencyOverlay() {
-  const { state, dispatch } = useStore()
-  if (!state.emergency) return null
+  const { state, dispatch, view } = useStore()
+  // closing is per device and acknowledges nothing; a new emergency shows again
+  if (!state.emergency || view.dismissedEmergency === state.emergency.caseId) return null
   const c = state.cases.find((x) => x.id === state.emergency!.caseId)
   const daughter = state.family[0]
   return (

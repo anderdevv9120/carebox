@@ -17,10 +17,10 @@ export function Notifications() {
   const [tab, setTab] = useState<NotifCategory | 'all'>('all')
   const [unreadAtOpen] = useState(() => new Set(state.notifications.filter((n) => !n.read).map((n) => n.id)))
   useEffect(() => {
-    dispatch({ type: 'notif/readAll', audience: 'family' })
+    dispatch({ type: 'notif/readAll' })
   }, [dispatch, state.notifications.length])
   const list = state.notifications
-    .filter((n) => n.audience === 'family' && (tab === 'all' || n.category === tab))
+    .filter((n) => tab === 'all' || n.category === tab)
     .sort((a, b) => b.at - a.at)
   return (
     <div>

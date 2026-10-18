@@ -4,19 +4,14 @@ import { deviceStatus } from '../state/devices'
 import { reminderStatus } from '../state/reminders'
 import type { Case, Device, DeviceStatus, Priority, Reminder, ReminderStatus, Source } from '../state/types'
 
-const STATUS_CLASS: Record<string, string> = {
-  need_info: 'b-unsure', await_confirm: 'b-unsure', await_dispatch: 'b-attn', to_verify: 'b-attn',
-  in_progress: 'b-prog', handling: 'b-prog', done: 'b-ok', resolved: 'b-ok', refused: 'b-neutral', intervention: 'b-alert',
+const STATUS_CLASS: Record<Case['status'], string> = {
+  need_info: 'b-unsure', await_confirm: 'b-unsure', await_family: 'b-attn', to_verify: 'b-attn',
+  in_progress: 'b-prog', handling: 'b-prog', done: 'b-ok', resolved: 'b-ok', refused: 'b-neutral',
 }
 
 export function StatusBadge({ c }: { c: Case }) {
   const label = c.kind === 'request' ? REQUEST_STATUS[c.status] : EVENT_STATUS[c.status]
-  return (
-    <>
-      <span className={`badge ${STATUS_CLASS[c.status]}`}>{label}</span>
-      {c.kind === 'request' && c.status === 'in_progress' && c.cpReport && <span className="badge b-unsure">Chờ nhân viên xác nhận</span>}
-    </>
-  )
+  return <span className={`badge ${STATUS_CLASS[c.status]}`}>{label}</span>
 }
 
 const PRIORITY_CLASS: Record<Priority, string> = { normal: 'b-neutral', priority: 'b-attn', emergency: 'b-alert', uncertain: 'b-unsure' }

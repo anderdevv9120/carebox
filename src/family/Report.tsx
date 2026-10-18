@@ -1,5 +1,5 @@
 import { useStore } from '../state/store'
-import { fmtDate, fmtTime } from '../state/helpers'
+import { fmtDate, fmtTime, vnDay } from '../state/helpers'
 import { isFinal, nextOwner } from '../state/cases'
 import { REMINDER_ICON } from '../elder/Schedule'
 import { DeviceBadge, PriorityBadge, ReminderBadge, SourceTag, StatusBadge } from '../ui/Badges'
@@ -7,9 +7,9 @@ import type { RequestCase } from '../state/types'
 
 export function Report() {
   const { state } = useStore()
-  const day = new Date(state.now).toDateString()
+  const day = vnDay(state.now)
   const requests = state.cases.filter((c): c is RequestCase => c.kind === 'request')
-  const receivedToday = requests.filter((c) => new Date(c.createdAt).toDateString() === day).length
+  const receivedToday = requests.filter((c) => vnDay(c.createdAt) === day).length
   const done = requests.filter((c) => c.status === 'done')
   const open = requests.filter((c) => !isFinal(c))
   const alerts = state.cases.filter((c) => c.kind === 'event' && !isFinal(c))
@@ -20,7 +20,7 @@ export function Report() {
 
       <section className="card">
         <div className="row between"><b>Tóm tắt yêu cầu</b><SourceTag source="ai" /></div>
-        <p className="small">Hôm nay tiếp nhận {receivedToday} yêu cầu · {done.length} đã hoàn tất (nhân viên xác nhận) · {open.length} đang mở.</p>
+        <p className="small">Hôm nay tiếp nhận {receivedToday} yêu cầu · {done.length} đã hoàn tất (gia đình xác nhận) · {open.length} đang mở.</p>
         {open.map((c) => (
           <div key={c.id} className="row between wrap small line">
             <span>{c.title} — <span className="muted">{nextOwner(c, state)}</span> <SourceTag source={c.source} /></span>
@@ -57,11 +57,9 @@ export function Report() {
         {done.map((c) => (
           <div key={c.id} className="service-report small">
             <div className="row between"><b>{c.title}</b><span className="muted">{c.id}</span></div>
-            <div><span className="muted">Kết quả thực hiện:</span> {c.cpReport ? 'Đã hoàn tất theo báo cáo của Care Partner.' : 'Đã hoàn tất theo xác nhận của nhân viên.'}</div>
-            {c.cpReport && <div className="note">📝 {c.assignee}: {c.cpReport.text} <SourceTag source="staff" /></div>}
-            <div><span className="muted">Người xác nhận:</span> Nhân viên điều phối {c.verifiedBy}</div>
-            {c.cpReport && <div><span className="muted">Thời điểm hoàn tất:</span> {fmtTime(c.cpReport.at)} {fmtDate(c.cpReport.at)}</div>}
-            {c.completedAt && <div><span className="muted">Thời điểm xác nhận:</span> {fmtTime(c.completedAt)} {fmtDate(c.completedAt)}</div>}
+            <div><span className="muted">Kết quả thực hiện:</span> Đã hoàn tất theo xác nhận của gia đình.</div>
+            {c.doneBy && <div><span className="muted">Người xác nhận:</span> {c.doneBy}</div>}
+            {c.completedAt && <div><span className="muted">Thời điểm hoàn tất:</span> {fmtTime(c.completedAt)} {fmtDate(c.completedAt)}</div>}
           </div>
         ))}
       </section>
@@ -75,7 +73,7 @@ export function Report() {
           </div>
         ))}
       </section>
-      <p className="muted small center">Báo cáo phân biệt dữ liệu thiết bị, lời bác báo, xác minh của nhân viên và nội dung AI tổng hợp.</p>
+      <p className="muted small center">Báo cáo phân biệt dữ liệu thiết bị, lời bác báo, xác nhận của gia đình và nội dung AI tổng hợp.</p>
     </div>
   )
 }

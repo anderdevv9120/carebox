@@ -27,7 +27,6 @@ export function Dashboard() {
     .flatMap((c) => c.history.map((h) => ({ ...h, caseId: c.id, title: c.title })))
     .sort((a, b) => b.at - a.at)
     .slice(0, 5)
-  const awaitingFamily = openRequests.filter((c) => c.service === 'contact_family' && c.status === 'await_dispatch' && !c.familyRespondedAt)
 
   return (
     <div>
@@ -60,14 +59,6 @@ export function Dashboard() {
           <span>📄</span>Báo cáo<b>Hằng ngày</b>
         </button>
       </div>
-
-      {awaitingFamily.map((c) => (
-        <div key={c.id} className="card attn-card">
-          <div className="bold">📞 Bác nhắn: “{c.fields.loi_nhan ?? 'chưa rõ'}”</div>
-          <div className="muted small">{c.id} · gửi tới {c.fields.nguoi ?? 'người thân'}</div>
-          <button className="btn sm" style={{ marginTop: 8 }} onClick={() => dispatch({ type: 'family/responded', id: c.id })}>Gia đình đã phản hồi</button>
-        </div>
-      ))}
 
       <h2 className="section">Cảnh báo cần chú ý</h2>
       {openEvents.length === 0 && <p className="muted small">Không có cảnh báo đang mở. Điều này không có nghĩa là đã có kết luận về sức khỏe.</p>}

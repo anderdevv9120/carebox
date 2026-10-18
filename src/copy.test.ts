@@ -23,9 +23,8 @@ test('UI and state copy never uses banned health/completion claims', () => {
   expect(hits(files, BANNED)).toEqual([])
 })
 
-// Task 4 widens this to all of src/ once the ops screens are deleted and the UI copy is updated.
-test('state and server code never mention staff', () => {
-  const files = [...sources(join(SRC, 'state')), ...sources(join(SRC, '..', 'server'))]
-  expect(files.length).toBeGreaterThan(5)
+test('UI, state and server code never mention staff', () => {
+  const files = [...sources(SRC), ...sources(join(SRC, '..', 'server'))]
+  expect(files.length).toBeGreaterThan(10)
   expect(hits(files, STAFF)).toEqual([])
 })

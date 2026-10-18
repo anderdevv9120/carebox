@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../state/store'
-import { fmtTime, fmtValue } from '../state/helpers'
+import { fmtDayMonth, fmtTime, fmtValue, vnDay } from '../state/helpers'
 import { deviceStatus, THRESHOLDS } from '../state/devices'
 import { DeviceBadge, SourceTag } from '../ui/Badges'
 import { LineChart } from '../ui/LineChart'
@@ -39,7 +39,7 @@ export function Health() {
   const lastFall = fall.readings.at(-1)
   const spec = CHARTS.find((c) => c.id === chart)!
   const series = state.devices.find((d) => d.id === chart)!.readings.slice(-7).map((r) => ({
-    label: new Date(r.at).toDateString() === new Date(state.now).toDateString() ? fmtTime(r.at) : `${new Date(r.at).getDate()}/${new Date(r.at).getMonth() + 1}`,
+    label: vnDay(r.at) === vnDay(state.now) ? fmtTime(r.at) : fmtDayMonth(r.at),
     value: Array.isArray(r.value) ? r.value[0] : (r.value as number),
   }))
   return (

@@ -1,47 +1,54 @@
-import { createContext, useContext, useEffect, useReducer, type ReactNode } from 'react'
-import { reduce, type Action } from './reducer'
-import { seed } from './seed'
-import type { State } from './types'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { AuthError, getState, pickNewer, postAction, type Session } from '../api'
+import type { Action } from './reducer'
+import type { Screen, State } from './types'
 
-export const STORAGE_KEY = 'carebox-demo-v1'
+// Per-device UI state; never sent to the server.
+export interface View { screen: Screen; caseId?: string; dismissedEmergency?: string }
+export type ClientAction = Action | { type: 'nav'; screen: Screen; caseId?: string } | { type: 'emergency/dismiss' }
 
-// ponytail: shallow shape check, not a schema; bump `version` when the State shape changes.
-function looksLikeState(v: unknown): v is State {
-  const s = v as State
-  return !!s && typeof s === 'object' && s.version === 1 && typeof s.now === 'number' && !!s.view && !!s.elder &&
-    [s.cases, s.reminders, s.devices, s.notifications, s.family, s.partners, s.chat?.messages].every(Array.isArray)
-}
+interface Store { state: State; dispatch: (a: ClientAction) => void; view: View; session: Session; logout: () => void }
+const Ctx = createContext<Store | null>(null)
 
-export function loadState(raw: string | null, today: Date): State {
-  try {
-    const parsed = raw ? JSON.parse(raw) : null
-    if (looksLikeState(parsed)) return parsed
-  } catch {
-    // corrupt storage: fall through to a fresh seed
-  }
-  return seed(today)
-}
+const POLL_MS = 3000
 
-function readStorage(): string | null {
-  try {
-    return localStorage.getItem(STORAGE_KEY)
-  } catch {
-    return null
-  }
-}
+export function StoreProvider({ session, onLogout, children }: { session: Session; onLogout: () => void; children: ReactNode }) {
+  const [state, setState] = useState<State | null>(null)
+  const [view, setView] = useState<View>({ screen: session.role === 'elder' ? 'home' : 'f-dashboard' })
+  const emergencyId = useRef<string | undefined>(undefined)
+  useEffect(() => { emergencyId.current = state?.emergency?.caseId }, [state])
 
-const Ctx = createContext<{ state: State; dispatch: (a: Action) => void } | null>(null)
-
-export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reduce, null, () => loadState(readStorage(), new Date()))
-  useEffect(() => {
+  // Every server reply goes through pickNewer, so a slow poll never undoes a newer action result.
+  const run = useCallback(async (p: Promise<State>, isAction: boolean) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-    } catch {
-      // storage unavailable (private mode): demo still works in memory
+      const next = await p
+      setState((cur) => pickNewer(cur, next))
+    } catch (e) {
+      if (e instanceof AuthError) return onLogout()
+      // a failed poll is retried by the next one; a failed action must not vanish silently
+      if (isAction) alert((e as Error).message)
     }
-  }, [state])
-  return <Ctx.Provider value={{ state, dispatch }}>{children}</Ctx.Provider>
+  }, [onLogout])
+
+  useEffect(() => {
+    const refresh = () => { if (!document.hidden) run(getState(session.token), false) }
+    refresh()
+    const id = setInterval(refresh, POLL_MS)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [run, session.token])
+
+  const dispatch = useCallback((a: ClientAction) => {
+    if (a.type === 'nav') return setView((v) => ({ ...v, screen: a.screen, caseId: a.caseId }))
+    if (a.type === 'emergency/dismiss') return setView((v) => ({ ...v, dismissedEmergency: emergencyId.current }))
+    run(postAction(session.token, a), true)
+  }, [run, session.token])
+
+  if (!state) return <div className="loading">Đang tải…</div>
+  return <Ctx.Provider value={{ state, dispatch, view, session, logout: onLogout }}>{children}</Ctx.Provider>
 }
 
 export function useStore() {

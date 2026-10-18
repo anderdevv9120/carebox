@@ -32,7 +32,6 @@ export function RequestCard({ c, s, onCancel }: { c: RequestCase; s: State; onCa
         ))}
       </ul>
       <div className="small"><span className="muted">Phụ trách tiếp theo:</span> <b>{nextOwner(c, s)}</b></div>
-      {c.cpReport && <div className="note small">📝 Báo cáo Care Partner ({fmtTime(c.cpReport.at)}): {c.cpReport.text}</div>}
       <ul className="timeline">
         {c.history.map((h, i) => <li key={i}><b>{fmtTime(h.at)}</b> {h.text}</li>)}
       </ul>

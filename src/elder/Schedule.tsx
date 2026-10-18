@@ -1,5 +1,5 @@
 import { useStore } from '../state/store'
-import { fmtTime } from '../state/helpers'
+import { VN_OFFSET, atVN, fmtTime, vnDay } from '../state/helpers'
 import { reminderStatus } from '../state/reminders'
 import { ReminderBadge } from '../ui/Badges'
 import type { Reminder, ReminderKind } from '../state/types'
@@ -25,18 +25,19 @@ export function ReminderActions({ r }: { r: Reminder }) {
 
 export function Schedule() {
   const { state, dispatch } = useStore()
-  const today = new Date(state.now)
-  const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay() + 6) % 7))
-  const days = Array.from({ length: 7 }, (_, i) => new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i))
+  // Vietnam calendar week (Mon–Sun) around today; noon keeps each day clear of the midnight edge
+  const vnDate = (ms: number) => new Date(ms + VN_OFFSET)
+  const fromMonday = (vnDate(state.now).getUTCDay() + 6) % 7
+  const days = Array.from({ length: 7 }, (_, i) => atVN(state.now, '12:00', i - fromMonday))
   const list = [...state.reminders].sort((a, b) => a.dueAt - b.dueAt)
   return (
     <div className="elder">
       <h1 className="screen-title">🗓️ Lịch trình hôm nay</h1>
       <div className="week">
         {days.map((d) => (
-          <div key={d.getTime()} className={`day ${d.getDate() === today.getDate() ? 'today' : ''}`}>
-            <span>{DOW[d.getDay()]}</span>
-            <b>{d.getDate()}</b>
+          <div key={d} className={`day ${vnDay(d) === vnDay(state.now) ? 'today' : ''}`}>
+            <span>{DOW[vnDate(d).getUTCDay()]}</span>
+            <b>{vnDate(d).getUTCDate()}</b>
           </div>
         ))}
       </div>

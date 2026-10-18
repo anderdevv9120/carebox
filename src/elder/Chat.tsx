@@ -52,7 +52,7 @@ export function Chat() {
     <div className="chat">
       <div className="row between">
         <h1 className="screen-title">🤖 Trợ lý CAREBOX</h1>
-        <button className="btn ghost sm" onClick={() => dispatch({ type: 'chat/handoff' })}>Gặp nhân viên</button>
+        <button className="btn ghost sm" onClick={() => dispatch({ type: 'chat/handoff' })}>Nhờ con giúp</button>
       </div>
       <div className="messages">
         {messages.map((m) => (
