@@ -11,6 +11,12 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
+.npm-temp-cache
+.carebox-state.json
+.carebox-state.json.*.tmp
 
 # Editor directories and files
 .vscode/*

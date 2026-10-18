@@ -35,8 +35,8 @@ export function DeviceCard({ d, now }: { d: Device; now: number }) {
 function SimDevices() {
   const { state, dispatch } = useStore()
   return (
-    <div className="card">
-      <div className="bold">🧪 Thiết bị giả lập — chỉ dùng cho bản demo</div>
+    <details className="card sim-devices">
+      <summary className="bold">🧪 Thiết bị giả lập</summary>
       {state.devices.filter((d) => d.id !== 'fall').map((d) => {
         const id = d.id as Exclude<typeof d.id, 'fall'>
         return (
@@ -52,7 +52,7 @@ function SimDevices() {
         )
       })}
       <button className="btn danger wide" onClick={() => dispatch({ type: 'device/fall' })}>🛡️ Báo té ngã</button>
-    </div>
+    </details>
   )
 }
 
@@ -68,7 +68,7 @@ export function Health() {
     value: Array.isArray(r.value) ? r.value[0] : (r.value as number),
   }))
   return (
-    <div className="elder">
+    <div className="elder health-screen">
       <h1 className="screen-title">📈 Sức khỏe của bà</h1>
       <div className="grid2">
         {metrics.map((d) => <DeviceCard key={d.id} d={d} now={state.now} />)}

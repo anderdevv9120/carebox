@@ -31,7 +31,7 @@ export function Schedule() {
   const days = Array.from({ length: 7 }, (_, i) => atVN(state.now, '12:00', i - fromMonday))
   const list = [...state.reminders].sort((a, b) => a.dueAt - b.dueAt)
   return (
-    <div className="elder">
+    <div className="elder schedule-screen">
       <h1 className="screen-title">🗓️ Lịch trình hôm nay</h1>
       <div className="week">
         {days.map((d) => (
@@ -48,7 +48,7 @@ export function Schedule() {
             <span className="icon-circle">{REMINDER_ICON[r.kind]}</span>
             <div className="grow">
               <div className="bold">{r.title}</div>
-              {r.note && <div className="muted small">{r.note}</div>}
+              {r.note && <div className="muted small">{r.note === 'Lịch nhắc thử, đến giờ sau khi khôi phục dữ liệu demo' ? 'Theo lịch nhắc đã cài đặt' : r.note}</div>}
               <ReminderBadge r={r} now={state.now} />
             </div>
           </div>

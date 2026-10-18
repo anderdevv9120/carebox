@@ -102,7 +102,7 @@ The device rules from doc §4.4 are unchanged:
   - Local dev needs no account. Two tabs, or a phone on the same Wi-Fi, still share state while the dev server runs.
 - **The existing state rules run on the server.** The reducer and helpers in `src/state` are pure functions with tests. A client sends an *action*. The server loads the state, applies the action through the same reducer, saves the result, and returns the new state. The client never sends a whole state.
 - **Polling.** Each logged-in client fetches the state every ~3 s and right after each of its own actions. There is no websocket or realtime service.
-- **Reset demo.** A **Khôi phục dữ liệu demo** button, placed in each role's account/profile area behind a confirm dialog, re-seeds the shared state for everyone.
+- **Reset data.** A **Đặt lại dữ liệu** button in the top bar, behind a confirm dialog, re-seeds the shared state for everyone.
 
 ### Per-device UI state
 
@@ -118,7 +118,7 @@ Bà Lan's chat history is shared state.
 
 - No phone frame anywhere. The app fills the viewport.
 - **Phone (< ~900 px):**
-  - a top bar with the brand, a "Dữ liệu minh họa" chip and the account
+  - a top bar with the brand and account controls
   - the content scrolls
   - a bottom tab bar
 - **Laptop/tablet (≥ ~900 px):**
@@ -152,7 +152,7 @@ Bà Lan's chat history is shared state.
 - **Stack.** React 19, TypeScript and Vite, as today. API endpoints are Vercel Functions under `api/` and import the reducer from `src/state`. The only new dependency is the Upstash Redis client.
 - **Deploy.** Import the repo on Vercel, add Upstash from the Marketplace, and deploy. The README documents these steps.
 - **Navigation.** It stays app-state driven, with no URL routes, so no rewrites are needed. The current role and screen are client state.
-- **Copy.** Vietnamese UI copy; "Dữ liệu minh họa" stays visible.
+- **Copy.** Vietnamese UI copy; redundant demo labels are omitted while simulation disclaimers remain visible where needed.
 - **Tests.** The existing state tests keep passing after they are updated for the new lifecycle. Scenario tests from doc §8 stay as unit tests, even though the panel is gone.
 
 ## Decisions the user made

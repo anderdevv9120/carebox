@@ -143,11 +143,14 @@ describe('handleUtterance', () => {
     const s = reduce(s0(), { type: 'chat/startService', service: 'daily_help' })
     expect(newRequest(s).service).toBe('daily_help')
     expect(s.chat.pending).toMatchObject({ stage: 'collect', field: 'noi_dung' })
+    expect(s.chat.messages.at(-2)).toMatchObject({ from: 'elder', text: 'Tôi cần hỗ trợ sinh hoạt' })
   })
 
   test('handoff creates an uncertain event even with no misses', () => {
     const s = reduce(s0(), { type: 'chat/handoff' })
     expect(newEvents(s)[0]).toMatchObject({ priority: 'uncertain', unclear: ['Người cao tuổi chọn nhờ con giúp'] })
+    expect(s.chat.messages.at(-2)).toMatchObject({ from: 'elder', text: 'Nhờ con giúp' })
+    expect(s.chat.messages.at(-1)?.from).toBe('ai')
   })
 
   test('handoff copy names Chị Minh and never staff', () => {

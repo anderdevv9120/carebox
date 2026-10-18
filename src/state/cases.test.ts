@@ -150,7 +150,7 @@ describe('derived', () => {
       const p = effectivePriority(c, s.now + 31 * MIN)
       expect(p.priority).toBe('priority')
       expect(p.reason).toMatch(/^Bỏ ngỏ/)
-      expect(p.reason).toContain('giả định thử nghiệm')
+      expect(p.reason).toBe('Bỏ ngỏ quá 30 phút')
     }
     const accepted = run(withRequest(), accept)
     expect(effectivePriority(get(accepted, 'CB-010'), accepted.now + 31 * MIN).priority).toBe('normal')

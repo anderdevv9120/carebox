@@ -97,7 +97,7 @@ function RequestItem({ c, now }: { c: RequestCase; now: number }) {
           <div className="row wrap small" style={{ gap: 6 }}>
             <span className="muted">{c.id} · {fmtTime(c.createdAt)}</span>
             <SourceTag source={c.source} />
-            {isAbandoned(c, now) && <span className="badge b-attn" title="Chưa ai nhận quá 30 phút (giả định thử nghiệm)">Bỏ ngỏ</span>}
+            {isAbandoned(c, now) && <span className="badge b-attn" title="Chưa ai nhận quá 30 phút">Bỏ ngỏ</span>}
           </div>
         </div>
       </div>
@@ -115,7 +115,7 @@ export function Requests() {
   const { state } = useStore()
   const { alerts, requests } = familyQueue(state)
   return (
-    <div>
+    <div className="family-page family-requests-screen">
       <h1 className="screen-title">📋 Yêu cầu của mẹ</h1>
       <h2 className="section">Cảnh báo cần xem</h2>
       {!alerts.length && <p className="muted small">Không có cảnh báo đang mở.</p>}

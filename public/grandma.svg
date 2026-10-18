@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs><clipPath id="circle"><circle cx="60" cy="60" r="58"/></clipPath><linearGradient id="back" x1="15" y1="0" x2="105" y2="120" gradientUnits="userSpaceOnUse"><stop stop-color="#fff2d1"/><stop offset="1" stop-color="#f2c989"/></linearGradient></defs>
+  <g clip-path="url(#circle)"><circle cx="60" cy="60" r="60" fill="url(#back)"/>
+    <path d="M12 128c3-30 20-45 48-45s45 15 48 45" fill="#eba74d"/>
+    <path d="M35 126c2-22 11-39 25-39s23 17 25 39" fill="#ffefe0"/>
+    <path d="M23 65c-10-10-7-31 7-37C31 10 54 6 68 13c22-2 37 17 31 39 8 19-3 38-16 37l-43-1C29 93 20 82 23 65Z" fill="#e4e0d3"/>
+    <path d="M35 54c0-19 9-30 27-30s27 11 27 30v13c0 21-14 32-29 32S35 85 35 67V54Z" fill="#f2c8a5"/>
+    <path d="M35 61c-7-26 12-43 26-43 18-2 30 15 28 34-6-6-11-12-15-21-7 13-22 16-39 15Z" fill="#f4f0e7"/>
+    <path d="M36 49c-8 9-9 23-7 28-13-13-6-40 5-48 7-18 30-24 46-12 14 10 18 29 14 48-3-11-6-22-13-30-9-9-20-13-34-8Z" fill="#e5e3dc"/>
+    <path d="M46 60q5-4 11 0m10 0q6-4 11 0" stroke="#68503b" stroke-width="3" stroke-linecap="round"/>
+    <path d="M54 78q7 7 14 0" stroke="#ad654d" stroke-width="3" stroke-linecap="round"/>
+    <path d="M60 65v7" stroke="#d89b83" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="39" cy="72" r="5" fill="#eab5a0"/><circle cx="83" cy="72" r="5" fill="#eab5a0"/>
+  </g><circle cx="60" cy="60" r="58" stroke="#fff" stroke-width="4"/>
+</svg>

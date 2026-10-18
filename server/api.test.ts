@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, test } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { ROLE_ACTIONS, handle } from './api'
+import * as ai from './ai'
 import { loadState, resetMemory, saveState } from './storage'
 import { seed } from '../src/state/seed'
 import type { RequestCase, State } from '../src/state/types'
@@ -22,6 +23,109 @@ beforeEach(async () => {
   resetMemory()
   elder = await tokenFor('ba.lan')
   family = await tokenFor('con.gai')
+})
+afterEach(() => {
+  delete process.env.GEMINI_API_KEY
+  vi.restoreAllMocks()
+})
+
+describe('real AI chat', () => {
+  test('uses Gemma for free-form messages, without false handoff; keeps emergencies deterministic', async () => {
+    process.env.GEMINI_API_KEY = 'test-key'
+    const model = vi.spyOn(ai, 'generateReply').mockResolvedValue({ text: 'Cháu đang nghe bác kể chuyện ạ.', unclear: false })
+    for (const text of ['Cháu kể chuyện vui đi', 'Kể tiếp đi cháu']) {
+      const response = await post('/api/action', elder, { type: 'chat/say', text })
+      expect(response.status).toBe(200)
+      expect(((await response.json()) as State).chat.messages.at(-1)?.text).toBe('Cháu đang nghe bác kể chuyện ạ.')
+    }
+    expect(model).toHaveBeenCalledTimes(2)
+    const s = await getState(elder)
+    expect(s.chat.misses).toBe(0)
+    expect(s.cases).toHaveLength(2)
+    const emergency: State = await (await post('/api/action', elder, { type: 'chat/say', text: 'Bác đau ngực' })).json()
+    expect(emergency.emergency).not.toBeNull()
+    expect(model).toHaveBeenCalledTimes(2)
+  })
+
+  test('two genuinely unclear Gemma messages alert the daughter with both utterances', async () => {
+    process.env.GEMINI_API_KEY = 'test-key'
+    const model = vi.spyOn(ai, 'generateReply').mockResolvedValue({ text: 'Bác nói rõ hơn giúp cháu nhé.', unclear: true })
+    const first: State = await (await post('/api/action', elder, { type: 'chat/say', text: 'Bác muốn cái hôm trước ấy' })).json()
+    expect(first.chat.misses).toBe(1)
+    expect(first.chat.messages.at(-1)?.text).toContain('Nhờ con giúp')
+    const next: State = await (await post('/api/action', elder, { type: 'chat/say', text: 'Cái mà con Minh mua ấy' })).json()
+    expect(model).toHaveBeenCalledTimes(2)
+    expect(next.chat.misses).toBe(0)
+    expect(next.chat.recentMisses).toEqual([])
+    const alerts = next.cases.filter((c) => c.kind === 'event' && c.title === 'AI chưa hiểu yêu cầu')
+    expect(alerts).toHaveLength(1)
+    expect(alerts[0]).toMatchObject({
+      priority: 'uncertain', unclear: ['Bác muốn cái hôm trước ấy', 'Cái mà con Minh mua ấy'],
+    })
+    expect(next.notifications.some((n) => n.text.includes('AI chưa hiểu yêu cầu'))).toBe(true)
+    expect(next.chat.messages.at(-1)?.text).toContain('đã báo Chị Minh')
+  })
+
+  test('understood Gemma messages reset the unclear streak', async () => {
+    process.env.GEMINI_API_KEY = 'test-key'
+    const model = vi.spyOn(ai, 'generateReply')
+      .mockResolvedValueOnce({ text: 'Bác nói lại giúp cháu ạ.', unclear: true })
+      .mockResolvedValueOnce({ text: 'Cháu nghe bác kể chuyện đây ạ.', unclear: false })
+      .mockResolvedValueOnce({ text: 'Bác nói rõ hơn ạ.', unclear: true })
+    for (const text of ['Cái ấy đó', 'Kể chuyện cho bác nghe', 'Món hồi trước ấy'])
+      await post('/api/action', elder, { type: 'chat/say', text })
+    const state = await getState(elder)
+    expect(model).toHaveBeenCalledTimes(3)
+    expect(state.chat.misses).toBe(1)
+    expect(state.chat.recentMisses).toEqual(['Món hồi trước ấy'])
+    expect(state.cases.some((c) => c.kind === 'event' && c.title === 'AI chưa hiểu yêu cầu')).toBe(false)
+  })
+
+  test('model failure preserves the elder turn and shows a recoverable bot response', async () => {
+    process.env.GEMINI_API_KEY = 'test-key'
+    vi.spyOn(ai, 'generateReply').mockRejectedValue(new Error('mock provider failure'))
+    const before = await getState(elder)
+    const response = await post('/api/action', elder, { type: 'chat/say', text: 'Kể chuyện đi cháu' })
+    expect(response.status).toBe(200)
+    const after = await getState(elder)
+    expect(after.chat.messages).toHaveLength(before.chat.messages.length + 2)
+    expect(after.chat.messages.at(-2)).toMatchObject({ from: 'elder', text: 'Kể chuyện đi cháu' })
+    expect(after.chat.messages.at(-1)?.text).toContain('Bác thử gửi lại')
+  })
+
+  test('failed follow-up does not erase an existing misunderstanding', async () => {
+    process.env.GEMINI_API_KEY = 'test-key'
+    vi.spyOn(ai, 'generateReply')
+      .mockResolvedValueOnce({ text: 'Bác nói rõ hơn ạ.', unclear: true })
+      .mockRejectedValueOnce(new Error('provider error'))
+    await post('/api/action', elder, { type: 'chat/say', text: 'Cái món hôm trước' })
+    const before = await getState(elder)
+    expect((await post('/api/action', elder, { type: 'chat/say', text: 'Cái đó ấy' })).status).toBe(200)
+    const after = await getState(elder)
+    expect(after.chat.misses).toBe(1)
+    expect(after.chat.recentMisses).toEqual(['Cái món hôm trước'])
+    expect(after.chat.messages).toHaveLength(before.chat.messages.length + 2)
+    expect(after.chat.messages.at(-2)).toMatchObject({ from: 'elder', text: 'Cái đó ấy' })
+  })
+
+  test('family changes made during model generation survive the reply', async () => {
+    process.env.GEMINI_API_KEY = 'test-key'
+    let answer!: (value: ai.AIReply) => void
+    const model = vi.spyOn(ai, 'generateReply').mockImplementation(() => new Promise((resolve) => { answer = resolve }))
+    const pending = post('/api/action', elder, { type: 'chat/say', text: 'Cháu kể chuyện nhé' })
+    await vi.waitFor(() => expect(model).toHaveBeenCalledOnce())
+    const inProgress = await getState(elder)
+    expect(inProgress.chat.messages.at(-1)).toMatchObject({ from: 'elder', text: 'Cháu kể chuyện nhé' })
+    const other = await post('/api/action', family, { type: 'notif/readAll' })
+    const updated: State = await other.json()
+    answer({ text: 'Cháu đang kể chuyện đây ạ.', unclear: false })
+    const response: State = await (await pending).json()
+    expect(response.rev).toBe(updated.rev + 1)
+    expect(response.notifications.every((n) => n.read)).toBe(true)
+    expect(response.chat.messages.at(-1)?.text).toBe('Cháu đang kể chuyện đây ạ.')
+    expect(response.chat.messages.filter((m) => m.from === 'elder' && m.text === 'Cháu kể chuyện nhé')).toHaveLength(1)
+    expect((await getState(elder)).chat.messages).toEqual(response.chat.messages)
+  })
 })
 
 describe('login', () => {

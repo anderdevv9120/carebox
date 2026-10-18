@@ -30,13 +30,13 @@ export function Dashboard() {
     .slice(0, 5)
 
   return (
-    <div>
+    <div className="family-page dashboard-screen">
       <h1 className="screen-title">👨‍👩‍👧 Bảng điều khiển gia đình</h1>
-      <div className="card row">
-        <span className="avatar-lg">👵</span>
+      <div className="card row family-hero">
+        <img className="avatar-lg avatar-photo" src="/grandma.svg" alt="" />
         <div className="grow">
           <div className="bold">Mẹ - {state.elder.name}</div>
-          <div className="muted small">Cập nhật lúc {fmtTime(lastUpdated(state))}</div>
+          <div className="muted small">🟢 Đồng hành cùng mẹ · Cập nhật {fmtTime(lastUpdated(state))}</div>
         </div>
       </div>
       <div className="card status-box">

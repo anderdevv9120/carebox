@@ -3,6 +3,7 @@ import { respondReminder } from './reminders.js'
 import { disconnect, pushReading, reconnect, reportFall } from './devices.js'
 import { transition, type CaseAction } from './cases.js'
 import { handleUtterance, handoff, startService } from './assistant.js'
+import { sayElder } from './helpers.js'
 import type { DeviceKind, ServiceType, State } from './types.js'
 
 export type Action =
@@ -38,7 +39,7 @@ export function reduce(s: State, a: Action): State {
     case 'chat/startService':
       return startService(s, a.service)
     case 'chat/handoff':
-      return handoff(s)
+      return handoff(sayElder(s, 'Nhờ con giúp'))
     case 'chat/clear':
       // leaves any half-collected request on the board in its current status
       return { ...s, chat: { ...s.chat, pending: null, misses: 0, recentMisses: [] } }

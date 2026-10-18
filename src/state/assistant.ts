@@ -202,9 +202,9 @@ export function startService(s: State, service: ServiceType): State {
   return startRequest(sayElder(clearChat(s), `Tôi cần ${SERVICE[service].toLowerCase()}`), service, `Bác chọn dịch vụ ${SERVICE[service]}.`)
 }
 
-export function handleUtterance(s: State, text: string): State {
+export function handleUtterance(s: State, text: string, alreadyRecorded = false): State {
   if (!text.trim()) return s
-  let out = sayElder(s, text.trim())
+  let out = alreadyRecorded ? s : sayElder(s, text.trim())
   const { intent, service } = classify(text)
   if (intent === 'emergency') {
     out = raiseEmergency(clearChat(out), 'Người dùng báo dấu hiệu khẩn cấp', text.trim(), 'elder')

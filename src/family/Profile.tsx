@@ -7,10 +7,10 @@ export function Profile() {
   const { state } = useStore()
   const { elder } = state
   return (
-    <div>
+    <div className="family-page profile-screen">
       <h1 className="screen-title">👵 Hồ sơ người cao tuổi</h1>
-      <div className="card row">
-        <span className="avatar-lg">👵</span>
+      <div className="card row profile-hero">
+        <img className="avatar-lg avatar-photo" src="/grandma.svg" alt="" />
         <div>
           <div className="bold">{elder.name}</div>
           <div className="muted small">{elder.age} tuổi · Sống tại {elder.address}</div>

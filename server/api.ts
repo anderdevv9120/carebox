@@ -2,9 +2,12 @@ import { reduce, type Action } from '../src/state/reducer.js'
 import { seed } from '../src/state/seed.js'
 import { tick } from '../src/state/clock.js'
 import { SERVICE } from '../src/state/labels.js'
+import { classify, handleUtterance } from '../src/state/assistant.js'
+import { sayAi, sayElder } from '../src/state/helpers.js'
 import type { Role, State } from '../src/state/types.js'
 import { ACCOUNTS, PASSWORD, isAccount, signToken, verifyToken } from './auth.js'
 import { loadState, saveState } from './storage.js'
+import { generateReply } from './ai.js'
 
 type Type = Action['type']
 
@@ -90,11 +93,36 @@ async function login(req: Request): Promise<Response> {
 // Load the latest stored state, bring it to now, apply the action, and save only if something changed.
 // ponytail: last-write-wins across the load→save gap; Redis WATCH if more than two devices
 async function apply(action?: Action): Promise<Response> {
-  const raw = await loadState()
+  const initial = await loadState()
+  const before = isState(initial) ? initial : seed(Date.now())
+  const text = action?.type === 'chat/say' ? action.text.trim() : ''
+  const useAi = !!process.env.GEMINI_API_KEY?.trim() && !!text && !before.chat.pending && classify(text).intent === 'unknown'
+  let reply: Awaited<ReturnType<typeof generateReply>> | undefined
+  if (useAi) {
+    // Save the elder's turn before the slower model call, so reloads can already show it.
+    const { state } = tick(before, Date.now())
+    await saveState({ ...sayElder(state, text), rev: isState(initial) ? before.rev + 1 : Date.now() })
+    try {
+      reply = await generateReply(before, text)
+    } catch (err) {
+      console.error('Gemma request failed:', (err as Error).message)
+      const raw = await loadState()
+      const current = isState(raw) ? raw : sayElder(before, text)
+      const failed = { ...sayAi(current, 'Không thể kết nối trợ lý AI. Bác thử gửi lại nhé.'), rev: current.rev + 1 }
+      await saveState(failed)
+      return json(200, failed)
+    }
+  }
+  // AI calls are slow: reload so a family action saved during generation is not overwritten.
+  const raw = reply ? await loadState() : initial
   const fresh = !isState(raw)
   const base = fresh ? seed(Date.now()) : raw
   const { state, changed } = tick(base, Date.now())
-  const next = action ? reduce(state, action) : state
+  const next = reply
+    ? reply.unclear
+      ? handleUtterance(state, text, true) // The existing miss counter and handoff produce the family alert.
+      : sayAi({ ...state, chat: { ...state.chat, misses: 0, recentMisses: [] } }, reply.text)
+    : action ? reduce(state, action) : state
   if (!fresh && !changed && next === state) return json(200, next)
   // rev comes from the stored state, so a reset (which re-seeds at rev 0) still moves clients forward;
   // with nothing stored (dev restart, flushed Redis) the clock outranks any rev an open tab holds

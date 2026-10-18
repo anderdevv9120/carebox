@@ -22,7 +22,7 @@ export function seed(now: number): State {
   // Past times count as answered so a reset never bursts into "Chưa có xác nhận" alerts.
   const reminders: Reminder[] = [
     ...schedule.map((r) => (r.dueAt < now ? { ...r, response: 'received' as const, respondedAt: r.dueAt } : r)),
-    { id: 'r-demo', dueAt: now + 3 * MIN, title: 'Uống thuốc theo đơn', note: 'Lịch nhắc thử, đến giờ sau khi khôi phục dữ liệu demo', kind: 'medicine' },
+    { id: 'r-demo', dueAt: now + 3 * MIN, title: 'Uống thuốc theo đơn', note: 'Theo lịch nhắc đã cài đặt', kind: 'medicine' },
   ]
   const c1 = now - 20 * MIN
   const devices: Device[] = [

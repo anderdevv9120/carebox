@@ -23,7 +23,7 @@ export function Notifications() {
     .filter((n) => tab === 'all' || n.category === tab)
     .sort((a, b) => b.at - a.at)
   return (
-    <div>
+    <div className="family-page notifications-screen">
       <h1 className="screen-title">🔔 Thông báo</h1>
       <div className="tabs">
         {TABS.map((t) => <button key={t.id} className={t.id === tab ? 'active' : ''} onClick={() => setTab(t.id)}>{t.label}</button>)}

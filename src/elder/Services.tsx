@@ -15,7 +15,7 @@ export function Services() {
   const [q, setQ] = useState('')
   const rows = ROWS.filter((r) => `${r.title} ${r.sub}`.toLowerCase().includes(q.trim().toLowerCase()))
   return (
-    <div className="elder">
+    <div className="elder services-screen">
       <h1 className="screen-title">🧡 Dịch vụ hỗ trợ</h1>
       <input className="input" placeholder="🔍 Tìm dịch vụ…" value={q} onChange={(e) => setQ(e.target.value)} />
       <div style={{ marginTop: 12 }}>

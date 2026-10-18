@@ -26,8 +26,8 @@ export function Login({ onLogin }: { onLogin: (s: Session) => void }) {
 
   return (
     <form className="login" onSubmit={submit}>
-      <div className="brand"><span className="brand-logo">🧡</span><span className="brand-name">CAREBOX</span></div>
-      <span className="demo-chip">Dữ liệu minh họa</span>
+      <div className="brand"><img className="brand-logo" src="/favicon.svg" alt="" /><span className="brand-name">CAREBOX</span></div>
+      <p className="login-tagline">Công nghệ đồng hành, trọn từng khoảnh khắc.</p>
       <div className="accounts" role="radiogroup" aria-label="Chọn tài khoản">
         {ACCOUNTS.map((a) => (
           <button key={a.user} type="button" role="radio" aria-checked={user === a.user}
@@ -46,7 +46,7 @@ export function Login({ onLogin }: { onLogin: (s: Session) => void }) {
       </label>
       <button className="btn wide" type="submit" disabled={busy || !password}>Đăng nhập</button>
       {error && <p className="danger-text small" role="alert">{error}</p>}
-      <p className="muted small center">Bản demo · mật khẩu: carebox</p>
+      <p className="muted small center">Mật khẩu: carebox</p>
     </form>
   )
 }

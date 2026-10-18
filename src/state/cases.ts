@@ -28,7 +28,7 @@ export const isAbandoned = (c: Case, now: number) =>
 
 export function effectivePriority(c: Case, now: number): { priority: Priority; reason: string } {
   if (c.priority === 'normal' && isAbandoned(c, now))
-    return { priority: 'priority', reason: 'Bỏ ngỏ quá 30 phút (giả định thử nghiệm)' }
+    return { priority: 'priority', reason: 'Bỏ ngỏ quá 30 phút' }
   return { priority: c.priority, reason: c.priorityReason }
 }
 

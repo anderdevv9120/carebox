@@ -57,19 +57,18 @@ export default function App() {
 
   // The bar follows the open emergency event, not the elder's overlay: only "Tôi đã tiếp nhận" changes its wording.
   const sos = elder ? undefined : state.cases.find((c): c is EventCase => c.kind === 'event' && c.priority === 'emergency' && !isFinal(c))
-  const reset = () => confirm('Khôi phục dữ liệu demo cho cả hai tài khoản?') && dispatch({ type: 'reset' })
+  const reset = () => dispatch({ type: 'reset' })
 
   return (
     <div className={`shell ${elder ? 'is-elder' : 'is-family'}`}>
       <header className="topbar">
         <div className="brand">
-          <span className="brand-logo">🧡</span>
+          <img className="brand-logo" src="/favicon.svg" alt="" />
           <span className="brand-name">CAREBOX{!elder && <small> Family</small>}</span>
         </div>
         <div className="topbar-right">
-          <span className="demo-chip">Dữ liệu minh họa</span>
           <span className="who">{session.name}</span>
-          <button className="icon-btn" onClick={reset} title="Khôi phục dữ liệu demo" aria-label="Khôi phục dữ liệu demo">↺</button>
+          <button className="icon-btn" onClick={reset} title="Đặt lại dữ liệu" aria-label="Đặt lại dữ liệu">↺</button>
           <button className="btn ghost sm" onClick={logout}>Đăng xuất</button>
         </div>
       </header>

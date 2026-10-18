@@ -1,6 +1,6 @@
 /// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 
 // `npm run dev` serves /api/* through the same handler the Vercel functions use.
 const api = (): Plugin => ({
@@ -26,7 +26,8 @@ const api = (): Plugin => ({
   },
 })
 
-export default defineConfig({
-  plugins: [react(), api()],
-  test: { environment: 'node' },
+export default defineConfig(({ mode }) => {
+  // Vite does not automatically put .env.local values into server-side process.env.
+  process.env.GEMINI_API_KEY ||= loadEnv(mode, process.cwd(), 'GEMINI_API_KEY').GEMINI_API_KEY
+  return { plugins: [react(), api()], test: { environment: 'node' } }
 })

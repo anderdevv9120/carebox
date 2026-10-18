@@ -18,7 +18,7 @@ export function Report() {
     return f ? ` (${f.relation.toLowerCase()})` : ''
   }
   return (
-    <div>
+    <div className="family-page report-screen">
       <h1 className="screen-title">📄 Báo cáo hằng ngày</h1>
       <p className="muted small">{fmtDate(state.now)} · lập lúc {fmtTime(state.now)}</p>
 

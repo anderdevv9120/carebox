@@ -7,7 +7,7 @@ import type { Screen, State } from './types'
 export interface View { screen: Screen; caseId?: string; dismissedEmergency?: string }
 export type ClientAction = Action | { type: 'nav'; screen: Screen; caseId?: string } | { type: 'emergency/dismiss' }
 
-interface Store { state: State; dispatch: (a: ClientAction) => void; view: View; session: Session; logout: () => void }
+interface Store { state: State; dispatch: (a: ClientAction) => void | Promise<boolean>; view: View; session: Session; logout: () => void; chatBusy: boolean }
 const Ctx = createContext<Store | null>(null)
 
 const POLL_MS = 3000
@@ -15,6 +15,8 @@ const POLL_MS = 3000
 export function StoreProvider({ session, onLogout, children }: { session: Session; onLogout: () => void; children: ReactNode }) {
   const [state, setState] = useState<State | null>(null)
   const [view, setView] = useState<View>({ screen: session.role === 'elder' ? 'home' : 'f-dashboard' })
+  const [chatBusy, setChatBusy] = useState(false)
+  const busyRef = useRef(false)
   const emergencyId = useRef<string | undefined>(undefined)
   useEffect(() => { emergencyId.current = state?.emergency?.caseId }, [state])
 
@@ -23,10 +25,12 @@ export function StoreProvider({ session, onLogout, children }: { session: Sessio
     try {
       const next = await p
       setState((cur) => pickNewer(cur, next))
+      return true
     } catch (e) {
-      if (e instanceof AuthError) return onLogout()
+      if (e instanceof AuthError) { onLogout(); return false }
       // a failed poll is retried by the next one; a failed action must not vanish silently
       if (isAction) alert((e as Error).message)
+      return false
     }
   }, [onLogout])
 
@@ -44,11 +48,20 @@ export function StoreProvider({ session, onLogout, children }: { session: Sessio
   const dispatch = useCallback((a: ClientAction) => {
     if (a.type === 'nav') return setView((v) => ({ ...v, screen: a.screen, caseId: a.caseId }))
     if (a.type === 'emergency/dismiss') return setView((v) => ({ ...v, dismissedEmergency: emergencyId.current }))
-    run(postAction(session.token, a), true)
+    if (a.type === 'chat/say') {
+      if (busyRef.current) return
+      busyRef.current = true
+      setChatBusy(true)
+      return run(postAction(session.token, a), true).finally(() => {
+        busyRef.current = false
+        setChatBusy(false)
+      })
+    }
+    void run(postAction(session.token, a), true)
   }, [run, session.token])
 
   if (!state) return <div className="loading">Đang tải…</div>
-  return <Ctx.Provider value={{ state, dispatch, view, session, logout: onLogout }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ state, dispatch, view, session, logout: onLogout, chatBusy }}>{children}</Ctx.Provider>
 }
 
 export function useStore() {

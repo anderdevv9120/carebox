@@ -18,15 +18,20 @@ export function Home() {
   const med = nextOf(state, 'medicine')
   const clinic = nextOf(state, 'clinic')
   return (
-    <div className="elder">
-      <p className="muted">{fmtDate(state.now)}</p>
-      <h1 className="hello">Chào bà {firstName}! 👋</h1>
-      <div className="mascot-card">
-        <div className="mascot">🤖</div>
-        <div className="bubble">Bà cần gì hôm nay ạ?</div>
+    <div className="elder home-screen">
+      <div className="home-hero">
+        <div className="home-copy">
+          <p className="home-date">✦ {fmtDate(state.now)}</p>
+          <h1 className="hello">Chào bà {firstName}! 👋</h1>
+          <p className="home-subtitle">Hôm nay thật đẹp. Bà đã sẵn sàng cho một ngày vui vẻ!</p>
+        </div>
+        <div className="mascot-card">
+          <img className="mascot" src="/carebot.svg" alt="Trợ lý CAREBOX" />
+          <div className="bubble">Bà cần gì<br />hôm nay ạ?</div>
+        </div>
+        <button className="mic" onClick={() => go('chat')} aria-label="Trò chuyện với trợ lý CAREBOX">🎙️</button>
+        <p className="center home-hint">Chạm để trò chuyện với trợ lý</p>
       </div>
-      <button className="mic" onClick={() => go('chat')} aria-label="Nói với trợ lý">🎙️</button>
-      <p className="center muted">Chạm để nói hoặc nhắn với trợ lý</p>
       {due.map((r) => (
         <div key={r.id} className="card reminder-due">
           <div className="row">
@@ -39,7 +44,7 @@ export function Home() {
           <ReminderActions r={r} />
         </div>
       ))}
-      <div className="tiles">
+      <div className="tiles home-tiles">
         <button className="tile" onClick={() => go('schedule')}>
           <span>💊</span>Uống thuốc<b>{med ? fmtTime(med.dueAt) : '—'}</b>
         </button>

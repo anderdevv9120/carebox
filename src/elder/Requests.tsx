@@ -48,14 +48,14 @@ export function Requests() {
   const keep = TABS.find((t) => t.id === tab)!.keep
   const list = state.cases.filter((c): c is RequestCase => c.kind === 'request').filter(keep).sort((a, b) => b.createdAt - a.createdAt)
   return (
-    <div className="elder">
+    <div className="elder requests-screen">
       <h1 className="screen-title">📋 Yêu cầu hỗ trợ</h1>
       <div className="tabs">
         {TABS.map((t) => <button key={t.id} className={t.id === tab ? 'active' : ''} onClick={() => setTab(t.id)}>{t.label}</button>)}
       </div>
       {list.map((c) => (
         <RequestCard key={c.id} c={c} s={state}
-          onCancel={() => confirm(`Bác muốn hủy yêu cầu "${c.title}"?`) && dispatch({ type: 'request/cancel', id: c.id })} />
+          onCancel={() => dispatch({ type: 'request/cancel', id: c.id })} />
       ))}
       {!list.length && <p className="empty">Chưa có yêu cầu nào</p>}
     </div>

@@ -14,8 +14,9 @@ const w = window as unknown as { SpeechRecognition?: SpeechCtor; webkitSpeechRec
 const Recognition = w.SpeechRecognition ?? w.webkitSpeechRecognition
 
 export function Chat() {
-  const { state, dispatch } = useStore()
+  const { state, dispatch, chatBusy } = useStore()
   const [text, setText] = useState('')
+  const [sending, setSending] = useState<{ text: string; afterId?: string } | null>(null)
   const [listening, setListening] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -23,13 +24,22 @@ export function Chat() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })
-  }, [messages.length])
+  }, [messages.length, chatBusy, sending])
 
   const send = (t: string) => {
-    if (!t.trim()) return
-    dispatch({ type: 'chat/say', text: t })
-    setText('')
+    if (!t.trim() || chatBusy) return
+    const sent = dispatch({ type: 'chat/say', text: t })
+    if (sent) {
+      setSending({ text: t.trim(), afterId: messages.at(-1)?.id })
+      void sent.then((ok) => {
+        setSending(null)
+        if (ok) setText((current) => current === t ? '' : current)
+      })
+    }
   }
+
+  const savedIndex = messages.findIndex((m) => m.id === sending?.afterId)
+  const showSending = sending && chatBusy && !messages.slice(savedIndex + 1).some((m) => m.from === 'elder' && m.text === sending.text)
 
   const listen = () => {
     if (!Recognition) return inputRef.current?.focus()
@@ -49,10 +59,10 @@ export function Chat() {
       : ['Đúng rồi', 'Không']
 
   return (
-    <div className="chat">
+    <div className="chat chat-screen">
       <div className="row between">
-        <h1 className="screen-title">🤖 Trợ lý CAREBOX</h1>
-        <button className="btn ghost sm" onClick={() => dispatch({ type: 'chat/handoff' })}>Nhờ con giúp</button>
+        <h1 className="screen-title"><img className="chat-bot" src="/carebot.svg" alt="" /> Trợ lý CAREBOX</h1>
+        <button className="btn ghost sm" disabled={chatBusy} onClick={() => dispatch({ type: 'chat/handoff' })}>Nhờ con giúp</button>
       </div>
       <div className="messages">
         {messages.map((m) => (
@@ -64,15 +74,17 @@ export function Chat() {
             </div>
           </div>
         ))}
+        {showSending && <div className="msg elder"><div className="bubble-msg">{sending.text}</div></div>}
+        {chatBusy && <div className="msg ai" role="status"><span className="avatar">🤖</span><div className="bubble-msg">Đang trả lời…</div></div>}
         <div ref={endRef} />
       </div>
       <div className="chips">
-        {chips.map((c) => <button key={c} onClick={() => send(c)}>{c}</button>)}
+        {chips.map((c) => <button key={c} disabled={chatBusy} onClick={() => send(c)}>{c}</button>)}
       </div>
       <form className="composer" onSubmit={(e) => { e.preventDefault(); send(text) }}>
-        <button type="button" className={`mic-sm ${listening ? 'on' : ''}`} onClick={listen} aria-label="Nói">🎙️</button>
+        <button type="button" className={`mic-sm ${listening ? 'on' : ''}`} onClick={listen} aria-label="Nói" disabled={chatBusy}>🎙️</button>
         <input ref={inputRef} className="input" placeholder="Bác nhắn cho cháu…" value={text} onChange={(e) => setText(e.target.value)} />
-        <button className="btn" type="submit" disabled={!text.trim()}>Gửi</button>
+        <button className="btn" type="submit" disabled={!text.trim() || chatBusy}>Gửi</button>
       </form>
     </div>
   )

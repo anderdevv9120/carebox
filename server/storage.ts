@@ -1,4 +1,7 @@
 import { Redis } from '@upstash/redis'
+import { randomUUID } from 'node:crypto'
+import { readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import type { State } from '../src/state/types.js'
 
 const KEY = 'carebox:state'
@@ -8,17 +11,34 @@ const [url, token] = env.UPSTASH_REDIS_REST_URL
   ? [env.UPSTASH_REDIS_REST_URL, env.UPSTASH_REDIS_REST_TOKEN]
   : [env.KV_REST_API_URL, env.KV_REST_API_TOKEN]
 const redis = url && token ? new Redis({ url, token }) : null
+const localFile = join(process.cwd(), '.carebox-state.json')
 
-// Without Redis (local dev) the state lives as long as this process.
+if (!redis && process.env.VERCEL) throw new Error('Configure Upstash Redis for persistent CAREBOX state on Vercel.')
+
+// Unit tests use memory; local development uses a file that survives server restarts.
 let memory: unknown = null
 
 export async function loadState(): Promise<unknown> {
-  return redis ? redis.get(KEY) : memory
+  if (redis) return redis.get(KEY)
+  if (process.env.VITEST) return memory
+  try {
+    return JSON.parse(await readFile(localFile, 'utf8'))
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null
+    throw err
+  }
 }
 
 export async function saveState(s: State): Promise<void> {
-  if (redis) await redis.set(KEY, s)
-  else memory = s
+  if (redis) return void await redis.set(KEY, s)
+  if (process.env.VITEST) { memory = s; return }
+  const tmp = `${localFile}.${randomUUID()}.tmp`
+  try {
+    await writeFile(tmp, JSON.stringify(s))
+    await rename(tmp, localFile)
+  } finally {
+    await rm(tmp, { force: true })
+  }
 }
 
 // tests only
