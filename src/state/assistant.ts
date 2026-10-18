@@ -1,4 +1,4 @@
-import { addCase, createEvent, fmtTime, fmtValue, nextCaseId, notify, sayAi, sayElder, updateCase } from './helpers'
+import { addCase, createEvent, familyName, fmtTime, fmtValue, nextCaseId, notify, sayAi, sayElder, updateCase } from './helpers'
 import { REMINDER_STATUS, REQUEST_STATUS, SERVICE } from './labels'
 import { isFinal, nextOwner, raiseEmergency, transition } from './cases'
 import { deviceStatus } from './devices'
@@ -140,16 +140,14 @@ function refuse(s: State, c: RequestCase): State {
 }
 
 function confirm(s: State, c: RequestCase): State {
-  let out = updateCase(s, c.id, { status: 'await_dispatch' }, { by: 'elder', text: 'Bác xác nhận nội dung; chuyển nhân viên điều phối.' })
-  out = notify(out, ['family'], c.service === 'contact_family'
-    ? `Bác nhắn ${c.fields.nguoi ?? 'người thân'}: “${c.fields.loi_nhan ?? 'chưa rõ'}”. Nhân viên CAREBOX đang chuyển tiếp.`
-    : `${c.title} đã được ghi nhận. Chưa có người thực hiện.`, 'request', 'ai', c.id)
-  out = notify(out, ['ops'], `Yêu cầu mới ${c.id} · ${c.title}: chờ xác minh và điều phối.`, 'request', 'ai', c.id)
+  const name = familyName(s)
+  let out = updateCase(s, c.id, { status: 'await_family' }, { by: 'elder', text: `Bác xác nhận nội dung; chuyển ${name}.` })
+  out = notify(out, `${c.title}: chờ ${name} nhận việc`, 'request', 'ai', c.id)
   const msg = c.service === 'add_reminder'
-    ? 'Cháu đã gửi nhân viên duyệt lịch nhắc. Lịch chỉ được thêm sau khi nhân viên xác nhận ạ.'
+    ? `Cháu đã gửi ${name} duyệt lịch nhắc. Lịch chỉ được thêm sau khi ${name} xác nhận, yêu cầu chưa hoàn tất ạ.`
     : c.service === 'contact_family'
-      ? 'Cháu đã chuyển lời nhắn cho nhân viên CAREBOX liên hệ người thân. Cháu sẽ báo bác khi có phản hồi ạ.'
-      : 'Cháu đã chuyển yêu cầu cho nhân viên điều phối CAREBOX. Yêu cầu chưa hoàn tất; cháu sẽ báo bác khi có người nhận việc ạ.'
+      ? `Cháu đã chuyển lời nhắn cho ${name}. Yêu cầu chưa hoàn tất; cháu sẽ báo bác khi có phản hồi ạ.`
+      : `Cháu đã gửi yêu cầu cho ${name}. Yêu cầu chưa hoàn tất; cháu sẽ báo bác khi ${name} nhận việc ạ.`
   return sayAi(clearChat(out), msg)
 }
 
@@ -163,7 +161,7 @@ function readback(s: State, c: RequestCase, text: string): State {
 function miss(s: State, text: string, reask: string): State {
   const out = { ...s, chat: { ...s.chat, misses: s.chat.misses + 1, recentMisses: [...s.chat.recentMisses, text.trim()] } }
   if (out.chat.misses >= 2) return handoff(out)
-  return sayAi(out, `Cháu chưa hiểu ý bác. ${reask} Hoặc bác bấm “Gặp nhân viên”.`)
+  return sayAi(out, `Cháu chưa hiểu ý bác. ${reask} Hoặc bác bấm “Nhờ con giúp”.`)
 }
 
 const HEALTH: [DeviceKind, string[]][] = [['bp', ['huyet ap']], ['hr', ['nhip tim']], ['glucose', ['duong huyet']], ['spo2', ['spo2', 'oxy']]]
@@ -174,7 +172,7 @@ function answerInfo(s: State, text: string): State {
   if (health) {
     const d = s.devices.find((x) => x.id === health[0])!
     const last = d.readings.at(-1)
-    const disclaimer = 'Cháu không đánh giá được tình trạng sức khỏe; bác có thể hỏi nhân viên hoặc bác sĩ ạ.'
+    const disclaimer = 'Cháu không đánh giá được tình trạng sức khỏe; bác có thể hỏi bác sĩ ạ.'
     if (!last) return sayAi(s, `Chưa có dữ liệu từ ${d.name} (nguồn: thiết bị giả lập). ${disclaimer}`)
     const prefix = deviceStatus(d, s.now) === 'missing' ? `Hiện thiếu dữ liệu mới từ ${d.name}. ` : ''
     return sayAi(s, `${prefix}Lần đo gần nhất của ${d.name}: ${fmtValue(last.value)} ${d.unit} lúc ${fmtTime(last.at)} (nguồn: thiết bị giả lập). ${disclaimer}`)
@@ -190,13 +188,14 @@ function answerInfo(s: State, text: string): State {
 }
 
 export function handoff(s: State): State {
-  const unclear = s.chat.recentMisses.length ? s.chat.recentMisses : ['Người cao tuổi chọn gặp nhân viên']
+  const name = familyName(s)
+  const unclear = s.chat.recentMisses.length ? s.chat.recentMisses : ['Người cao tuổi chọn nhờ con giúp']
   let [out, id] = createEvent(s, {
-    title: 'AI chưa hiểu yêu cầu', detail: 'Cần nhân viên liên hệ trực tiếp với bác.', source: 'ai', priority: 'uncertain',
-    priorityReason: s.chat.recentMisses.length ? 'AI không hiểu sau khi hỏi lại' : 'Người dùng chọn gặp nhân viên', unclear,
+    title: 'AI chưa hiểu yêu cầu', detail: `Cần ${name} gọi lại cho bác.`, source: 'ai', priority: 'uncertain',
+    priorityReason: s.chat.recentMisses.length ? 'AI không hiểu sau khi hỏi lại' : 'Người dùng chọn nhờ con giúp', unclear,
   })
-  out = notify(out, ['ops'], `${id}: AI chưa hiểu yêu cầu, cần nhân viên liên hệ bác.`, 'other', 'ai', id)
-  return sayAi(clearChat(out, { misses: 0, recentMisses: [] }), 'Cháu chuyển bác sang nhân viên CAREBOX nhé. Nhân viên sẽ liên hệ bác sớm ạ.')
+  out = notify(out, `${id}: AI chưa hiểu yêu cầu, cần ${name} gọi lại cho bác.`, 'other', 'ai', id)
+  return sayAi(clearChat(out, { misses: 0, recentMisses: [] }), `Cháu đã báo ${name} gọi lại cho bác ạ.`)
 }
 
 export function startService(s: State, service: ServiceType): State {
@@ -209,7 +208,7 @@ export function handleUtterance(s: State, text: string): State {
   const { intent, service } = classify(text)
   if (intent === 'emergency') {
     out = raiseEmergency(clearChat(out), 'Người dùng báo dấu hiệu khẩn cấp', text.trim(), 'elder')
-    return sayAi(out, 'Cháu đang hướng dẫn gọi 115 và đã báo con gái bác cùng nhân viên CAREBOX.')
+    return sayAi(out, `Cháu đang hướng dẫn gọi 115 và đã báo ${familyName(out)}.`)
   }
   if (intent === 'medical_decision') {
     // Checked before any pending question so a dose request is never stored as a field answer.
@@ -217,7 +216,7 @@ export function handleUtterance(s: State, text: string): State {
       title: 'Yêu cầu vượt phạm vi AI: thay đổi thuốc', detail: text.trim(), source: 'elder', priority: 'normal',
       priorityReason: 'AI không được tự quyết định y tế',
     })
-    return sayAi(out, 'Cháu không thể thay đổi thuốc hay liều. Bác hỏi bác sĩ hoặc dược sĩ nhé; cháu đã báo nhân viên CAREBOX.')
+    return sayAi(out, `Cháu không thể thay đổi thuốc hay liều. Bác hỏi bác sĩ hoặc dược sĩ nhé; cháu đã báo ${familyName(out)}.`)
   }
   const p = out.chat.pending
   const pendingCase = p && reqById(out, p.caseId)
@@ -225,7 +224,7 @@ export function handleUtterance(s: State, text: string): State {
     if (p.stage === 'collect' && p.field) return collect(out, pendingCase, p.field, text)
     return readback(out, pendingCase, text)
   }
-  // The case was cancelled, declined or flagged outside the chat: drop the stale question.
+  // The case was cancelled outside the chat: drop the stale question.
   if (p) out = clearChat(out)
   if (intent === 'unknown') return miss(out, text, 'Bác nói lại ngắn gọn giúp cháu nhé.')
   out = { ...out, chat: { ...out.chat, misses: 0, recentMisses: [] } }
@@ -233,8 +232,8 @@ export function handleUtterance(s: State, text: string): State {
     case 'problem': {
       let id: string
       ;[out, id] = createEvent(out, { title: text.trim(), detail: text.trim(), source: 'elder', priority: 'priority', priorityReason: 'Người cao tuổi báo vấn đề' })
-      out = notify(out, ['family', 'ops'], `Bác báo: “${text.trim()}”. Nhân viên CAREBOX đang xác minh.`, 'health', 'elder', id)
-      return sayAi(out, 'Cháu đã ghi nhận và báo nhân viên CAREBOX xác minh sớm. Nếu bác khó thở hay đau ngực, bác nói ngay để cháu hướng dẫn gọi 115 nhé.')
+      out = notify(out, `Bác báo: “${text.trim()}”. Cần ${familyName(out)} xem và gọi lại cho bác.`, 'health', 'elder', id)
+      return sayAi(out, `Cháu đã ghi nhận và báo ${familyName(out)}. Nếu bác khó thở hay đau ngực, bác nói ngay để cháu hướng dẫn gọi 115 nhé.`)
     }
     case 'info':
       return answerInfo(out, text)

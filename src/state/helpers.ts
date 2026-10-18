@@ -38,7 +38,7 @@ export function createEvent(s: State, e: NewEvent): [State, string] {
   const { log, ...rest } = e
   const c: EventCase = {
     kind: 'event', id, createdAt: s.now, status: 'to_verify', unclear: [], ...rest,
-    history: [{ at: s.now, by: e.source === 'device' ? 'device' : 'ai', text: log ?? 'Tạo cảnh báo, chờ con người xác minh.' }],
+    history: [{ at: s.now, by: e.source === 'device' ? 'device' : 'ai', text: log ?? 'Tạo cảnh báo, chờ gia đình xem.' }],
   }
   return [addCase(out, c), id]
 }
@@ -52,15 +52,13 @@ export function updateCase(s: State, id: string, patch: Partial<Case>, log?: { b
   }
 }
 
-export function notify(s: State, audience: ('family' | 'ops')[], text: string, category: NotifCategory, source: Source, caseId?: string): State {
-  let out = s
-  for (const a of audience) {
-    let id: string
-    ;[out, id] = nextN(out)
-    out = { ...out, notifications: [...out.notifications, { id, at: s.now, audience: a, text, category, source, caseId, read: false }] }
-  }
-  return out
+export function notify(s: State, text: string, category: NotifCategory, source: Source, caseId?: string): State {
+  const [out, id] = nextN(s)
+  return { ...out, notifications: [...out.notifications, { id, at: s.now, text, category, source, caseId, read: false }] }
 }
+
+// The family member who takes over requests and alerts.
+export const familyName = (s: State) => s.family[0].name
 
 export function sayAi(s: State, text: string): State {
   const [out, id] = nextN(s)

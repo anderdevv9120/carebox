@@ -1,12 +1,11 @@
-export type Role = 'elder' | 'family' | 'ops'
+export type Role = 'elder' | 'family'
 export type Screen =
   | 'home' | 'schedule' | 'health' | 'services' | 'requests' | 'chat'
-  | 'f-dashboard' | 'f-profile' | 'f-notifications' | 'f-report'
-  | 'ops-board' | 'ops-case'
+  | 'f-dashboard' | 'f-requests' | 'f-notifications' | 'f-profile' | 'f-report'
 export type Priority = 'normal' | 'priority' | 'emergency' | 'uncertain'
-export type Source = 'device' | 'elder' | 'staff' | 'ai'
+export type Source = 'device' | 'elder' | 'family' | 'ai'
 export type ServiceType = 'medicine' | 'groceries' | 'clinic' | 'daily_help' | 'contact_family' | 'add_reminder'
-export type RequestStatus = 'need_info' | 'await_confirm' | 'await_dispatch' | 'in_progress' | 'done' | 'intervention' | 'refused'
+export type RequestStatus = 'need_info' | 'await_confirm' | 'await_family' | 'in_progress' | 'done' | 'refused'
 export type EventStatus = 'to_verify' | 'handling' | 'resolved'
 export type DeviceStatus = 'normal' | 'attention' | 'missing' | 'suspicious'
 export type ReminderStatus = 'upcoming' | 'due' | 'snoozed' | 'received' | 'cant_do' | 'no_confirm'
@@ -30,11 +29,10 @@ export interface RequestCase extends CaseBase {
   service: ServiceType
   fields: Record<string, string>
   status: RequestStatus
-  verifiedBy?: string
-  assignee?: string
-  cpReport?: { text: string; at: number }
-  familyRespondedAt?: number
+  acceptedAt?: number
   completedAt?: number
+  doneNote?: string
+  doneBy?: string
   closedReason?: string
 }
 
@@ -60,6 +58,7 @@ export interface Reminder {
   respondedAt?: number
   snoozedUntil?: number
   escalated?: boolean
+  daily?: boolean
 }
 
 export type DeviceKind = 'bp' | 'hr' | 'glucose' | 'spo2' | 'fall'
@@ -70,7 +69,6 @@ export type NotifCategory = 'request' | 'health' | 'other'
 export interface Notification {
   id: string
   at: number
-  audience: 'family' | 'ops'
   text: string
   category: NotifCategory
   source: Source
@@ -87,13 +85,10 @@ export interface ChatState {
 }
 
 export interface State {
-  version: 1
+  version: 2
   now: number
-  view: { role: Role; screen: Screen; caseId?: string }
   elder: { name: string; age: number; birthDate: string; phone: string; address: string }
   family: { name: string; relation: string; phone: string }[]
-  staff: string
-  partners: string[]
   reminders: Reminder[]
   devices: Device[]
   cases: Case[]

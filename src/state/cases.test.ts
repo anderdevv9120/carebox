@@ -1,16 +1,16 @@
 import { describe, expect, test } from 'vitest'
 import { seed } from './seed'
 import { reduce, type Action } from './reducer'
-import { MIN, addCase } from './helpers'
+import { MIN, addCase, fmtTime } from './helpers'
 import { effectivePriority, nextOwner } from './cases'
-import type { Case, EventCase, RequestCase, ServiceType, State } from './types'
+import type { EventCase, RequestCase, ServiceType, State } from './types'
 
 const s0 = () => seed(new Date(2026, 9, 18, 12, 0))
 const get = (s: State, id: string) => s.cases.find((c) => c.id === id)!
 const req = (s: State, id: string) => get(s, id) as RequestCase
 const run = (s: State, ...as: Action[]) => as.reduce(reduce, s)
 
-function withRequest(service: ServiceType = 'medicine', status: RequestCase['status'] = 'await_dispatch'): State {
+function withRequest(service: ServiceType = 'medicine', status: RequestCase['status'] = 'await_family'): State {
   const s = s0()
   const c: RequestCase = {
     id: 'CB-010', kind: 'request', service, title: 'Test', detail: '', source: 'elder', priority: 'normal',
@@ -19,43 +19,64 @@ function withRequest(service: ServiceType = 'medicine', status: RequestCase['sta
   return addCase(s, c)
 }
 
-const fullPath: Action[] = [
-  { type: 'ops/verify', id: 'CB-010' },
-  { type: 'ops/assign', id: 'CB-010', partner: 'Anh Tuấn' },
-  { type: 'clock/advance', minutes: 40 },
-  { type: 'ops/cpReport', id: 'CB-010', text: 'Đã mua thuốc và giao tận tay.' },
-  { type: 'clock/advance', minutes: 10 },
-  { type: 'ops/confirmDone', id: 'CB-010' },
-]
+const accept: Action = { type: 'family/accept', id: 'CB-010' }
 
 describe('request workflow', () => {
-  test('happy path: verify → assign → cpReport → confirmDone ends done with completedAt and cpReport.at kept separately', () => {
-    const s = run(withRequest(), ...fullPath)
-    const c = req(s, 'CB-010')
-    expect(c.status).toBe('done')
-    expect(c.verifiedBy).toBe('Chị Hà')
-    expect(c.assignee).toBe('Anh Tuấn')
-    expect(c.completedAt).toBe(s.now)
-    expect(c.cpReport!.at).toBe(s.now - 10 * MIN)
+  test('full family path: await_family → accept → done with note', () => {
+    const s = run(withRequest('medicine'), accept, { type: 'family/done', id: 'CB-010', note: 'Đã mua thuốc' })
+    expect(req(s, 'CB-010')).toMatchObject({ status: 'done', doneNote: 'Đã mua thuốc', doneBy: 'Chị Minh', completedAt: s.now })
+    expect(req(s, 'CB-010').history.at(-1)!.by).toBe('family')
   })
 
-  test('cannot assign before verify', () => {
+  test('accept moves await_family to in_progress and records acceptedAt', () => {
+    const s = reduce(withRequest(), accept)
+    expect(req(s, 'CB-010')).toMatchObject({ status: 'in_progress', acceptedAt: s.now })
+    expect(reduce(s, accept)).toBe(s)
+  })
+
+  test('family cannot act on need_info / await_confirm', () => {
+    for (const status of ['need_info', 'await_confirm'] as const) {
+      const s = withRequest('medicine', status)
+      expect(reduce(s, accept)).toBe(s)
+      expect(reduce(s, { type: 'family/decline', id: 'CB-010', reason: 'Bận' })).toBe(s)
+      expect(reduce(s, { type: 'family/done', id: 'CB-010', note: '' })).toBe(s)
+    }
+  })
+
+  test('done only from in_progress; decline needs non-blank reason', () => {
     const s = withRequest()
-    expect(reduce(s, { type: 'ops/assign', id: 'CB-010', partner: 'Anh Tuấn' })).toBe(s)
+    expect(reduce(s, { type: 'family/done', id: 'CB-010', note: 'x' })).toBe(s)
+    expect(reduce(s, { type: 'family/decline', id: 'CB-010', reason: '  ' })).toBe(s)
+    const declined = reduce(s, { type: 'family/decline', id: 'CB-010', reason: 'Hôm nay con đi công tác' })
+    expect(req(declined, 'CB-010')).toMatchObject({ status: 'refused', closedReason: 'Hôm nay con đi công tác' })
+    const doneNoNote = run(s, accept, { type: 'family/done', id: 'CB-010', note: '  ' })
+    expect(req(doneNoNote, 'CB-010').status).toBe('done')
+    expect(req(doneNoNote, 'CB-010').doneNote).toBeUndefined()
   })
 
-  test('cannot confirmDone without cpReport', () => {
-    const s = run(withRequest(), fullPath[0], fullPath[1], { type: 'ops/confirmDone', id: 'CB-010' })
-    expect(req(s, 'CB-010').status).toBe('in_progress')
+  test('done is not the path for contact_family or add_reminder', () => {
+    for (const service of ['contact_family', 'add_reminder'] as const) {
+      const s = run(withRequest(service), accept)
+      expect(reduce(s, { type: 'family/done', id: 'CB-010', note: '' })).toBe(s)
+    }
   })
 
-  test('illegal transition is a no-op', () => {
-    const done = run(withRequest(), ...fullPath)
-    expect(reduce(done, { type: 'ops/confirmDone', id: 'CB-010' })).toBe(done)
-    const assigned = run(withRequest(), fullPath[0], fullPath[1])
-    const again = reduce(assigned, { type: 'ops/assign', id: 'CB-010', partner: 'Chị Mai' })
-    expect(again).toBe(assigned)
-    expect(again.notifications).toHaveLength(assigned.notifications.length)
+  test('approveReminder adds a daily reminder at HH:MM and completes add_reminder', () => {
+    const s0r = withRequest('add_reminder')
+    expect(reduce(s0r, { type: 'family/approveReminder', id: 'CB-010', time: 'abc' })).toBe(s0r)
+    const s = reduce(s0r, { type: 'family/approveReminder', id: 'CB-010', time: '18:30' })
+    expect(req(s, 'CB-010').status).toBe('done')
+    const added = s.reminders.at(-1)!
+    expect(added).toMatchObject({ id: 'r-CB-010', daily: true, title: 'Nhắc uống nước' })
+    expect(fmtTime(added.dueAt)).toBe('18:30')
+    expect(s.reminders).toHaveLength(s0r.reminders.length + 1)
+  })
+
+  test('contacted completes contact_family from await_family without accept', () => {
+    const s = reduce(withRequest('contact_family'), { type: 'family/contacted', id: 'CB-010' })
+    expect(req(s, 'CB-010')).toMatchObject({ status: 'done', doneBy: 'Chị Minh' })
+    const med = withRequest('medicine')
+    expect(reduce(med, { type: 'family/contacted', id: 'CB-010' })).toBe(med)
   })
 
   test('cancel from need_info → refused, by elder', () => {
@@ -68,58 +89,32 @@ describe('request workflow', () => {
     const s = s0()
     expect(reduce(s, { type: 'request/cancel', id: 'CB-002' })).toBe(s)
   })
-
-  test('decline sets refused with reason', () => {
-    const s = reduce(withRequest(), { type: 'ops/decline', id: 'CB-010', reason: 'Ngoài khu vực phục vụ' })
-    expect(req(s, 'CB-010')).toMatchObject({ status: 'refused', closedReason: 'Ngoài khu vực phục vụ' })
-  })
-
-  test('contact_family needs familyResponded before confirmDone', () => {
-    const verified = run(withRequest('contact_family'), { type: 'ops/verify', id: 'CB-010' })
-    expect(reduce(verified, { type: 'ops/confirmDone', id: 'CB-010' })).toBe(verified)
-    expect(reduce(verified, { type: 'ops/assign', id: 'CB-010', partner: 'Anh Tuấn' })).toBe(verified)
-    const s = run(verified, { type: 'family/responded', id: 'CB-010' }, { type: 'ops/confirmDone', id: 'CB-010' })
-    expect(req(s, 'CB-010').status).toBe('done')
-  })
-
-  test('approveReminder adds a reminder at the given time and sets done', () => {
-    const s0r = withRequest('add_reminder')
-    expect(reduce(s0r, { type: 'ops/approveReminder', id: 'CB-010', time: '20:00' })).toBe(s0r) // must verify first
-    const s = run(s0r, { type: 'ops/verify', id: 'CB-010' }, { type: 'ops/approveReminder', id: 'CB-010', time: '20:00' })
-    expect(req(s, 'CB-010').status).toBe('done')
-    const added = s.reminders.at(-1)!
-    expect(s.reminders).toHaveLength(6)
-    expect(new Date(added.dueAt).getHours()).toBe(20)
-    expect(added.title).toBe('Nhắc uống nước')
-  })
-
-  test('flag/unflag toggles intervention ↔ await_dispatch', () => {
-    const f = reduce(withRequest(), { type: 'ops/flag', id: 'CB-010' })
-    expect(req(f, 'CB-010').status).toBe('intervention')
-    expect(req(reduce(f, { type: 'ops/unflag', id: 'CB-010' }), 'CB-010').status).toBe('await_dispatch')
-  })
 })
 
 describe('event workflow', () => {
   const withEvent = () => run(s0(), { type: 'device/push', deviceId: 'bp', mode: 'high' })
 
-  test('resolveEvent requires a non-blank note', () => {
-    const taken = reduce(withEvent(), { type: 'ops/takeEvent', id: 'EVT-001' })
-    expect(get(taken, 'EVT-001').status).toBe('handling')
-    expect(reduce(taken, { type: 'ops/resolveEvent', id: 'EVT-001', note: '  ' })).toBe(taken)
-    const done = reduce(taken, { type: 'ops/resolveEvent', id: 'EVT-001', note: 'Đã gọi bác, đo lại bình thường theo ngưỡng.' })
-    expect(get(done, 'EVT-001')).toMatchObject({ status: 'resolved', closingNote: 'Đã gọi bác, đo lại bình thường theo ngưỡng.' })
+  test('takeEvent sets handler = family name; resolveEvent needs note and clears s.emergency for that case', () => {
+    const taken = reduce(withEvent(), { type: 'family/takeEvent', id: 'EVT-001' })
+    expect(get(taken, 'EVT-001')).toMatchObject({ status: 'handling', handler: 'Chị Minh' })
+    expect(get(taken, 'EVT-001').history.at(-1)!.by).toBe('family')
+    expect(reduce(taken, { type: 'family/resolveEvent', id: 'EVT-001', note: '  ' })).toBe(taken)
+    const done = reduce(taken, { type: 'family/resolveEvent', id: 'EVT-001', note: 'Đã gọi mẹ, đo lại theo ngưỡng.' })
+    expect(get(done, 'EVT-001')).toMatchObject({ status: 'resolved', closingNote: 'Đã gọi mẹ, đo lại theo ngưỡng.' })
+
+    const em = run(s0(), { type: 'device/fall' }, { type: 'family/takeEvent', id: 'EVT-001' })
+    expect(em.emergency).not.toBeNull()
+    expect(reduce(em, { type: 'family/resolveEvent', id: 'EVT-001', note: 'Đã gọi 115, xe cấp cứu đã đến' }).emergency).toBeNull()
   })
 
-  test('convertEvent resolves the event and creates CB-003 await_dispatch', () => {
-    const s = reduce(withEvent(), { type: 'ops/convertEvent', id: 'EVT-001', service: 'clinic' })
-    expect(get(s, 'EVT-001').status).toBe('resolved')
-    expect(req(s, 'CB-003')).toMatchObject({ status: 'await_dispatch', service: 'clinic', unclear: ['Cần bổ sung chi tiết'] })
+  test('resolveEvent from to_verify is a no-op', () => {
+    const s = withEvent()
+    expect(reduce(s, { type: 'family/resolveEvent', id: 'EVT-001', note: 'x' })).toBe(s)
   })
 })
 
 describe('emergency', () => {
-  test('raiseEmergency sets state.emergency, creates an unacknowledged emergency event and notifies family and ops in one call', () => {
+  test('raiseEmergency sets state.emergency, creates an unacknowledged emergency event and notifies once, naming the daughter', () => {
     const s = s0()
     const out = reduce(s, { type: 'device/fall' })
     const ev = get(out, 'EVT-001') as EventCase
@@ -128,7 +123,8 @@ describe('emergency', () => {
     expect(ev.handler).toBeUndefined()
     expect(ev.history[0].text).toContain('Thông báo tự động chưa có nghĩa là đã có người tiếp nhận')
     const fresh = out.notifications.slice(s.notifications.length)
-    expect(fresh.map((n) => n.audience).sort()).toEqual(['family', 'ops'])
+    expect(fresh).toHaveLength(1)
+    expect(fresh[0].text).toContain('Chị Minh')
   })
 
   test('device/fall raises an emergency', () => {
@@ -137,28 +133,34 @@ describe('emergency', () => {
     expect(out.devices.find((d) => d.id === 'fall')!.readings.at(-1)!.value).toBe('fall')
   })
 
-  test('call115 sets calling, dismiss clears the overlay and keeps the event', () => {
+  test('call115 sets calling once', () => {
     const e = reduce(s0(), { type: 'device/fall' })
     const calling = reduce(e, { type: 'emergency/call115' })
     expect(calling.emergency!.calling).toBe(true)
-    const closed = reduce(calling, { type: 'emergency/dismiss' })
-    expect(closed.emergency).toBeNull()
-    expect(get(closed, 'EVT-001').status).toBe('to_verify')
+    expect(reduce(calling, { type: 'emergency/call115' })).toBe(calling)
   })
 })
 
 describe('derived', () => {
-  test('effectivePriority marks seed CB-001 as priority with the giả định thử nghiệm reason', () => {
-    const s = s0()
-    const p = effectivePriority(get(s, 'CB-001'), s.now)
-    expect(p.priority).toBe('priority')
-    expect(p.reason).toContain('giả định thử nghiệm')
-    expect(effectivePriority(get(s, 'CB-002'), s.now).priority).toBe('normal')
+  test('abandoned: unaccepted request older than 30 min in need_info/await_confirm/await_family → priority "Bỏ ngỏ…"', () => {
+    for (const status of ['need_info', 'await_confirm', 'await_family'] as const) {
+      const s = withRequest('medicine', status)
+      const c = get(s, 'CB-010')
+      expect(effectivePriority(c, s.now + 29 * MIN).priority).toBe('normal')
+      const p = effectivePriority(c, s.now + 31 * MIN)
+      expect(p.priority).toBe('priority')
+      expect(p.reason).toMatch(/^Bỏ ngỏ/)
+      expect(p.reason).toContain('giả định thử nghiệm')
+    }
+    const accepted = run(withRequest(), accept)
+    expect(effectivePriority(get(accepted, 'CB-010'), accepted.now + 31 * MIN).priority).toBe('normal')
   })
 
-  test('nextOwner for in_progress without report names the assignee', () => {
-    const s = run(withRequest(), fullPath[0], fullPath[1])
-    expect(nextOwner(get(s, 'CB-010') as Case, s)).toBe('Care Partner Anh Tuấn')
+  test('nextOwner names the daughter: await_family → "Chị Minh (nhận việc)", to_verify → "Chị Minh (xem và tiếp nhận)"', () => {
+    const s = withRequest()
+    expect(nextOwner(get(s, 'CB-010'), s)).toBe('Chị Minh (nhận việc)')
+    const e = run(s0(), { type: 'device/push', deviceId: 'bp', mode: 'high' })
+    expect(nextOwner(get(e, 'EVT-001'), e)).toBe('Chị Minh (xem và tiếp nhận)')
     expect(nextOwner(get(s, 'CB-002'), s)).toBe('—')
   })
 })

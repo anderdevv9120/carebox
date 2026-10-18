@@ -2,11 +2,12 @@ import { describe, expect, test } from 'vitest'
 import { seed } from './seed'
 import { reduce } from './reducer'
 import { MIN } from './helpers'
-import { reminderStatus } from './reminders'
+import { reminderStatus, sweepReminders } from './reminders'
 import type { EventCase, State } from './types'
 
 const s0 = () => seed(new Date(2026, 9, 18, 12, 0))
 const r1 = (s: State) => s.reminders.find((r) => r.id === 'r1')!
+const atR1 = () => { const s = s0(); return { ...s, now: r1(s).dueAt } }
 const events = (s: State) => s.cases.filter((c): c is EventCase => c.kind === 'event')
 
 describe('reminderStatus', () => {
@@ -23,24 +24,25 @@ describe('reminderStatus', () => {
 
 describe('respond', () => {
   test('snooze sets snoozedUntil = now + 10 min', () => {
-    const s = reduce(s0(), { type: 'clock/nextReminder' })
+    const s = atR1()
     const out = reduce(s, { type: 'reminder/respond', id: 'r1', response: 'snooze' })
     expect(r1(out).snoozedUntil).toBe(s.now + 10 * MIN)
     expect(r1(out).response).toBeUndefined()
   })
 
-  test('cant_do on a medicine reminder creates a priority event with reminderId and notifies family and ops', () => {
-    const s = reduce(s0(), { type: 'clock/nextReminder' })
+  test('cant_do on a medicine reminder creates a priority event with reminderId and notifies the family once', () => {
+    const s = atR1()
     const out = reduce(s, { type: 'reminder/respond', id: 'r1', response: 'cant_do' })
     const ev = events(out)
     expect(ev).toHaveLength(1)
     expect(ev[0]).toMatchObject({ priority: 'priority', reminderId: 'r1', status: 'to_verify' })
     const fresh = out.notifications.slice(s.notifications.length)
-    expect(fresh.map((n) => n.audience).sort()).toEqual(['family', 'ops'])
+    expect(fresh).toHaveLength(1)
+    expect(fresh[0].caseId).toBe(ev[0].id)
   })
 
   test('received records response and respondedAt', () => {
-    const s = reduce(s0(), { type: 'clock/nextReminder' })
+    const s = atR1()
     const out = reduce(s, { type: 'reminder/respond', id: 'r1', response: 'received' })
     expect(r1(out)).toMatchObject({ response: 'received', respondedAt: s.now })
   })
@@ -49,8 +51,8 @@ describe('respond', () => {
 describe('sweep', () => {
   test('sweep escalates a no-response reminder exactly once', () => {
     let s = s0()
-    s = reduce(s, { type: 'clock/advance', minutes: 60 }) // 08:00: r1 (07:30) is no_confirm
-    s = reduce(s, { type: 'clock/advance', minutes: 60 }) // 09:00
+    s = sweepReminders({ ...s, now: s.now + 60 * MIN }) // 08:00: r1 (07:30) is no_confirm
+    s = sweepReminders({ ...s, now: s.now + 60 * MIN }) // 09:00
     const forR1 = events(s).filter((e) => e.reminderId === 'r1')
     expect(forR1).toHaveLength(1)
     expect(forR1[0].priority).toBe('uncertain')
@@ -59,7 +61,8 @@ describe('sweep', () => {
   })
 
   test('sweep never marks a reminder received', () => {
-    const s = reduce(s0(), { type: 'clock/advance', minutes: 600 })
+    const s0v = s0()
+    const s = sweepReminders({ ...s0v, now: s0v.now + 600 * MIN })
     expect(s.reminders.every((r) => r.response === undefined)).toBe(true)
   })
 })

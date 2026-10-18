@@ -4,15 +4,14 @@ import type { DeviceStatus, EventStatus, Priority, ReminderStatus, RequestStatus
 export const REQUEST_STATUS: Record<RequestStatus, string> = {
   need_info: 'Chờ bổ sung thông tin',
   await_confirm: 'Chờ xác nhận',
-  await_dispatch: 'Chờ điều phối',
+  await_family: 'Chờ gia đình nhận',
   in_progress: 'Đang xử lý',
   done: 'Hoàn tất',
-  intervention: 'Cần can thiệp',
   refused: 'Đã từ chối',
 }
 
 export const EVENT_STATUS: Record<EventStatus, string> = {
-  to_verify: 'Cần xác minh',
+  to_verify: 'Cần xem',
   handling: 'Đang xử lý',
   resolved: 'Đã xử lý',
 }
@@ -27,7 +26,7 @@ export const PRIORITY: Record<Priority, string> = {
 export const SOURCE: Record<Source, string> = {
   device: 'Thiết bị (giả lập)',
   elder: 'Người cao tuổi báo',
-  staff: 'Nhân viên xác minh',
+  family: 'Gia đình xác nhận',
   ai: 'AI tổng hợp',
 }
 

@@ -52,9 +52,11 @@ describe('device actions', () => {
     expect(events(out)).toHaveLength(0)
   })
 
-  test('push suspicious creates an uncertain event', () => {
-    const out = reduce(s0(), { type: 'device/push', deviceId: 'spo2', mode: 'suspicious' })
+  test('push suspicious creates an uncertain event and notifies the family', () => {
+    const before = s0()
+    const out = reduce(before, { type: 'device/push', deviceId: 'spo2', mode: 'suspicious' })
     expect(events(out)[0]).toMatchObject({ priority: 'uncertain', title: 'Dữ liệu đáng nghi' })
+    expect(out.notifications.slice(before.notifications.length).map((n) => n.caseId)).toEqual([events(out)[0].id])
   })
 
   test('disconnect creates an uncertain event and status missing', () => {

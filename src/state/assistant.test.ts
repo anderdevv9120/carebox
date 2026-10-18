@@ -56,7 +56,10 @@ describe('handleUtterance', () => {
     expect(newRequest(s).fields).toEqual({ thuoc: 'Thuốc huyết áp', dia_diem: 'Hiệu thuốc Long Châu đầu ngõ', thoi_gian: 'Sáng mai khoảng 9 giờ' })
     expect(lastAi(s)).toContain('đúng không ạ?')
     s = say(s, 'Đúng rồi')
-    expect(newRequest(s).status).toBe('await_dispatch')
+    expect(newRequest(s).status).toBe('await_family')
+    expect(lastAi(s)).toContain('Chị Minh')
+    expect(lastAi(s)).toContain('chưa hoàn tất')
+    expect(s.notifications.at(-1)!.text).toBe('Mua thuốc: chờ Chị Minh nhận việc')
     expect(s.chat.pending).toBeNull()
     expect(s.cases.filter((c) => c.status === 'done').map((c) => c.id)).toEqual(['CB-002'])
   })
@@ -141,6 +144,14 @@ describe('handleUtterance', () => {
 
   test('handoff creates an uncertain event even with no misses', () => {
     const s = reduce(s0(), { type: 'chat/handoff' })
-    expect(newEvents(s)[0]).toMatchObject({ priority: 'uncertain', unclear: ['Người cao tuổi chọn gặp nhân viên'] })
+    expect(newEvents(s)[0]).toMatchObject({ priority: 'uncertain', unclear: ['Người cao tuổi chọn nhờ con giúp'] })
+  })
+
+  test('handoff copy names Chị Minh and never staff', () => {
+    const s = reduce(s0(), { type: 'chat/handoff' })
+    expect(lastAi(s)).toBe('Cháu đã báo Chị Minh gọi lại cho bác ạ.')
+    const copy = [lastAi(s), newEvents(s)[0].detail, s.notifications.at(-1)!.text].join(' ')
+    expect(copy).not.toContain('nhân viên')
+    expect(lastAi(say(s0(), 'abc xyz'))).toContain('Hoặc bác bấm “Nhờ con giúp”.')
   })
 })
