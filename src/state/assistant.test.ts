@@ -4,7 +4,7 @@ import { reduce } from './reducer'
 import { classify, normalize } from './assistant'
 import type { EventCase, RequestCase, State } from './types'
 
-const s0 = () => seed(new Date(2026, 9, 18, 12, 0))
+const s0 = () => seed(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
 const say = (s: State, ...texts: string[]) => texts.reduce((acc, text) => reduce(acc, { type: 'chat/say', text }), s)
 const lastAi = (s: State) => s.chat.messages.filter((m) => m.from === 'ai').at(-1)!.text
 const newCases = (s: State) => s.cases.slice(2)
@@ -122,7 +122,7 @@ describe('handleUtterance', () => {
     const s = say(s0(), 'Huyết áp của bác bao nhiêu?')
     const reply = lastAi(s).toLowerCase()
     expect(reply).toContain('nguồn: thiết bị giả lập')
-    expect(reply).toContain('06:45')
+    expect(reply).toContain('11:00') // latest seeded reading, an hour before reset
     expect(reply).not.toContain('bình thường')
     expect(reply).not.toContain('tốt')
   })

@@ -5,7 +5,7 @@ import { MIN } from './helpers'
 import { deviceStatus, evaluate } from './devices'
 import type { EventCase, State } from './types'
 
-const s0 = () => seed(new Date(2026, 9, 18, 12, 0))
+const s0 = () => seed(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
 const dev = (s: State, id: string) => s.devices.find((d) => d.id === id)!
 const events = (s: State) => s.cases.filter((c): c is EventCase => c.kind === 'event')
 

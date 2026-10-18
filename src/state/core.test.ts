@@ -3,21 +3,20 @@ import { seed } from './seed'
 import { reduce } from './reducer'
 import { MIN, nextCaseId } from './helpers'
 
-const s0 = () => seed(new Date(2026, 9, 18, 12, 0))
+const s0 = () => seed(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
 
 describe('seed', () => {
-  test('seed has 5 daily reminders, 5 devices, CB-001 need_info and CB-002 done, no staff', () => {
+  test('seed has 5 daily reminders plus one one-off, 5 devices, CB-001 need_info and CB-002 done, no staff', () => {
     const s = s0()
     expect(s.version).toBe(2)
-    expect(s.reminders).toHaveLength(5)
-    expect(s.reminders.every((r) => r.daily)).toBe(true)
+    expect(s.reminders).toHaveLength(6)
+    expect(s.reminders.filter((r) => r.daily)).toHaveLength(5)
     expect(s.devices).toHaveLength(5)
     expect(s.cases.find((c) => c.id === 'CB-001')?.status).toBe('need_info')
     expect(s.cases.find((c) => c.id === 'CB-002')).toMatchObject({ status: 'done', doneBy: 'Chị Minh' })
     expect(Object.keys(s)).not.toContain('staff')
     expect(Object.keys(s)).not.toContain('view')
-    expect(new Date(s.now).getHours()).toBe(7)
-    expect(new Date(s.now).getMinutes()).toBe(0)
+    expect(s.now).toBe(Date.UTC(2026, 9, 18, 5, 0))
   })
 })
 
@@ -33,7 +32,7 @@ describe('reduce core', () => {
     const s = s0()
     const moved = reduce({ ...s, now: s.now + 90 * MIN }, { type: 'device/fall' })
     const r = reduce(moved, { type: 'reset' })
-    expect(new Date(r.now).getHours()).toBe(7)
+    expect(r.now).toBe(moved.now)
     expect(r.cases).toHaveLength(2)
     expect(r.emergency).toBeNull()
   })

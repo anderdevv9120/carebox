@@ -1,4 +1,4 @@
-import { MIN, createEvent, familyName, notify, updateCase } from './helpers'
+import { MIN, atVN, createEvent, familyName, notify, updateCase } from './helpers'
 import type { Case, EventCase, Priority, RequestCase, ServiceType, Source, State } from './types'
 
 export const ABANDONED_AFTER = 30 // minutes, "giả định thử nghiệm"
@@ -54,12 +54,6 @@ export function raiseEmergency(s: State, title: string, detail: string, source: 
     `KHẨN CẤP: ${title}. Đang hướng dẫn gọi 115. Cần ${name} xác nhận đã tiếp nhận tình huống.`, 'health', source, id)
 }
 
-const at = (s: State, hhmm: string) => {
-  const [h, m] = hhmm.split(':').map(Number)
-  const d = new Date(s.now)
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m).getTime()
-}
-
 function requestTransition(s: State, c: RequestCase, a: CaseAction): State {
   const name = familyName(s)
   const fam = (text: string) => ({ by: 'family' as const, text })
@@ -86,7 +80,9 @@ function requestTransition(s: State, c: RequestCase, a: CaseAction): State {
     }
     case 'family/approveReminder': {
       if (c.service !== 'add_reminder' || !open || !/^([01]\d|2[0-3]):[0-5]\d$/.test(a.time)) return s
-      const reminder = { id: `r-${c.id}`, dueAt: at(s, a.time), title: c.fields.noi_dung || c.title, note: `${name} duyệt từ yêu cầu ${c.id}`, kind: 'activity' as const, daily: true }
+      // a time already gone today starts tomorrow, so it is not flagged "Chưa có xác nhận" at once
+      const today = atVN(s.now, a.time)
+      const reminder = { id: `r-${c.id}`, dueAt: today > s.now ? today : atVN(s.now, a.time, 1), title: c.fields.noi_dung || c.title, note: `${name} duyệt từ yêu cầu ${c.id}`, kind: 'activity' as const, daily: true }
       return done({}, `${name} duyệt lịch nhắc lúc ${a.time}.`, { ...s, reminders: [...s.reminders, reminder] })
     }
     case 'family/contacted':

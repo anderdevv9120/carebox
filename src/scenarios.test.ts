@@ -5,7 +5,7 @@ import { deviceStatus } from './state/devices'
 import { reminderStatus } from './state/reminders'
 import type { EventCase, RequestCase, State } from './state/types'
 
-const s0 = () => seed(new Date(2026, 9, 18, 12, 0))
+const s0 = () => seed(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
 const say = (text: string): Action => ({ type: 'chat/say', text })
 const clear: Action = { type: 'chat/clear' }
 const run = (s: State, ...as: Action[]) => as.reduce(reduce, s)
@@ -31,7 +31,7 @@ describe('doc §8 scenarios', () => {
   })
 
   test('2 · medicine reminder is due and unchanged', () => {
-    const before = s0()
+    const before = seed(Date.UTC(2026, 9, 18, 0, 0)) // 07:00 Vietnam, before the 07:30 medicine reminder
     const s = { ...before, now: before.reminders.find((r) => r.id === 'r1')!.dueAt }
     expect(reminderStatus(s.reminders.find((r) => r.id === 'r1')!, s.now)).toBe('due')
     expect(s.reminders.map((r) => [r.title, r.note])).toEqual(before.reminders.map((r) => [r.title, r.note]))

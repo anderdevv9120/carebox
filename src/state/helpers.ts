@@ -4,14 +4,36 @@ export const MIN = 60_000
 const pad = (n: number) => String(n).padStart(2, '0')
 const WEEKDAY = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7']
 
+// ponytail: fixed UTC+7, Vietnam has no DST
+export const VN_OFFSET = 7 * 60 * MIN
+// A Date whose UTC fields read as Vietnam wall-clock time.
+const vn = (ms: number) => new Date(ms + VN_OFFSET)
+
 export function fmtTime(ms: number): string {
-  const d = new Date(ms)
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+  const d = vn(ms)
+  return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
 }
 
 export function fmtDate(ms: number): string {
-  const d = new Date(ms)
-  return `${WEEKDAY[d.getDay()]}, ${d.getDate()} tháng ${d.getMonth() + 1}`
+  const d = vn(ms)
+  return `${WEEKDAY[d.getUTCDay()]}, ${d.getUTCDate()} tháng ${d.getUTCMonth() + 1}`
+}
+
+export function fmtDayMonth(ms: number): string {
+  const d = vn(ms)
+  return `${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)}`
+}
+
+export function vnDay(ms: number): string {
+  const d = vn(ms)
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`
+}
+
+// HH:MM on the Vietnam date of `ms`, shifted by `dayOffset` days.
+export function atVN(ms: number, hhmm: string, dayOffset = 0): number {
+  const [h, m] = hhmm.split(':').map(Number)
+  const d = vn(ms)
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + dayOffset, h, m) - VN_OFFSET
 }
 
 export const fmtValue = (v: Reading['value']) => (Array.isArray(v) ? `${v[0]}/${v[1]}` : v === 'fall' ? 'Té ngã' : String(v))

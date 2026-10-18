@@ -86,7 +86,9 @@ export interface ChatState {
 
 export interface State {
   version: 2
+  rev: number // bumped on every save; clients keep the higher one
   now: number
+  day: string // Vietnam date (YYYY-MM-DD) the reminder schedule belongs to
   elder: { name: string; age: number; birthDate: string; phone: string; address: string }
   family: { name: string; relation: string; phone: string }[]
   reminders: Reminder[]

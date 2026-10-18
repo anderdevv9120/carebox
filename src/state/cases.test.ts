@@ -5,7 +5,7 @@ import { MIN, addCase, fmtTime } from './helpers'
 import { effectivePriority, nextOwner } from './cases'
 import type { EventCase, RequestCase, ServiceType, State } from './types'
 
-const s0 = () => seed(new Date(2026, 9, 18, 12, 0))
+const s0 = () => seed(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
 const get = (s: State, id: string) => s.cases.find((c) => c.id === id)!
 const req = (s: State, id: string) => get(s, id) as RequestCase
 const run = (s: State, ...as: Action[]) => as.reduce(reduce, s)

@@ -5,7 +5,7 @@ import { classify } from './assistant'
 import { nextOwner } from './cases'
 import type { EventCase, RequestCase, State } from './types'
 
-const s0 = () => seed(new Date(2026, 9, 18, 12, 0))
+const s0 = () => seed(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
 const run = (s: State, ...as: Action[]) => as.reduce(reduce, s)
 const say = (text: string): Action => ({ type: 'chat/say', text })
 const newRequest = (s: State) => s.cases.slice(2).find((c): c is RequestCase => c.kind === 'request')!

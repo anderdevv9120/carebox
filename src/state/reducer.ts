@@ -22,7 +22,7 @@ export type Action =
 export function reduce(s: State, a: Action): State {
   switch (a.type) {
     case 'reset':
-      return seed(new Date(s.now))
+      return seed(s.now)
     case 'reminder/respond':
       return respondReminder(s, a.id, a.response)
     case 'device/push':
