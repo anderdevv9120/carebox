@@ -1,4 +1,4 @@
-import type { Case, NotifCategory, Source, State } from './types'
+import type { Case, EventCase, NotifCategory, Source, State } from './types'
 
 export const MIN = 60_000
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -26,6 +26,19 @@ function nextN(s: State): [State, string] {
 
 export function addCase(s: State, c: Case): State {
   return { ...s, cases: [...s.cases, c] }
+}
+
+type NewEvent = Pick<EventCase, 'title' | 'detail' | 'priority' | 'priorityReason' | 'source'> &
+  Partial<Pick<EventCase, 'deviceId' | 'reminderId' | 'unclear' | 'status' | 'handler'>> & { log?: string }
+
+export function createEvent(s: State, e: NewEvent): [State, string] {
+  const [out, id] = nextCaseId(s, 'event')
+  const { log, ...rest } = e
+  const c: EventCase = {
+    kind: 'event', id, createdAt: s.now, status: 'to_verify', unclear: [], ...rest,
+    history: [{ at: s.now, by: e.source === 'device' ? 'device' : 'ai', text: log ?? 'Tạo cảnh báo, chờ con người xác minh.' }],
+  }
+  return [addCase(out, c), id]
 }
 
 export function updateCase(s: State, id: string, patch: Partial<Case>, log?: { by: Source; text: string }): State {
