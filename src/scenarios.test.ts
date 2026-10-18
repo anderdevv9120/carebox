@@ -73,7 +73,7 @@ describe('doc §8 scenarios', () => {
     const s = reduce(s0(), chatAction)
     expect(s.emergency).not.toBeNull()
     const ev = events(s).find((e) => e.priority === 'emergency')!
-    expect(ev.status).toBe('handling')
+    expect(ev.status).toBe('to_verify')
     const audiences = s.notifications.filter((n) => n.caseId === ev.id).map((n) => n.audience).sort()
     expect(audiences).toEqual(['family', 'ops'])
   })

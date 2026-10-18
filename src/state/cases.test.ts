@@ -119,12 +119,13 @@ describe('event workflow', () => {
 })
 
 describe('emergency', () => {
-  test('raiseEmergency sets state.emergency, creates a handling emergency event and notifies family and ops in one call', () => {
+  test('raiseEmergency sets state.emergency, creates an unacknowledged emergency event and notifies family and ops in one call', () => {
     const s = s0()
     const out = reduce(s, { type: 'device/fall' })
     const ev = get(out, 'EVT-001') as EventCase
     expect(out.emergency).toEqual({ caseId: 'EVT-001', calling: false })
-    expect(ev).toMatchObject({ priority: 'emergency', status: 'handling', handler: 'Chị Hà' })
+    expect(ev).toMatchObject({ priority: 'emergency', status: 'to_verify' })
+    expect(ev.handler).toBeUndefined()
     expect(ev.history[0].text).toContain('Thông báo tự động chưa có nghĩa là đã có người tiếp nhận')
     const fresh = out.notifications.slice(s.notifications.length)
     expect(fresh.map((n) => n.audience).sort()).toEqual(['family', 'ops'])
@@ -142,7 +143,7 @@ describe('emergency', () => {
     expect(calling.emergency!.calling).toBe(true)
     const closed = reduce(calling, { type: 'emergency/dismiss' })
     expect(closed.emergency).toBeNull()
-    expect(get(closed, 'EVT-001').status).toBe('handling')
+    expect(get(closed, 'EVT-001').status).toBe('to_verify')
   })
 })
 

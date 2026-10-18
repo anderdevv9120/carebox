@@ -34,7 +34,7 @@ export function effectivePriority(c: Case, now: number): { priority: Priority; r
 
 export function nextOwner(c: Case, s: State): string {
   if (c.kind === 'event') {
-    if (c.status === 'to_verify') return 'Nhân viên điều phối'
+    if (c.status === 'to_verify') return c.priority === 'emergency' ? 'Nhân viên điều phối (xác nhận tiếp nhận)' : 'Nhân viên điều phối'
     if (c.status === 'handling') return c.handler ?? s.staff
     return '—'
   }
@@ -52,7 +52,7 @@ export function nextOwner(c: Case, s: State): string {
 
 export function raiseEmergency(s: State, title: string, detail: string, source: Source): State {
   const [out, id] = createEvent(s, {
-    title, detail, source, priority: 'emergency', priorityReason: 'Dấu hiệu khẩn cấp', status: 'handling', handler: s.staff,
+    title, detail, source, priority: 'emergency', priorityReason: 'Dấu hiệu khẩn cấp',
     log: 'Hướng dẫn gọi 115; đã thông báo gia đình và đầu mối CAREBOX. Thông báo tự động chưa có nghĩa là đã có người tiếp nhận.',
   })
   return notify({ ...out, emergency: { caseId: id, calling: false } }, ['family', 'ops'],
@@ -124,17 +124,19 @@ function eventTransition(s: State, c: EventCase, a: CaseAction): State {
     case 'ops/resolveEvent': {
       const note = a.note.trim()
       if (c.status !== 'handling' || !note) return s
-      return notify(updateCase(s, c.id, { status: 'resolved', closingNote: note }, { by: 'staff', text: `Đóng sự kiện: ${note}` }),
+      const out = s.emergency?.caseId === c.id ? { ...s, emergency: null } : s
+      return notify(updateCase(out, c.id, { status: 'resolved', closingNote: note }, { by: 'staff', text: `Đóng sự kiện: ${note}` }),
         ['family'], `${c.title}: nhân viên đã xử lý. Ghi chú: ${note}`, 'other', 'staff', c.id)
     }
     case 'ops/convertEvent': {
-      if (isFinal(c)) return s
+      // an emergency closes only with a note saying who took over
+      if (isFinal(c) || c.priority === 'emergency') return s
       let out = updateCase(s, c.id, { status: 'resolved', closingNote: `Chuyển thành yêu cầu ${SERVICE[a.service]}` }, { by: 'staff', text: `Chuyển thành yêu cầu ${SERVICE[a.service]}.` })
       let id: string
       ;[out, id] = nextCaseId(out, 'request')
       const r: RequestCase = {
         id, kind: 'request', service: a.service, title: SERVICE[a.service], detail: `Tạo từ sự kiện ${c.id}: ${c.title}`,
-        source: 'staff', priority: c.priority === 'emergency' ? 'priority' : c.priority === 'uncertain' ? 'normal' : c.priority,
+        source: 'staff', priority: c.priority === 'uncertain' ? 'normal' : c.priority,
         priorityReason: `Từ sự kiện ${c.id}`, createdAt: s.now, fields: {}, status: 'await_dispatch', unclear: ['Cần bổ sung chi tiết'],
         history: [{ at: s.now, by: 'staff', text: `Tạo từ sự kiện ${c.id}.` }],
       }

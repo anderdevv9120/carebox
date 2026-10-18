@@ -5,10 +5,17 @@ import type { State } from './types'
 
 export const STORAGE_KEY = 'carebox-demo-v1'
 
+// ponytail: shallow shape check, not a schema; bump `version` when the State shape changes.
+function looksLikeState(v: unknown): v is State {
+  const s = v as State
+  return !!s && typeof s === 'object' && s.version === 1 && typeof s.now === 'number' && !!s.view && !!s.elder &&
+    [s.cases, s.reminders, s.devices, s.notifications, s.family, s.partners, s.chat?.messages].every(Array.isArray)
+}
+
 export function loadState(raw: string | null, today: Date): State {
   try {
     const parsed = raw ? JSON.parse(raw) : null
-    if (parsed && typeof parsed === 'object' && parsed.version === 1) return parsed as State
+    if (looksLikeState(parsed)) return parsed
   } catch {
     // corrupt storage: fall through to a fresh seed
   }

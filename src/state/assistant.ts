@@ -22,7 +22,10 @@ const has = (words: string, kws: string[]) => kws.some((k) => ` ${words} `.inclu
 
 // ponytail: keyword rules stand in for the real NLU; good enough to demo routing, not to understand people.
 const KW = {
-  emergency: ['dau nguc', 'kho tho', 'nga', 'te nga', 'bat tinh', 'ngat', 'dot quy', 'meo mieng', 'cap cuu', 'cuu voi'],
+  emergency: [
+    'dau nguc', 'tuc nguc', 'dau tim', 'kho tho', 'khong tho duoc', 'tho khong duoc', 'tho khong noi', 'nga', 'te nga', 'bi te',
+    'te xuong', 'bat tinh', 'ngat', 'co giat', 'dot quy', 'meo mieng', 'te nua nguoi', 'chay mau', 'cap cuu', 'cuu',
+  ],
   medical_decision: ['doi lieu', 'tang lieu', 'giam lieu', 'ke don', 'bo thuoc', 'uong them thuoc', 'doi thuoc'],
   problem: ['het thuoc', 'met', 'chong mat', 'dau dau', 'sot', 'khong khoe', 'buon non'],
   reminder: ['nhac', 'dat lich nhac'],
@@ -36,8 +39,11 @@ const SERVICE_KW: [ServiceType, string[]][] = [
   ['daily_help', ['don dep', 'giat', 'ho tro sinh hoat', 'tham']],
 ]
 
+// "ngã ba/tư/năm/sáu" are road junctions in addresses, not falls.
+const JUNCTION = /\bnga (ba|tu|nam|sau)\b/g
+
 export function classify(text: string): { intent: Intent; service?: ServiceType } {
-  const w = normalize(text)
+  const w = normalize(text).replace(JUNCTION, ' ')
   if (has(w, KW.emergency)) return { intent: 'emergency' }
   if (has(w, KW.medical_decision)) return { intent: 'medical_decision' }
   if (has(w, KW.problem)) return { intent: 'problem' }
@@ -205,22 +211,25 @@ export function handleUtterance(s: State, text: string): State {
     out = raiseEmergency(clearChat(out), 'Người dùng báo dấu hiệu khẩn cấp', text.trim(), 'elder')
     return sayAi(out, 'Cháu đang hướng dẫn gọi 115 và đã báo con gái bác cùng nhân viên CAREBOX.')
   }
-  const p = out.chat.pending
-  if (p) {
-    const c = reqById(out, p.caseId)
-    if (p.stage === 'collect' && p.field) return collect(out, c, p.field, text)
-    return readback(out, c, text)
+  if (intent === 'medical_decision') {
+    // Checked before any pending question so a dose request is never stored as a field answer.
+    ;[out] = createEvent(clearChat(out, { misses: 0, recentMisses: [] }), {
+      title: 'Yêu cầu vượt phạm vi AI: thay đổi thuốc', detail: text.trim(), source: 'elder', priority: 'normal',
+      priorityReason: 'AI không được tự quyết định y tế',
+    })
+    return sayAi(out, 'Cháu không thể thay đổi thuốc hay liều. Bác hỏi bác sĩ hoặc dược sĩ nhé; cháu đã báo nhân viên CAREBOX.')
   }
+  const p = out.chat.pending
+  const pendingCase = p && reqById(out, p.caseId)
+  if (p && pendingCase && ['need_info', 'await_confirm'].includes(pendingCase.status)) {
+    if (p.stage === 'collect' && p.field) return collect(out, pendingCase, p.field, text)
+    return readback(out, pendingCase, text)
+  }
+  // The case was cancelled, declined or flagged outside the chat: drop the stale question.
+  if (p) out = clearChat(out)
   if (intent === 'unknown') return miss(out, text, 'Bác nói lại ngắn gọn giúp cháu nhé.')
   out = { ...out, chat: { ...out.chat, misses: 0, recentMisses: [] } }
   switch (intent) {
-    case 'medical_decision': {
-      ;[out] = createEvent(out, {
-        title: 'Yêu cầu vượt phạm vi AI: thay đổi thuốc', detail: text.trim(), source: 'elder', priority: 'normal',
-        priorityReason: 'AI không được tự quyết định y tế',
-      })
-      return sayAi(out, 'Cháu không thể thay đổi thuốc hay liều. Bác hỏi bác sĩ hoặc dược sĩ nhé; cháu đã báo nhân viên CAREBOX.')
-    }
     case 'problem': {
       let id: string
       ;[out, id] = createEvent(out, { title: text.trim(), detail: text.trim(), source: 'elder', priority: 'priority', priorityReason: 'Người cao tuổi báo vấn đề' })

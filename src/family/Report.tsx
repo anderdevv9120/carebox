@@ -23,7 +23,7 @@ export function Report() {
         <p className="small">Hôm nay tiếp nhận {receivedToday} yêu cầu · {done.length} đã hoàn tất (nhân viên xác nhận) · {open.length} đang mở.</p>
         {open.map((c) => (
           <div key={c.id} className="row between wrap small line">
-            <span>{c.title} — <span className="muted">{nextOwner(c, state)}</span></span>
+            <span>{c.title} — <span className="muted">{nextOwner(c, state)}</span> <SourceTag source={c.source} /></span>
             <StatusBadge c={c} />
           </div>
         ))}
@@ -46,7 +46,7 @@ export function Report() {
         {alerts.map((c) => (
           <div key={c.id} className="line small">
             <div className="row between wrap"><span>{c.title}</span><PriorityBadge c={c} now={state.now} /></div>
-            <div className="muted">Bước tiếp theo: {nextOwner(c, state)} xác minh · <SourceTag source={c.source} /></div>
+            <div className="muted">Bước tiếp theo: {nextOwner(c, state)} · <SourceTag source={c.source} /></div>
           </div>
         ))}
       </section>

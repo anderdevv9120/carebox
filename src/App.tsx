@@ -5,7 +5,8 @@ import { EmergencyOverlay } from './ui/EmergencyOverlay'
 import { ScenarioPanel } from './ui/ScenarioPanel'
 import { useStore } from './state/store'
 import { fmtTime } from './state/helpers'
-import type { Role, Screen } from './state/types'
+import { isFinal } from './state/cases'
+import type { EventCase, Role, Screen } from './state/types'
 import { Home } from './elder/Home'
 import { Schedule } from './elder/Schedule'
 import { Health } from './elder/Health'
@@ -45,6 +46,8 @@ export default function App() {
   const { role, screen } = state.view
   const go = (s: Screen) => dispatch({ type: 'nav', screen: s })
   const time = fmtTime(state.now)
+  // Banner follows the open emergency event, not the elder's overlay: closing the overlay acknowledges nothing.
+  const openEmergency = state.cases.find((c): c is EventCase => c.kind === 'event' && c.priority === 'emergency' && !isFinal(c))
 
   let stage: ReactNode
   if (role === 'elder') {
@@ -99,10 +102,13 @@ export default function App() {
       </header>
       <div className="layout">
         <main className="stage">
-          {role !== 'elder' && state.emergency && (
+          {role !== 'elder' && openEmergency && (
             <div className="emergency-banner">
-              <span>🚨 Tình huống khẩn cấp đang diễn ra ({state.emergency.caseId}) — cần người xác nhận đã tiếp nhận.</span>
-              <button onClick={() => dispatch({ type: 'nav', role: 'ops', screen: 'ops-case', caseId: state.emergency!.caseId })}>Xem</button>
+              <span>
+                🚨 Khẩn cấp {openEmergency.id}: {openEmergency.title} —{' '}
+                {openEmergency.status === 'to_verify' ? 'chưa có người xác nhận tiếp nhận.' : `${openEmergency.handler} đang xử lý, chưa đóng.`}
+              </span>
+              <button onClick={() => dispatch({ type: 'nav', role: 'ops', screen: 'ops-case', caseId: openEmergency.id })}>Xem</button>
             </div>
           )}
           {stage}

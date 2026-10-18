@@ -74,6 +74,7 @@ export function Dashboard() {
       {openEvents.map((c) => (
         <div key={c.id} className="card">
           <div className="row between wrap"><b>{c.title}</b><PriorityBadge c={c} now={state.now} /></div>
+          <SourceTag source={c.source} />
           <div className="small">{c.detail}</div>
           <div className="row between wrap small" style={{ marginTop: 6 }}>
             <span><span className="muted">Tiếp theo:</span> {nextOwner(c, state)}</span>
@@ -87,7 +88,7 @@ export function Dashboard() {
         <div key={c.id} className="card row between wrap">
           <div className="grow">
             <b>{c.title}</b>
-            <div className="muted small">{c.id} · Phụ trách: {nextOwner(c, state)}</div>
+            <div className="muted small">{c.id} · Phụ trách: {nextOwner(c, state)} <SourceTag source={c.source} /></div>
           </div>
           <StatusBadge c={c} />
         </div>
