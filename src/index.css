@@ -1,0 +1,99 @@
+:root {
+  --bg: #fff8ec;
+  --bg-deep: #fdebc8;
+  --card: #ffffff;
+  --primary: #f5a623;
+  --primary-deep: #e8891c;
+  --primary-soft: #fff1d6;
+  --text: #3a2a12;
+  --muted: #8a7458;
+  --line: #f1e3c8;
+  --ok: #3ba55d;
+  --ok-soft: #e6f5ea;
+  --alert: #e5484d;
+  --alert-soft: #fde8e8;
+  --attn: #f2b33d;
+  --attn-soft: #fff4dc;
+  --unsure: #7c6fd6;
+  --unsure-soft: #eeecfb;
+  --radius: 18px;
+  --shadow: 0 6px 24px rgba(140, 90, 20, 0.12);
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 20% 0%, #fff3dc, var(--bg) 60%); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+h1, h2, h3, p { margin: 0; }
+
+/* ---------- app shell ---------- */
+.app { max-width: 1440px; margin: 0 auto; padding: 16px; }
+.app-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-bottom: 16px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-logo { font-size: 30px; }
+.brand-name { font-size: 26px; font-weight: 800; letter-spacing: 0.5px; }
+.brand-tag { font-size: 13px; color: var(--muted); }
+.demo-note { font-size: 12px; background: var(--attn-soft); border: 1px dashed var(--attn); border-radius: 999px; padding: 4px 12px; }
+.role-switch { display: flex; gap: 4px; background: var(--card); border-radius: 999px; padding: 4px; box-shadow: var(--shadow); margin-left: auto; }
+.role-switch button { border: 0; background: transparent; padding: 8px 16px; border-radius: 999px; font-weight: 600; }
+.role-switch button.active { background: var(--primary); color: #fff; }
+.layout { display: grid; gap: 20px; grid-template-columns: 1fr; justify-items: center; }
+@media (min-width: 1100px) {
+  .layout { grid-template-columns: 1fr 380px; align-items: start; }
+}
+.stage { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.emergency-banner { width: 100%; max-width: 960px; background: var(--alert); color: #fff; border-radius: 14px; padding: 12px 16px; display: flex; gap: 12px; align-items: center; justify-content: space-between; font-weight: 600; }
+.emergency-banner button { background: #fff; color: var(--alert); border: 0; border-radius: 10px; padding: 6px 12px; font-weight: 700; }
+
+/* ---------- phone frame ---------- */
+.phone { width: 390px; max-width: 100%; height: 800px; background: var(--bg); border-radius: 44px; border: 10px solid #2b2118; box-shadow: var(--shadow); position: relative; display: flex; flex-direction: column; overflow: hidden; }
+.phone-status { display: flex; justify-content: space-between; align-items: center; padding: 10px 22px 4px; font-size: 13px; font-weight: 700; }
+.phone-notch { width: 110px; height: 24px; background: #2b2118; border-radius: 0 0 16px 16px; position: absolute; top: 0; left: 50%; transform: translateX(-50%); }
+.demo-chip { font-size: 10px; font-weight: 600; background: var(--attn-soft); color: var(--primary-deep); border-radius: 999px; padding: 2px 8px; }
+.phone-body { flex: 1; overflow-y: auto; padding: 8px 16px 16px; position: relative; }
+.screen-title { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 700; margin: 6px 0 12px; }
+.back { border: 0; background: transparent; font-size: 22px; padding: 0 4px; }
+
+/* ---------- tab bar ---------- */
+.tabbar { display: flex; border-top: 1px solid var(--line); background: #fff; padding: 6px 4px 10px; }
+.tabbar button { flex: 1; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--muted); padding: 4px 0; min-height: 48px; position: relative; }
+.tabbar button .ico { font-size: 20px; }
+.tabbar button.active { color: var(--primary-deep); font-weight: 700; }
+.tabbar .dot { position: absolute; top: 0; right: 22%; background: var(--alert); color: #fff; border-radius: 999px; font-size: 10px; padding: 0 5px; }
+
+/* ---------- common ---------- */
+.card { background: var(--card); border-radius: var(--radius); padding: 14px; box-shadow: 0 2px 10px rgba(140, 90, 20, 0.07); margin-bottom: 12px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.between { justify-content: space-between; }
+.wrap { flex-wrap: wrap; }
+.grow { flex: 1; min-width: 0; }
+.muted { color: var(--muted); font-size: 13px; }
+.small { font-size: 12px; }
+.bold { font-weight: 700; }
+.stack > * + * { margin-top: 8px; }
+.btn { border: 0; border-radius: 14px; padding: 10px 16px; font-weight: 700; background: var(--primary); color: #fff; min-height: 44px; }
+.btn.ghost { background: var(--primary-soft); color: var(--primary-deep); }
+.btn.danger { background: var(--alert); }
+.btn.ok { background: var(--ok); }
+.btn.sm { padding: 6px 12px; min-height: 34px; font-size: 13px; border-radius: 10px; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.input { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: #fff; }
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.tabs button { border: 0; border-radius: 999px; padding: 6px 14px; background: #fff; font-weight: 600; font-size: 13px; }
+.tabs button.active { background: var(--primary); color: #fff; }
+.badge { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.b-ok { background: var(--ok-soft); color: var(--ok); }
+.b-attn { background: var(--attn-soft); color: #b07400; }
+.b-alert { background: var(--alert-soft); color: var(--alert); }
+.b-unsure { background: var(--unsure-soft); color: var(--unsure); }
+.b-neutral { background: #f3efe8; color: var(--muted); }
+.source { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; white-space: nowrap; }
+.icon-circle { width: 44px; height: 44px; border-radius: 14px; background: var(--primary-soft); display: grid; place-items: center; font-size: 22px; flex-shrink: 0; }
+.empty { text-align: center; color: var(--muted); padding: 24px 8px; font-size: 14px; }
+.timeline { list-style: none; padding: 0; margin: 8px 0 0; border-left: 2px solid var(--line); }
+.timeline li { padding: 0 0 8px 12px; position: relative; font-size: 13px; }
+.timeline li::before { content: ''; width: 8px; height: 8px; background: var(--primary); border-radius: 50%; position: absolute; left: -5px; top: 5px; }
