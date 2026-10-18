@@ -19,6 +19,7 @@ export type Action =
   | { type: 'chat/say'; text: string }
   | { type: 'chat/startService'; service: ServiceType }
   | { type: 'chat/handoff' }
+  | { type: 'chat/clear' }
   | { type: 'notif/readAll'; audience: 'family' | 'ops' }
   | CaseAction
 
@@ -58,6 +59,9 @@ export function reduce(s: State, a: Action): State {
       return startService(s, a.service)
     case 'chat/handoff':
       return handoff(s)
+    case 'chat/clear':
+      // leaves any half-collected request on the board in its current status
+      return { ...s, chat: { ...s.chat, pending: null, misses: 0, recentMisses: [] } }
     case 'notif/readAll':
       if (!s.notifications.some((n) => n.audience === a.audience && !n.read)) return s
       return { ...s, notifications: s.notifications.map((n) => (n.audience === a.audience ? { ...n, read: true } : n)) }

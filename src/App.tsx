@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { PhoneFrame } from './ui/PhoneFrame'
 import { TabBar } from './ui/TabBar'
 import { EmergencyOverlay } from './ui/EmergencyOverlay'
+import { ScenarioPanel } from './ui/ScenarioPanel'
 import { useStore } from './state/store'
 import { fmtTime } from './state/helpers'
 import type { Role, Screen } from './state/types'
@@ -106,7 +107,7 @@ export default function App() {
           )}
           {stage}
         </main>
-        <aside />
+        <ScenarioPanel />
       </div>
     </div>
   )

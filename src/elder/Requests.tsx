@@ -43,7 +43,7 @@ export function RequestCard({ c, s, onCancel }: { c: RequestCase; s: State; onCa
 
 export function Requests() {
   const { state, dispatch } = useStore()
-  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('open')
+  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('all')
   const keep = TABS.find((t) => t.id === tab)!.keep
   const list = state.cases.filter((c): c is RequestCase => c.kind === 'request').filter(keep).sort((a, b) => b.createdAt - a.createdAt)
   return (
