@@ -3,7 +3,8 @@ import { seed } from './seed'
 import { respondReminder, sweepReminders } from './reminders'
 import { disconnect, pushReading, reconnect, reportFall } from './devices'
 import { transition, type CaseAction } from './cases'
-import type { DeviceKind, Role, Screen, State } from './types'
+import { handleUtterance, handoff, startService } from './assistant'
+import type { DeviceKind, Role, Screen, ServiceType, State } from './types'
 
 export type Action =
   | { type: 'reset' }
@@ -15,6 +16,9 @@ export type Action =
   | { type: 'device/disconnect'; deviceId: DeviceKind }
   | { type: 'device/reconnect'; deviceId: DeviceKind }
   | { type: 'device/fall' }
+  | { type: 'chat/say'; text: string }
+  | { type: 'chat/startService'; service: ServiceType }
+  | { type: 'chat/handoff' }
   | CaseAction
 
 const HOME: Record<Role, Screen> = { elder: 'home', family: 'f-dashboard', ops: 'ops-board' }
@@ -47,6 +51,12 @@ export function reduce(s: State, a: Action): State {
       return reconnect(s, a.deviceId)
     case 'device/fall':
       return reportFall(s)
+    case 'chat/say':
+      return handleUtterance(s, a.text)
+    case 'chat/startService':
+      return startService(s, a.service)
+    case 'chat/handoff':
+      return handoff(s)
     default:
       return transition(s, a)
   }
