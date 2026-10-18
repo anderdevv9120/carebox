@@ -19,7 +19,9 @@ export function EmergencyOverlay() {
       <button className="btn ghost-white" title="Mô phỏng, không gọi thật">
         Gọi {daughter.name} ({daughter.relation.toLowerCase()})
       </button>
-      <p className="emergency-note">Đã thông báo gia đình và nhân viên CAREBOX. Thông báo tự động chưa có nghĩa là đã có người tiếp nhận.</p>
+      {c?.kind === 'event' && c.status === 'handling'
+        ? <p className="emergency-ack">✅ {c.handler} đã nhận được và đang xử lý.</p>
+        : <p className="emergency-note">Đã thông báo {daughter.name}. Thông báo tự động chưa có nghĩa là đã có người tiếp nhận.</p>}
       <button className="emergency-close" onClick={() => dispatch({ type: 'emergency/dismiss' })}>Đóng</button>
     </div>
   )

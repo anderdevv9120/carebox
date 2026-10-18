@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { seed } from './seed'
 import { reduce, type Action } from './reducer'
 import { MIN, addCase, fmtTime } from './helpers'
-import { effectivePriority, nextOwner } from './cases'
+import { effectivePriority, familyQueue, isAbandoned, nextOwner } from './cases'
 import type { EventCase, RequestCase, ServiceType, State } from './types'
 
 const s0 = () => seed(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
@@ -162,5 +162,35 @@ describe('derived', () => {
     const e = run(s0(), { type: 'device/push', deviceId: 'bp', mode: 'high' })
     expect(nextOwner(get(e, 'EVT-001'), e)).toBe('Chị Minh (xem và tiếp nhận)')
     expect(nextOwner(get(s, 'CB-002'), s)).toBe('—')
+  })
+})
+
+describe('familyQueue: the daughter\'s "Yêu cầu của mẹ" list', () => {
+  const ev = (id: string, priority: EventCase['priority'], createdAt: number, status: EventCase['status'] = 'to_verify'): EventCase => ({
+    id, kind: 'event', title: id, detail: '', source: 'device', priority, priorityReason: '', createdAt, history: [], unclear: [], status,
+  })
+  const rq = (id: string, createdAt: number, status: RequestCase['status']): RequestCase => ({
+    id, kind: 'request', service: 'medicine', title: id, detail: '', source: 'elder', priority: 'normal', priorityReason: '',
+    createdAt, history: [], unclear: [], fields: {}, status,
+  })
+
+  test('open alerts sort by priority (emergency > priority > uncertain > normal), then oldest first; closed ones are left out', () => {
+    const t = Date.UTC(2026, 9, 18, 5, 0)
+    const s = { ...s0(), now: t, cases: [
+      ev('E-normal', 'normal', t - 50 * MIN), ev('E-unsure', 'uncertain', t - 40 * MIN), ev('E-prio-new', 'priority', t - 5 * MIN),
+      ev('E-sos', 'emergency', t - 1 * MIN), ev('E-prio-old', 'priority', t - 20 * MIN), ev('E-done', 'emergency', t, 'resolved'),
+    ] }
+    expect(familyQueue(s).alerts.map((c) => c.id)).toEqual(['E-sos', 'E-prio-old', 'E-prio-new', 'E-unsure', 'E-normal'])
+  })
+
+  test('open requests: abandoned (Bỏ ngỏ) first, then oldest first; every open status is listed, final ones are not', () => {
+    const t = Date.UTC(2026, 9, 18, 5, 0)
+    const s = { ...s0(), now: t, cases: [
+      rq('R-progress-old', t - 90 * MIN, 'in_progress'), rq('R-confirm', t - 10 * MIN, 'await_confirm'),
+      rq('R-abandoned', t - 40 * MIN, 'need_info'), rq('R-family', t - 20 * MIN, 'await_family'), rq('R-done', t - 99 * MIN, 'done'),
+    ] }
+    expect(familyQueue(s).requests.map((c) => c.id)).toEqual(['R-abandoned', 'R-progress-old', 'R-family', 'R-confirm'])
+    expect(isAbandoned(s.cases[2], t)).toBe(true)
+    expect(isAbandoned(s.cases[0], t)).toBe(false) // accepted work is never "Bỏ ngỏ"
   })
 })

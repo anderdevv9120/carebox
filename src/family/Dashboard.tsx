@@ -23,6 +23,7 @@ export function Dashboard() {
   const todayLeft = state.reminders.filter((r) => ['upcoming', 'due', 'snoozed'].includes(reminderStatus(r, state.now))).length
   const openRequests = state.cases.filter((c): c is RequestCase => c.kind === 'request' && !isFinal(c))
   const openEvents = state.cases.filter((c) => c.kind === 'event' && !isFinal(c))
+  const toHandle = state.cases.filter((c) => c.status === 'await_family' || c.status === 'to_verify').length
   const activity = state.cases
     .flatMap((c) => c.history.map((h) => ({ ...h, caseId: c.id, title: c.title })))
     .sort((a, b) => b.at - a.at)
@@ -43,6 +44,12 @@ export function Dashboard() {
         <div>Chưa có kết luận tổng thể về sức khỏe.</div>
         <div className="muted small">Thông tin hiển thị dựa trên dữ liệu và báo cáo hiện có.</div>
       </div>
+      {toHandle > 0 && (
+        <button className="card attn-card todo-card" onClick={() => go('f-requests')}>
+          <span className="grow"><b className="block">Cần chị xử lý</b><span className="muted small">{toHandle} việc chờ chị nhận hoặc xem</span></span>
+          <span className="chev">›</span>
+        </button>
+      )}
       <div className="tiles">
         <button className="tile" onClick={() => go('f-profile')}>
           <span>📡</span>Thiết bị<b>{connected}/{state.devices.length} đang kết nối</b>
@@ -52,7 +59,7 @@ export function Dashboard() {
         <button className="tile" onClick={() => go('f-report')}>
           <span>🗓️</span>Lịch trình<b>{todayLeft} việc còn lại hôm nay</b>
         </button>
-        <button className="tile" onClick={() => go('f-report')}>
+        <button className="tile" onClick={() => go('f-requests')}>
           <span>🤝</span>Yêu cầu hỗ trợ<b>{openRequests.length} đang mở</b>
         </button>
         <button className="tile" onClick={() => go('f-report')}>

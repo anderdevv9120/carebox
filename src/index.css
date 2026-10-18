@@ -211,3 +211,14 @@ section.card > p { margin-top: 6px; }
 
 /* ---------- simulated devices ---------- */
 .sim-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding: 4px 0; }
+.sim-row { border-top: 1px solid var(--line); padding: 8px 0; gap: 6px; }
+.sim-label { width: 100%; font-size: 14px; font-weight: 600; }
+.sim-row button { flex: 1 1 auto; min-height: 44px; border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 6px 10px; font-size: 14px; font-weight: 600; }
+.sim-row button:hover { border-color: var(--primary); }
+
+/* ---------- family request handling ---------- */
+.sos-card { border: 2px solid var(--alert); background: #fff6f6; }
+.todo-card { width: 100%; border: 2px solid var(--attn); display: flex; align-items: center; gap: 12px; text-align: left; }
+.time-input { flex: 0 1 140px; }
+.action-row.wrap { flex-wrap: wrap; }
+.emergency-ack { background: #fff; color: var(--ok); font-weight: 700; border-radius: 14px; padding: 10px 14px; width: 100%; }

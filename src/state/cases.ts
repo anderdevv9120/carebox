@@ -22,10 +22,25 @@ const UNACCEPTED = ['need_info', 'await_confirm', 'await_family']
 // The daughter acts only once her mother has confirmed the request.
 const FAMILY_OPEN = ['await_family', 'in_progress']
 
+// "Bỏ ngỏ": nobody has accepted the request for over 30 minutes.
+export const isAbandoned = (c: Case, now: number) =>
+  c.kind === 'request' && UNACCEPTED.includes(c.status) && now - c.createdAt > ABANDONED_AFTER * MIN
+
 export function effectivePriority(c: Case, now: number): { priority: Priority; reason: string } {
-  if (c.kind === 'request' && c.priority === 'normal' && UNACCEPTED.includes(c.status) && now - c.createdAt > ABANDONED_AFTER * MIN)
+  if (c.priority === 'normal' && isAbandoned(c, now))
     return { priority: 'priority', reason: 'Bỏ ngỏ quá 30 phút (giả định thử nghiệm)' }
   return { priority: c.priority, reason: c.priorityReason }
+}
+
+const RANK: Record<Priority, number> = { emergency: 0, priority: 1, uncertain: 2, normal: 3 }
+
+// The daughter's work list: open alerts by urgency, open requests with "Bỏ ngỏ" on top; oldest first within each.
+export function familyQueue(s: State): { alerts: EventCase[]; requests: RequestCase[] } {
+  const open = s.cases.filter((c) => !isFinal(c)).sort((a, b) => a.createdAt - b.createdAt)
+  const alerts = open.filter((c): c is EventCase => c.kind === 'event').sort((a, b) => RANK[a.priority] - RANK[b.priority])
+  const requests = open.filter((c): c is RequestCase => c.kind === 'request')
+    .sort((a, b) => Number(isAbandoned(b, s.now)) - Number(isAbandoned(a, s.now)))
+  return { alerts, requests }
 }
 
 export function nextOwner(c: Case, s: State): string {

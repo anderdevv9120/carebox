@@ -2,7 +2,8 @@ import type { ReactNode } from 'react'
 import { TabBar, type TabItem } from './ui/TabBar'
 import { EmergencyOverlay } from './ui/EmergencyOverlay'
 import { useStore } from './state/store'
-import type { Screen } from './state/types'
+import { isFinal } from './state/cases'
+import type { EventCase, Screen } from './state/types'
 import { Home } from './elder/Home'
 import { Schedule } from './elder/Schedule'
 import { Health } from './elder/Health'
@@ -13,6 +14,7 @@ import { Dashboard } from './family/Dashboard'
 import { Profile } from './family/Profile'
 import { Notifications } from './family/Notifications'
 import { Report } from './family/Report'
+import { Requests as FamilyRequests } from './family/Requests'
 
 const ELDER: Partial<Record<Screen, () => ReactNode>> = {
   home: Home, schedule: Schedule, health: Health, services: Services, requests: Requests, chat: Chat,
@@ -28,7 +30,7 @@ const ELDER_TABS: TabItem<Screen>[] = [
 ]
 
 const FAMILY: Partial<Record<Screen, () => ReactNode>> = {
-  'f-dashboard': Dashboard, 'f-profile': Profile, 'f-notifications': Notifications, 'f-report': Report,
+  'f-dashboard': Dashboard, 'f-requests': FamilyRequests, 'f-profile': Profile, 'f-notifications': Notifications, 'f-report': Report,
 }
 
 export default function App() {
@@ -53,6 +55,8 @@ export default function App() {
     ]
   }
 
+  // The bar follows the open emergency event, not the elder's overlay: only "Tôi đã tiếp nhận" changes its wording.
+  const sos = elder ? undefined : state.cases.find((c): c is EventCase => c.kind === 'event' && c.priority === 'emergency' && !isFinal(c))
   const reset = () => confirm('Khôi phục dữ liệu demo cho cả hai tài khoản?') && dispatch({ type: 'reset' })
 
   return (
@@ -71,6 +75,15 @@ export default function App() {
       </header>
       <TabBar items={tabs} active={view.screen} onSelect={go} />
       <main className="content">
+        {sos && (
+          <div className="emergency-banner" role="alert">
+            <span>
+              🚨 Khẩn cấp {sos.id}: {sos.title} —{' '}
+              {sos.status === 'to_verify' ? 'chưa có người xác nhận tiếp nhận.' : `${sos.handler} đã tiếp nhận, chưa đóng.`}
+            </span>
+            <button onClick={() => go('f-requests')}>Xem</button>
+          </div>
+        )}
         <View />
       </main>
       {elder && <EmergencyOverlay />}

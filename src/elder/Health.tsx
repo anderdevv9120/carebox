@@ -31,6 +31,31 @@ export function DeviceCard({ d, now }: { d: Device; now: number }) {
   )
 }
 
+// Demo-only device controls; each button sends the same action a real device feed would cause.
+function SimDevices() {
+  const { state, dispatch } = useStore()
+  return (
+    <div className="card">
+      <div className="bold">🧪 Thiết bị giả lập — chỉ dùng cho bản demo</div>
+      {state.devices.filter((d) => d.id !== 'fall').map((d) => {
+        const id = d.id as Exclude<typeof d.id, 'fall'>
+        return (
+          <div key={id} className="sim-row">
+            <span className="sim-label">{ICON[id]} {LABEL[id]}</span>
+            <button onClick={() => dispatch({ type: 'device/push', deviceId: id, mode: 'normal' })}>Bình thường</button>
+            <button onClick={() => dispatch({ type: 'device/push', deviceId: id, mode: 'high' })}>Vượt ngưỡng</button>
+            <button onClick={() => dispatch({ type: 'device/push', deviceId: id, mode: 'suspicious' })}>Đáng nghi</button>
+            {d.connected
+              ? <button onClick={() => dispatch({ type: 'device/disconnect', deviceId: id })}>Mất kết nối</button>
+              : <button onClick={() => dispatch({ type: 'device/reconnect', deviceId: id })}>Kết nối lại</button>}
+          </div>
+        )
+      })}
+      <button className="btn danger wide" onClick={() => dispatch({ type: 'device/fall' })}>🛡️ Báo té ngã</button>
+    </div>
+  )
+}
+
 export function Health() {
   const { state } = useStore()
   const [chart, setChart] = useState<(typeof CHARTS)[number]['id']>('bp')
@@ -69,6 +94,7 @@ export function Health() {
         <div className="row between"><SourceTag source="device" /><span className="muted small">{chart === 'bp' ? 'Tâm thu (mmHg)' : ''}</span></div>
       </div>
       <p className="muted small center">Ngưỡng giả lập — không phải chỉ định y tế. Không kết luận sức khỏe tổng thể.</p>
+      <SimDevices />
     </div>
   )
 }

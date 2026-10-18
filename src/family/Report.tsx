@@ -13,6 +13,10 @@ export function Report() {
   const done = requests.filter((c) => c.status === 'done')
   const open = requests.filter((c) => !isFinal(c))
   const alerts = state.cases.filter((c) => c.kind === 'event' && !isFinal(c))
+  const relationOf = (name: string) => {
+    const f = state.family.find((x) => x.name === name)
+    return f ? ` (${f.relation.toLowerCase()})` : ''
+  }
   return (
     <div>
       <h1 className="screen-title">📄 Báo cáo hằng ngày</h1>
@@ -58,7 +62,8 @@ export function Report() {
           <div key={c.id} className="service-report small">
             <div className="row between"><b>{c.title}</b><span className="muted">{c.id}</span></div>
             <div><span className="muted">Kết quả thực hiện:</span> Đã hoàn tất theo xác nhận của gia đình.</div>
-            {c.doneBy && <div><span className="muted">Người xác nhận:</span> {c.doneBy}</div>}
+            {c.doneNote && <div className="note">📝 {c.doneNote} <SourceTag source="family" /></div>}
+            {c.doneBy && <div><span className="muted">Người xác nhận:</span> {c.doneBy}{relationOf(c.doneBy)}</div>}
             {c.completedAt && <div><span className="muted">Thời điểm hoàn tất:</span> {fmtTime(c.completedAt)} {fmtDate(c.completedAt)}</div>}
           </div>
         ))}
