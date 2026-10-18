@@ -15,6 +15,8 @@ import { Dashboard } from './family/Dashboard'
 import { Profile } from './family/Profile'
 import { Notifications } from './family/Notifications'
 import { Report } from './family/Report'
+import { Board } from './ops/Board'
+import { CaseDetail } from './ops/CaseDetail'
 
 const ROLES: { id: Role; label: string }[] = [
   { id: 'elder', label: 'Người cao tuổi' },
@@ -66,7 +68,15 @@ export default function App() {
       </PhoneFrame>
     )
   } else {
-    stage = <PhoneFrame time={time}><p className="empty">{screen}</p></PhoneFrame>
+    stage = (
+      <section className="ops-panel">
+        <div className="ops-head">
+          <span className="bold">CAREBOX Operations</span>
+          <span className="row" style={{ gap: 8 }}><span className="demo-chip">Dữ liệu minh họa</span><span className="muted">{time} · {state.staff} (điều phối)</span></span>
+        </div>
+        {screen === 'ops-case' ? <CaseDetail key={state.view.caseId} /> : <Board />}
+      </section>
+    )
   }
 
   return (

@@ -186,3 +186,31 @@ h1, h2, h3, p { margin: 0; }
 .service-report { border-top: 1px solid var(--line); padding: 8px 0; display: flex; flex-direction: column; gap: 4px; }
 .notif.unread { border-left: 4px solid var(--primary); }
 section.card > p { margin-top: 6px; }
+
+/* ---------- ops ---------- */
+.ops-panel { width: 100%; max-width: 960px; background: var(--bg); border-radius: 24px; box-shadow: var(--shadow); padding: 16px 20px 20px; border: 1px solid var(--line); }
+.ops-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.counters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 600px) { .counters { grid-template-columns: repeat(2, 1fr); } }
+.counter { background: #fff; border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; box-shadow: 0 2px 10px rgba(140, 90, 20, 0.07); border-top: 4px solid var(--muted); }
+.counter b { font-size: 30px; }
+.counter span { color: var(--muted); font-size: 13px; }
+.counter.alert { border-color: var(--alert); }
+.counter.attn { border-color: var(--attn); }
+.counter.prog { border-color: var(--primary); }
+.case-list { margin-top: 10px; }
+.case-row { width: 100%; border: 0; text-align: left; border-left: 5px solid var(--line); }
+.case-row.p-emergency { border-left-color: var(--alert); background: #fff6f6; }
+.case-row.p-priority { border-left-color: var(--attn); }
+.case-row.p-uncertain { border-left-color: var(--unsure); }
+.case-row:hover { box-shadow: var(--shadow); }
+.unclear { color: var(--unsure); margin-top: 4px; }
+.detail-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
+@media (min-width: 800px) { .detail-grid { grid-template-columns: 1.2fr 1fr; align-items: start; } }
+.detail-grid .card { margin-bottom: 0; }
+.detail-grid .kv { grid-template-columns: 170px 1fr; }
+.emergency-rule { background: var(--alert-soft); color: var(--alert); font-weight: 600; }
+.actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.action-row { display: flex; gap: 6px; }
+.action-row.col { flex-direction: column; }
+.action-row .input { flex: 1; }
