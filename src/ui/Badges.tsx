@@ -42,6 +42,8 @@ export function ReminderBadge({ r, now }: { r: Reminder; now: number }) {
 const DEVICE_CLASS: Record<DeviceStatus, string> = { normal: 'b-ok', attention: 'b-attn', missing: 'b-unsure', suspicious: 'b-alert' }
 
 export function DeviceBadge({ d, now }: { d: Device; now: number }) {
+  // the fall sensor has no threshold, so "Bình thường theo ngưỡng" would be a false claim
+  if (d.id === 'fall' && d.connected) return <span className="badge b-ok">Đang kết nối</span>
   const st = deviceStatus(d, now)
   return <span className={`badge ${DEVICE_CLASS[st]}`}>{st === 'missing' ? '⚠ ' : ''}{DEVICE_STATUS[st]}</span>
 }

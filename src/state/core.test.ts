@@ -71,3 +71,12 @@ describe('loadState', () => {
     expect(loadState(JSON.stringify(moved), DAY)).toEqual(moved)
   })
 })
+
+describe('notifications', () => {
+  test('readAll marks only that audience read', () => {
+    const s = reduce(s0(), { type: 'device/push', deviceId: 'bp', mode: 'high' })
+    const out = reduce(s, { type: 'notif/readAll', audience: 'family' })
+    expect(out.notifications.filter((n) => n.audience === 'family').every((n) => n.read)).toBe(true)
+    expect(out.notifications.filter((n) => n.audience === 'ops').some((n) => !n.read)).toBe(true)
+  })
+})

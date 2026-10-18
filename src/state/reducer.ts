@@ -19,6 +19,7 @@ export type Action =
   | { type: 'chat/say'; text: string }
   | { type: 'chat/startService'; service: ServiceType }
   | { type: 'chat/handoff' }
+  | { type: 'notif/readAll'; audience: 'family' | 'ops' }
   | CaseAction
 
 const HOME: Record<Role, Screen> = { elder: 'home', family: 'f-dashboard', ops: 'ops-board' }
@@ -57,6 +58,9 @@ export function reduce(s: State, a: Action): State {
       return startService(s, a.service)
     case 'chat/handoff':
       return handoff(s)
+    case 'notif/readAll':
+      if (!s.notifications.some((n) => n.audience === a.audience && !n.read)) return s
+      return { ...s, notifications: s.notifications.map((n) => (n.audience === a.audience ? { ...n, read: true } : n)) }
     default:
       return transition(s, a)
   }

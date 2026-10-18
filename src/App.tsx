@@ -11,6 +11,10 @@ import { Health } from './elder/Health'
 import { Services } from './elder/Services'
 import { Requests } from './elder/Requests'
 import { Chat } from './elder/Chat'
+import { Dashboard } from './family/Dashboard'
+import { Profile } from './family/Profile'
+import { Notifications } from './family/Notifications'
+import { Report } from './family/Report'
 
 const ROLES: { id: Role; label: string }[] = [
   { id: 'elder', label: 'Người cao tuổi' },
@@ -29,6 +33,10 @@ const ELDER_TABS: { id: Screen; label: string; icon: string }[] = [
   { id: 'requests', label: 'Yêu cầu', icon: '📋' },
 ]
 
+const FAMILY: Partial<Record<Screen, () => ReactNode>> = {
+  'f-dashboard': Dashboard, 'f-profile': Profile, 'f-notifications': Notifications, 'f-report': Report,
+}
+
 export default function App() {
   const { state, dispatch } = useStore()
   const { role, screen } = state.view
@@ -40,6 +48,20 @@ export default function App() {
     const View = ELDER[screen] ?? Home
     stage = (
       <PhoneFrame time={time} overlay={<EmergencyOverlay />} footer={<TabBar items={ELDER_TABS} active={screen} onSelect={go} />}>
+        <View />
+      </PhoneFrame>
+    )
+  } else if (role === 'family') {
+    const View = FAMILY[screen] ?? Dashboard
+    const unread = state.notifications.filter((n) => n.audience === 'family' && !n.read).length
+    const tabs = [
+      { id: 'f-dashboard' as const, label: 'Tổng quan', icon: '🏠' },
+      { id: 'f-profile' as const, label: 'Hồ sơ', icon: '👵' },
+      { id: 'f-notifications' as const, label: 'Thông báo', icon: '🔔', badge: unread },
+      { id: 'f-report' as const, label: 'Báo cáo', icon: '📄' },
+    ]
+    stage = (
+      <PhoneFrame time={time} className="family" footer={<TabBar<Screen> items={tabs} active={screen} onSelect={go} />}>
         <View />
       </PhoneFrame>
     )

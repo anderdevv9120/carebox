@@ -166,3 +166,23 @@ h1, h2, h3, p { margin: 0; }
 .calling { background: #fff; color: var(--alert); font-weight: 800; border-radius: 20px; padding: 20px; width: 100%; font-size: 20px; }
 .emergency-note { font-size: 13px; opacity: 0.9; }
 .emergency-close { background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, 0.6); border-radius: 12px; padding: 8px 20px; }
+
+/* ---------- family ---------- */
+.avatar-lg { font-size: 40px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary-soft); display: grid; place-items: center; flex-shrink: 0; }
+.status-box { background: var(--unsure-soft); border: 1px solid #d9d4f5; }
+.status-box > * + * { margin-top: 4px; }
+.section { font-size: 16px; font-weight: 700; margin: 16px 0 8px; }
+.attn-card { border: 2px solid var(--attn); }
+.tile em { font-style: normal; font-size: 11px; }
+.tile b { font-size: 13px; text-align: center; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 8px 0 0; font-size: 14px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+.device-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
+.device-row .badge { white-space: normal; max-width: 140px; text-align: center; }
+.line { padding: 6px 0; border-top: 1px solid var(--line); gap: 6px; }
+.line:first-of-type { margin-top: 6px; }
+.line .badge { white-space: normal; max-width: 150px; text-align: center; }
+.service-report { border-top: 1px solid var(--line); padding: 8px 0; display: flex; flex-direction: column; gap: 4px; }
+.notif.unread { border-left: 4px solid var(--primary); }
+section.card > p { margin-top: 6px; }

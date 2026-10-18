@@ -55,7 +55,7 @@ export function Health() {
           <div className="muted small">
             {!fall.connected ? 'Mất kết nối — không đủ dữ liệu' : lastFall ? `Tín hiệu té ngã lúc ${fmtTime(lastFall.at)}` : 'Chưa ghi nhận tín hiệu té ngã'}
           </div>
-          {fall.connected ? <span className="badge b-ok">Đang kết nối</span> : <DeviceBadge d={fall} now={state.now} />}
+          <DeviceBadge d={fall} now={state.now} />
         </div>
       </div>
       <div className="card">
