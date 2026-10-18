@@ -146,8 +146,8 @@ function confirm(s: State, c: RequestCase): State {
   const msg = c.service === 'add_reminder'
     ? `Cháu đã gửi ${name} duyệt lịch nhắc. Lịch chỉ được thêm sau khi ${name} xác nhận, yêu cầu chưa hoàn tất ạ.`
     : c.service === 'contact_family'
-      ? `Cháu đã chuyển lời nhắn cho ${name}. Yêu cầu chưa hoàn tất; cháu sẽ báo bác khi có phản hồi ạ.`
-      : `Cháu đã gửi yêu cầu cho ${name}. Yêu cầu chưa hoàn tất; cháu sẽ báo bác khi ${name} nhận việc ạ.`
+      ? `Cháu đã chuyển lời nhắn cho ${name}. Yêu cầu chưa hoàn tất; bác xem tiến độ ở mục Yêu cầu ạ.`
+      : `Cháu đã gửi yêu cầu cho ${name}. Yêu cầu chưa hoàn tất; bác xem tiến độ ở mục Yêu cầu ạ.`
   return sayAi(clearChat(out), msg)
 }
 

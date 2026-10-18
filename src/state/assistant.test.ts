@@ -59,6 +59,9 @@ describe('handleUtterance', () => {
     expect(newRequest(s).status).toBe('await_family')
     expect(lastAi(s)).toContain('Chị Minh')
     expect(lastAi(s)).toContain('chưa hoàn tất')
+    // nothing posts to the chat when Chị Minh acts, so the AI must not promise to report back
+    expect(lastAi(s)).not.toContain('sẽ báo bác')
+    expect(lastAi(s)).toContain('mục Yêu cầu')
     expect(s.notifications.at(-1)!.text).toBe('Mua thuốc: chờ Chị Minh nhận việc')
     expect(s.chat.pending).toBeNull()
     expect(s.cases.filter((c) => c.status === 'done').map((c) => c.id)).toEqual(['CB-002'])
