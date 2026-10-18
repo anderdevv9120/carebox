@@ -96,8 +96,9 @@ async function apply(action?: Action): Promise<Response> {
   const { state, changed } = tick(base, Date.now())
   const next = action ? reduce(state, action) : state
   if (!fresh && !changed && next === state) return json(200, next)
-  // rev comes from the stored state, so a reset (which re-seeds at rev 0) still moves clients forward
-  const saved = { ...next, rev: base.rev + 1 }
+  // rev comes from the stored state, so a reset (which re-seeds at rev 0) still moves clients forward;
+  // with nothing stored (dev restart, flushed Redis) the clock outranks any rev an open tab holds
+  const saved = { ...next, rev: fresh ? Date.now() : base.rev + 1 }
   await saveState(saved)
   return json(200, saved)
 }

@@ -123,6 +123,16 @@ describe('shared state', () => {
     expect(r.rev).toBe(before.rev + 1)
   })
 
+  test('a re-seed from empty storage (dev restart, flushed Redis) still outranks every rev a client holds', async () => {
+    for (let i = 0; i < 5; i++) await post('/api/action', elder, { type: 'chat/say', text: `câu ${i}` })
+    const held = await getState(family) // what an open tab still has
+    await new Promise((r) => setTimeout(r, 20)) // a restart is never in the same millisecond as five saves
+    resetMemory()
+    const fresh = await getState(family)
+    expect(fresh.chat.messages.length).toBeLessThan(held.chat.messages.length)
+    expect(fresh.rev).toBeGreaterThan(held.rev)
+  })
+
   test('unknown route → 404', async () => {
     expect((await send('/api/nope', {}, elder)).status).toBe(404)
   })
