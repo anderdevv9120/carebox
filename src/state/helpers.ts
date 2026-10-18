@@ -1,4 +1,4 @@
-import type { Case, EventCase, NotifCategory, Source, State } from './types'
+import type { Case, EventCase, NotifCategory, Reading, Source, State } from './types'
 
 export const MIN = 60_000
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -13,6 +13,8 @@ export function fmtDate(ms: number): string {
   const d = new Date(ms)
   return `${WEEKDAY[d.getDay()]}, ${d.getDate()} tháng ${d.getMonth() + 1}`
 }
+
+export const fmtValue = (v: Reading['value']) => (Array.isArray(v) ? `${v[0]}/${v[1]}` : v === 'fall' ? 'Té ngã' : String(v))
 
 export function nextCaseId(s: State, kind: 'request' | 'event'): [State, string] {
   if (kind === 'request') return [{ ...s, seq: { ...s.seq, cb: s.seq.cb + 1 } }, `CB-${pad3(s.seq.cb)}`]

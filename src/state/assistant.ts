@@ -1,9 +1,9 @@
-import { addCase, createEvent, fmtTime, nextCaseId, notify, sayAi, sayElder, updateCase } from './helpers'
+import { addCase, createEvent, fmtTime, fmtValue, nextCaseId, notify, sayAi, sayElder, updateCase } from './helpers'
 import { REMINDER_STATUS, REQUEST_STATUS, SERVICE } from './labels'
 import { isFinal, nextOwner, raiseEmergency, transition } from './cases'
 import { deviceStatus } from './devices'
 import { reminderStatus } from './reminders'
-import type { DeviceKind, Reading, RequestCase, ServiceType, State } from './types'
+import type { DeviceKind, RequestCase, ServiceType, State } from './types'
 
 export type Intent = 'emergency' | 'medical_decision' | 'problem' | 'reminder' | 'contact' | 'service' | 'info' | 'unknown'
 
@@ -160,7 +160,6 @@ function miss(s: State, text: string, reask: string): State {
   return sayAi(out, `Cháu chưa hiểu ý bác. ${reask} Hoặc bác bấm “Gặp nhân viên”.`)
 }
 
-const fmtValue = (v: Reading['value']) => (Array.isArray(v) ? `${v[0]}/${v[1]}` : String(v))
 const HEALTH: [DeviceKind, string[]][] = [['bp', ['huyet ap']], ['hr', ['nhip tim']], ['glucose', ['duong huyet']], ['spo2', ['spo2', 'oxy']]]
 
 function answerInfo(s: State, text: string): State {
