@@ -1,4 +1,5 @@
 import { MIN, createEvent, notify } from './helpers'
+import { raiseEmergency } from './cases'
 import type { Device, DeviceKind, DeviceStatus, Reading, State } from './types'
 
 type Metric = Exclude<DeviceKind, 'fall'>
@@ -81,6 +82,6 @@ export function reconnect(s: State, id: DeviceKind): State {
 }
 
 export function reportFall(s: State): State {
-  // ponytail: stub until Task 4 provides raiseEmergency
-  return patchDevice(s, 'fall', (d) => ({ readings: [...d.readings, { at: s.now, value: 'fall' }] }))
+  const out = patchDevice(s, 'fall', (d) => ({ readings: [...d.readings, { at: s.now, value: 'fall' }] }))
+  return raiseEmergency(out, 'Thiết bị báo té ngã', 'Thiết bị phát hiện té ngã gửi tín hiệu. Chưa xác nhận mức độ chấn thương.', 'device')
 }

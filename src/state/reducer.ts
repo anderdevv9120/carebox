@@ -2,6 +2,7 @@ import { MIN } from './helpers'
 import { seed } from './seed'
 import { respondReminder, sweepReminders } from './reminders'
 import { disconnect, pushReading, reconnect, reportFall } from './devices'
+import { transition, type CaseAction } from './cases'
 import type { DeviceKind, Role, Screen, State } from './types'
 
 export type Action =
@@ -14,6 +15,7 @@ export type Action =
   | { type: 'device/disconnect'; deviceId: DeviceKind }
   | { type: 'device/reconnect'; deviceId: DeviceKind }
   | { type: 'device/fall' }
+  | CaseAction
 
 const HOME: Record<Role, Screen> = { elder: 'home', family: 'f-dashboard', ops: 'ops-board' }
 
@@ -45,5 +47,7 @@ export function reduce(s: State, a: Action): State {
       return reconnect(s, a.deviceId)
     case 'device/fall':
       return reportFall(s)
+    default:
+      return transition(s, a)
   }
 }
