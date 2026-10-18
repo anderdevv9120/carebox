@@ -1,1 +1,1 @@
-export { handle as POST } from '../server/api'
+export { handle as POST } from '../server/api.js'

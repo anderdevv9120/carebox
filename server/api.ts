@@ -1,10 +1,10 @@
-import { reduce, type Action } from '../src/state/reducer'
-import { seed } from '../src/state/seed'
-import { tick } from '../src/state/clock'
-import { SERVICE } from '../src/state/labels'
-import type { Role, State } from '../src/state/types'
-import { ACCOUNTS, PASSWORD, isAccount, signToken, verifyToken } from './auth'
-import { loadState, saveState } from './storage'
+import { reduce, type Action } from '../src/state/reducer.js'
+import { seed } from '../src/state/seed.js'
+import { tick } from '../src/state/clock.js'
+import { SERVICE } from '../src/state/labels.js'
+import type { Role, State } from '../src/state/types.js'
+import { ACCOUNTS, PASSWORD, isAccount, signToken, verifyToken } from './auth.js'
+import { loadState, saveState } from './storage.js'
 
 type Type = Action['type']
 

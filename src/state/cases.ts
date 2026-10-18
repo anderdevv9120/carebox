@@ -1,5 +1,5 @@
-import { MIN, atVN, createEvent, familyName, notify, updateCase } from './helpers'
-import type { Case, EventCase, Priority, RequestCase, ServiceType, Source, State } from './types'
+import { MIN, atVN, createEvent, familyName, notify, updateCase } from './helpers.js'
+import type { Case, EventCase, Priority, RequestCase, ServiceType, Source, State } from './types.js'
 
 export const ABANDONED_AFTER = 30 // minutes, "giả định thử nghiệm"
 // Services the daughter does or arranges herself, closed with "Đã xong".

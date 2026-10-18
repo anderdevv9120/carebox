@@ -1,9 +1,9 @@
-import { seed } from './seed'
-import { respondReminder } from './reminders'
-import { disconnect, pushReading, reconnect, reportFall } from './devices'
-import { transition, type CaseAction } from './cases'
-import { handleUtterance, handoff, startService } from './assistant'
-import type { DeviceKind, ServiceType, State } from './types'
+import { seed } from './seed.js'
+import { respondReminder } from './reminders.js'
+import { disconnect, pushReading, reconnect, reportFall } from './devices.js'
+import { transition, type CaseAction } from './cases.js'
+import { handleUtterance, handoff, startService } from './assistant.js'
+import type { DeviceKind, ServiceType, State } from './types.js'
 
 export type Action =
   | { type: 'reset' }

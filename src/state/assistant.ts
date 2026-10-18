@@ -1,9 +1,9 @@
-import { addCase, createEvent, familyName, fmtTime, fmtValue, nextCaseId, notify, sayAi, sayElder, updateCase } from './helpers'
-import { REMINDER_STATUS, REQUEST_STATUS, SERVICE } from './labels'
-import { isFinal, nextOwner, raiseEmergency, transition } from './cases'
-import { deviceStatus } from './devices'
-import { reminderStatus } from './reminders'
-import type { DeviceKind, RequestCase, ServiceType, State } from './types'
+import { addCase, createEvent, familyName, fmtTime, fmtValue, nextCaseId, notify, sayAi, sayElder, updateCase } from './helpers.js'
+import { REMINDER_STATUS, REQUEST_STATUS, SERVICE } from './labels.js'
+import { isFinal, nextOwner, raiseEmergency, transition } from './cases.js'
+import { deviceStatus } from './devices.js'
+import { reminderStatus } from './reminders.js'
+import type { DeviceKind, RequestCase, ServiceType, State } from './types.js'
 
 export type Intent = 'emergency' | 'medical_decision' | 'problem' | 'reminder' | 'contact' | 'service' | 'info' | 'unknown'
 

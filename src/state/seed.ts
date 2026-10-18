@@ -1,5 +1,5 @@
-import { MIN, atVN, fmtTime, vnDay } from './helpers'
-import type { Device, Reading, Reminder, State } from './types'
+import { MIN, atVN, fmtTime, vnDay } from './helpers.js'
+import type { Device, Reading, Reminder, State } from './types.js'
 
 const HOUR = 60 * MIN
 const DAY = 24 * HOUR

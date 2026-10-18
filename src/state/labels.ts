@@ -1,4 +1,4 @@
-import type { DeviceStatus, EventStatus, Priority, ReminderStatus, RequestStatus, ServiceType, Source } from './types'
+import type { DeviceStatus, EventStatus, Priority, ReminderStatus, RequestStatus, ServiceType, Source } from './types.js'
 
 // Copy is verbatim from doc.pdf where the doc names the state.
 export const REQUEST_STATUS: Record<RequestStatus, string> = {

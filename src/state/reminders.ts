@@ -1,5 +1,5 @@
-import { MIN, createEvent, familyName, notify } from './helpers'
-import type { Reminder, ReminderStatus, State } from './types'
+import { MIN, createEvent, familyName, notify } from './helpers.js'
+import type { Reminder, ReminderStatus, State } from './types.js'
 
 export const NO_CONFIRM_AFTER = 30 // demo minutes after due
 export const SNOOZE = 10

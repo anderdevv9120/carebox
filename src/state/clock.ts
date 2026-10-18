@@ -1,6 +1,6 @@
-import { atVN, fmtTime, vnDay } from './helpers'
-import { sweepReminders } from './reminders'
-import type { State } from './types'
+import { atVN, fmtTime, vnDay } from './helpers.js'
+import { sweepReminders } from './reminders.js'
+import type { State } from './types.js'
 
 // First read or action of a new Vietnam day: daily reminders move to today, fresh; one-offs are dropped.
 export function rollover(s: State, now: number): State {

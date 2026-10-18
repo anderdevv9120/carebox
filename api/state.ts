@@ -1,1 +1,1 @@
-export { handle as GET } from '../server/api'
+export { handle as GET } from '../server/api.js'

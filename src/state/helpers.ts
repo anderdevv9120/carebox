@@ -1,4 +1,4 @@
-import type { Case, EventCase, NotifCategory, Reading, Source, State } from './types'
+import type { Case, EventCase, NotifCategory, Reading, Source, State } from './types.js'
 
 export const MIN = 60_000
 const pad = (n: number) => String(n).padStart(2, '0')

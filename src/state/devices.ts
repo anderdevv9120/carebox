@@ -1,6 +1,6 @@
-import { MIN, createEvent, notify } from './helpers'
-import { raiseEmergency } from './cases'
-import type { Device, DeviceKind, DeviceStatus, Reading, State } from './types'
+import { MIN, createEvent, notify } from './helpers.js'
+import { raiseEmergency } from './cases.js'
+import type { Device, DeviceKind, DeviceStatus, Reading, State } from './types.js'
 
 type Metric = Exclude<DeviceKind, 'fall'>
 type Range = [number, number]

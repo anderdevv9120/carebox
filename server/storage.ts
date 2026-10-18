@@ -1,5 +1,5 @@
 import { Redis } from '@upstash/redis'
-import type { State } from '../src/state/types'
+import type { State } from '../src/state/types.js'
 
 const KEY = 'carebox:state'
 const env = process.env
