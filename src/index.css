@@ -57,6 +57,13 @@ h1, h2, h3, p { margin: 0; }
 .tabbar .wide-only { display: none; }
 
 @media (max-width: 599px) { .who { display: none; } }
+/* 360px phones: stack "Family" under the name and let the chip wrap so the bar never scrolls sideways */
+@media (max-width: 479px) {
+  .topbar .brand-logo { display: none; }
+  .topbar .brand-name small { display: block; line-height: 1; }
+  .topbar .demo-chip { white-space: normal; max-width: 76px; text-align: center; line-height: 1.15; }
+  .topbar .btn.sm { padding: 6px 8px; }
+}
 @media (min-width: 900px) {
   .shell { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: var(--top) 1fr; }
   .topbar { grid-column: 1 / -1; padding: 0 20px; }
