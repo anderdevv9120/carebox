@@ -1,8 +1,8 @@
 # CAREBOX
 
-Responsive two-role web app of the CAREBOX care flow (`doc.pdf`, `design.jpg`): Bà Lan (elderly person) ↔ CAREBOX assistant ↔ her daughter, Chị Minh. Each role logs in on its own device; both see the same live data.
+Responsive three-role web app of the CAREBOX care flow (`doc.pdf`, `design.jpg`): Bà Lan (elderly person) ↔ CAREBOX assistant ↔ her daughter, Chị Minh, and the CAREBOX coordinator, Anh Nam. Each role logs in on its own device; all see the same live data.
 
-> Demo only. No real devices or medical judgement. All data is illustrative ("Dữ liệu minh họa"); the **↺** button in the top bar restores the demo data for both accounts. The AI chat can use Google AI Studio when configured below.
+> Demo only. No real devices or medical judgement. All data is illustrative ("Dữ liệu minh họa"); the **↺** button in the top bar restores the demo data for all accounts. The AI chat can use Google AI Studio when configured below.
 
 ## Accounts
 
@@ -10,6 +10,11 @@ Responsive two-role web app of the CAREBOX care flow (`doc.pdf`, `design.jpg`): 
 |---|---|---|
 | `ba.lan` | Bà Nguyễn Thị Lan — người cao tuổi | `carebox` |
 | `con.gai` | Chị Minh (con gái) — gia đình | `carebox` |
+| `nhan.vien` | Anh Nam — nhân viên điều phối (staff) | `carebox` |
+
+Staff flow: the elder's service requests (medicine, groceries, clinic, daily help, medicine reminders), device alerts, unclear requests and emergencies go to Anh Nam's **Bảng điều phối**. He verifies, assigns a seeded Care Partner (Anh Tuấn, Chị Hoa), records the Care Partner's report and confirms completion; nothing is Hoàn tất without both. The family sees these cases read-only and answers staff questions; it keeps its own contact and non-medicine reminder requests, and staff take a family-owned request over if it waits 30 minutes. Dose or medicine changes are refused by the AI and sent to staff.
+
+State version 3: stored v2 data is re-seeded once after deploy.
 
 ## Run locally
 
@@ -21,7 +26,7 @@ npm test               # state rules, API handler, scenarios
 npm run build          # type-check + static site in dist/
 ```
 
-`npm run dev` serves `/api/*` from the Vite dev server and persists shared demo data in the ignored `.carebox-state.json` file (including chat history). It survives reloads and local dev server restarts. The ↺ reset button clears the conversation and restores the demo. Log in as `ba.lan` in one browser and `con.gai` in another (or an incognito window); changes reach the other side within ~3 s.
+`npm run dev` serves `/api/*` from the Vite dev server and persists shared demo data in the ignored `.carebox-state.json` file (including chat history). It survives reloads and local dev server restarts. The ↺ reset button clears the conversation and restores the demo. Log in as `ba.lan`, `con.gai` and `nhan.vien` in separate browsers (or incognito windows); changes reach the other side within ~3 s.
 
 ## Real AI (Google Gemini API)
 
