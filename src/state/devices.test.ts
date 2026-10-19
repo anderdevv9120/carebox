@@ -115,6 +115,20 @@ describe('stale-device sweep', () => {
     expect(hasOpenMissing(reduce(s0(), { type: 'device/push', deviceId: 'bp', mode: 'high' }), 'bp')).toBe(false) // a threshold alert is not a missing one
   })
 
+  test('a stale event staff resolved is not re-created while the device stays silent; a new reading re-arms the sweep', () => {
+    const swept = tick(staleBp(), staleBp().now).state
+    const closed = reduce(reduce(swept, { type: 'staff/takeEvent', id: 'EVT-001' }), { type: 'staff/resolveEvent', id: 'EVT-001', note: 'Đã kiểm tra máy' })
+    const bpMissing = (s: State) => events(s).filter((e) => e.title === 'Thiếu dữ liệu: Máy đo huyết áp')
+    const later = tick(closed, closed.now + 30 * MIN).state // other devices and reminders may raise their own alerts by now
+    expect(bpMissing(later)).toHaveLength(1)
+    expect(later.notifications.filter((n) => n.caseId === 'EVT-001')).toHaveLength(2)
+    // a fresh reading, then silence again past STALE_AFTER: one new event
+    const fresh = reduce({ ...later, now: later.now + 40 * MIN }, { type: 'device/push', deviceId: 'bp', mode: 'normal' })
+    const again = tick(fresh, fresh.now + (STALE_AFTER + 1) * MIN).state
+    expect(bpMissing(again)).toHaveLength(2)
+    expect(bpMissing(again).filter((e) => e.status === 'to_verify')).toHaveLength(1)
+  })
+
   test('sweep skips disconnected devices (they have their own event) and the fall sensor', () => {
     const s = s0()
     const out = sweepDevices({ ...s, devices: s.devices.map((d) => (d.id === 'bp' ? { ...d, connected: false } : d)) })

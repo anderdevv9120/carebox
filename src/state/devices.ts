@@ -1,6 +1,6 @@
 import { MIN, createEvent, notifyAlert } from './helpers.js'
 import { raiseEmergency } from './cases.js'
-import type { Device, DeviceKind, DeviceStatus, Reading, State } from './types.js'
+import type { Device, DeviceKind, DeviceStatus, EventCase, Reading, State } from './types.js'
 
 type Metric = Exclude<DeviceKind, 'fall'>
 type Range = [number, number]
@@ -64,9 +64,15 @@ export function pushReading(s: State, id: Metric, mode: 'normal' | 'high' | 'sus
   return notifyAlert(out, `${name}: dữ liệu đáng nghi, cần kiểm tra nguồn.`, 'health', 'device', evId)
 }
 
+const MISSING_TITLE = /^(Thiết bị mất kết nối|Thiếu dữ liệu)/
+const missingEvents = (s: State, id: DeviceKind) => s.cases.filter((c): c is EventCase => c.kind === 'event' && c.deviceId === id && MISSING_TITLE.test(c.title))
+
 // An open "mất kết nối" / "thiếu dữ liệu" event for this device: a second one adds nothing.
-export const hasOpenMissing = (s: State, id: DeviceKind) =>
-  s.cases.some((c) => c.kind === 'event' && c.status !== 'resolved' && c.deviceId === id && /^(Thiết bị mất kết nối|Thiếu dữ liệu)/.test(c.title))
+export const hasOpenMissing = (s: State, id: DeviceKind) => missingEvents(s, id).some((c) => c.status !== 'resolved')
+
+// Staff closed it (the last log entry is the closing one) after the last reading: only new data re-arms the sweep.
+const closedSinceLastReading = (s: State, d: Device) =>
+  missingEvents(s, d.id).some((c) => c.status === 'resolved' && c.history.at(-1)!.at > (d.readings.at(-1)?.at ?? 0))
 
 export function disconnect(s: State, id: DeviceKind): State {
   const d = s.devices.find((x) => x.id === id)
@@ -79,7 +85,7 @@ export function disconnect(s: State, id: DeviceKind): State {
 export function sweepDevices(s: State): State {
   let out = s
   for (const d of s.devices)
-    if (d.connected && deviceStatus(d, s.now) === 'missing' && !hasOpenMissing(out, d.id))
+    if (d.connected && deviceStatus(d, s.now) === 'missing' && !hasOpenMissing(out, d.id) && !closedSinceLastReading(out, d))
       out = missingEvent(out, d, 'Thiếu dữ liệu', 'Thiết bị chưa gửi dữ liệu mới. Không kết luận người dùng an toàn.', `${d.name}: chưa gửi dữ liệu mới. Không kết luận người dùng an toàn.`)
   return out
 }

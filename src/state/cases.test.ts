@@ -396,7 +396,7 @@ describe('derived', () => {
     expect(own('medicine', 'in_progress', { assignee: 'Anh Tuấn', partnerReport: 'Đã mua' })).toBe('Nhân viên CAREBOX (xác nhận kết quả)')
     expect(own('medicine', 'done')).toBe('—')
     const e = run(s0(), { type: 'device/push', deviceId: 'bp', mode: 'high' })
-    expect(nextOwner(get(e, 'EVT-001'), e)).toBe('Chị Minh (xem và tiếp nhận)')
+    expect(nextOwner(get(e, 'EVT-001'), e)).toBe('Nhân viên CAREBOX (xem và tiếp nhận)')
     const taken = reduce(e, { type: 'staff/takeEvent', id: 'EVT-001' })
     expect(nextOwner(get(taken, 'EVT-001'), taken)).toBe('Anh Nam')
     expect(nextOwner(get(s0(), 'CB-002'), s0())).toBe('—')

@@ -46,7 +46,7 @@ describe('final review fixes', () => {
     const ev = events(s)[0]
     expect(ev.status).toBe('to_verify')
     expect(ev.handler).toBeUndefined()
-    expect(nextOwner(ev, s)).toBe('Chị Minh (xem và tiếp nhận)')
+    expect(nextOwner(ev, s)).toBe('Nhân viên CAREBOX (xem và tiếp nhận)')
     const taken = reduce(s, { type: 'case/ack', id: 'EVT-001', by: 'family' })
     expect(nextOwner(events(taken)[0], taken)).toBe('Chị Minh')
   })

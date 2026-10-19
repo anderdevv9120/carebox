@@ -63,7 +63,7 @@ export function familyQueue(s: State): { alerts: EventCase[]; requests: RequestC
 export function nextOwner(c: Case, s: State): string {
   const name = familyName(s)
   if (c.kind === 'event') {
-    if (c.status === 'to_verify') return `${name} (xem và tiếp nhận)`
+    if (c.status === 'to_verify') return 'Nhân viên CAREBOX (xem và tiếp nhận)'
     if (c.status === 'handling') return c.handler ?? name
     return '—'
   }
