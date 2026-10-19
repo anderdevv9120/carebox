@@ -39,7 +39,7 @@ export function reduce(s: State, a: Action): State {
     case 'chat/startService':
       return startService(s, a.service)
     case 'chat/handoff':
-      return handoff(sayElder(s, 'Nhờ con giúp'))
+      return handoff(sayElder(s, 'Gặp nhân viên'))
     case 'chat/clear':
       // leaves any half-collected request on the board in its current status
       return { ...s, chat: { ...s.chat, pending: null, misses: 0, recentMisses: [] } }

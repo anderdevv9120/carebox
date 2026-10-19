@@ -52,7 +52,7 @@ describe('real AI chat', () => {
     const model = vi.spyOn(ai, 'generateReply').mockResolvedValue({ text: 'Bác nói rõ hơn giúp cháu nhé.', unclear: true })
     const first: State = await (await post('/api/action', elder, { type: 'chat/say', text: 'Bác muốn cái hôm trước ấy' })).json()
     expect(first.chat.misses).toBe(1)
-    expect(first.chat.messages.at(-1)?.text).toContain('Nhờ con giúp')
+    expect(first.chat.messages.at(-1)?.text).toContain('Gặp nhân viên')
     const next: State = await (await post('/api/action', elder, { type: 'chat/say', text: 'Cái mà con Minh mua ấy' })).json()
     expect(model).toHaveBeenCalledTimes(2)
     expect(next.chat.misses).toBe(0)
@@ -63,7 +63,7 @@ describe('real AI chat', () => {
       priority: 'uncertain', unclear: ['Bác muốn cái hôm trước ấy', 'Cái mà con Minh mua ấy'],
     })
     expect(next.notifications.some((n) => n.text.includes('AI chưa hiểu yêu cầu'))).toBe(true)
-    expect(next.chat.messages.at(-1)?.text).toContain('đã báo Chị Minh')
+    expect(next.chat.messages.at(-1)?.text).toContain('báo Chị Minh')
   })
 
   test('understood Gemma messages reset the unclear streak', async () => {

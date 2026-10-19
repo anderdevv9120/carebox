@@ -146,18 +146,70 @@ describe('handleUtterance', () => {
     expect(s.chat.messages.at(-2)).toMatchObject({ from: 'elder', text: 'Tôi cần hỗ trợ sinh hoạt' })
   })
 
-  test('handoff creates an uncertain event even with no misses', () => {
-    const s = reduce(s0(), { type: 'chat/handoff' })
-    expect(newEvents(s)[0]).toMatchObject({ priority: 'uncertain', unclear: ['Người cao tuổi chọn nhờ con giúp'] })
-    expect(s.chat.messages.at(-2)).toMatchObject({ from: 'elder', text: 'Nhờ con giúp' })
-    expect(s.chat.messages.at(-1)?.from).toBe('ai')
+  test('handoff goes to staff and tells family', () => {
+    const before = s0()
+    const s = reduce(before, { type: 'chat/handoff' })
+    expect(newEvents(s)[0]).toMatchObject({
+      owner: 'staff', priority: 'uncertain', title: 'AI chưa hiểu yêu cầu', detail: 'Cần nhân viên CAREBOX gọi lại cho bác.',
+      priorityReason: 'Người dùng chọn gặp nhân viên', unclear: ['Người cao tuổi chọn gặp nhân viên'],
+    })
+    expect(s.chat.messages.at(-2)).toMatchObject({ from: 'elder', text: 'Gặp nhân viên' })
+    const added = s.notifications.slice(before.notifications.length)
+    expect(added.map((n) => n.to)).toEqual(['staff', 'family'])
+    expect(added[1].text).toBe('EVT-001: AI chưa hiểu yêu cầu của bác, đã chuyển nhân viên CAREBOX.')
+    expect(lastAi(s)).toContain('nhân viên CAREBOX')
   })
 
-  test('handoff copy names Chị Minh and never staff', () => {
+  test('handoff copy names staff and Chị Minh', () => {
     const s = reduce(s0(), { type: 'chat/handoff' })
-    expect(lastAi(s)).toBe('Cháu đã báo Chị Minh gọi lại cho bác ạ.')
-    const copy = [lastAi(s), newEvents(s)[0].detail, s.notifications.at(-1)!.text].join(' ')
-    expect(copy).not.toContain('nhân viên')
-    expect(lastAi(say(s0(), 'abc xyz'))).toContain('Hoặc bác bấm “Nhờ con giúp”.')
+    expect(lastAi(s)).toBe('Cháu đã chuyển cho nhân viên CAREBOX và báo Chị Minh. Nhân viên sẽ liên hệ lại với bác ạ.')
+    expect(lastAi(say(s0(), 'abc xyz'))).toContain('Hoặc bác bấm “Gặp nhân viên”.')
+    const missed = say(s0(), 'abc xyz', 'qwe rty')
+    expect(newEvents(missed)[0].priorityReason).toBe('AI không hiểu sau khi hỏi lại')
+  })
+
+  test('problem and medical decision go to staff and family', () => {
+    for (const [text, reply] of [
+      ['Bác hết thuốc rồi', 'Cháu đã ghi nhận và báo nhân viên CAREBOX, Chị Minh. Nếu bác khó thở hay đau ngực, bác nói ngay để cháu hướng dẫn gọi 115 nhé.'],
+      ['Cho bác tăng liều thuốc huyết áp', 'Cháu không thể thay đổi thuốc hay liều. Bác hỏi bác sĩ hoặc dược sĩ nhé; cháu đã báo nhân viên CAREBOX.'],
+    ]) {
+      const before = s0()
+      const s = say(before, text)
+      expect(newEvents(s)[0].owner).toBe('staff')
+      expect(s.notifications.slice(before.notifications.length).map((n) => n.to)).toEqual(['staff', 'family'])
+      expect(lastAi(s)).toBe(reply)
+    }
+  })
+
+  test('first-question "Không" refuses', () => {
+    const s = say(reduce(s0(), { type: 'chat/startService', service: 'medicine' }), 'Không')
+    expect(newRequest(s)).toMatchObject({ status: 'refused' })
+    expect(newRequest(s).fields.thuoc).toBeUndefined()
+  })
+
+  test('later "Không" is a field answer', () => {
+    const s = say(reduce(s0(), { type: 'chat/startService', service: 'clinic' }), 'Bệnh viện E', 'Sáng mai', 'Không, bác tự đi được')
+    expect(newRequest(s).fields.di_lai).toBe('Không, bác tự đi được')
+    expect(newRequest(s).status).toBe('await_confirm')
+  })
+
+  test('first-question "Không, bác tự đi được" is not a refusal', () => {
+    const s = say(reduce(s0(), { type: 'chat/startService', service: 'clinic' }), 'Không, bác tự đi được')
+    expect(newRequest(s).status).toBe('need_info')
+    expect(newRequest(s).fields.noi_kham).toBe('Không, bác tự đi được')
+  })
+
+  test('doc Mức 3 examples are emergencies', () => {
+    for (const t of ['mất ý thức', 'yếu nửa người', 'nói ngọng', 'khó thở']) expect(classify(t).intent).toBe('emergency')
+  })
+
+  test('dose paraphrases are medical decisions; generic ones are not', () => {
+    for (const t of ['uống thêm 2 viên', 'ngừng thuốc huyết áp']) expect(classify(t).intent).toBe('medical_decision')
+    for (const t of ['uống thêm nước', 'ngã tư Sở']) expect(['medical_decision', 'emergency']).not.toContain(classify(t).intent)
+  })
+
+  test('Mua giúp bác ít gạo starts groceries', () => {
+    expect(classify('Mua giúp bác ít gạo')).toEqual({ intent: 'service', service: 'groceries' })
+    expect(newRequest(say(s0(), 'Mua giúp bác ít gạo')).service).toBe('groceries')
   })
 })

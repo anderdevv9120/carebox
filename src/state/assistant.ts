@@ -1,4 +1,4 @@
-import { addCase, createEvent, familyName, fmtTime, fmtValue, has, nextCaseId, normalize, notify, sayAi, sayElder, updateCase } from './helpers.js'
+import { addCase, createEvent, familyName, fmtTime, fmtValue, has, nextCaseId, normalize, notify, notifyAlert, sayAi, sayElder, updateCase } from './helpers.js'
 import { REMINDER_STATUS, REQUEST_STATUS, SERVICE } from './labels.js'
 import { isFinal, nextOwner, ownerAtConfirm, raiseEmergency, transition } from './cases.js'
 import { deviceStatus } from './devices.js'
@@ -14,8 +14,9 @@ const KW = {
   emergency: [
     'dau nguc', 'tuc nguc', 'dau tim', 'kho tho', 'khong tho duoc', 'tho khong duoc', 'tho khong noi', 'nga', 'te nga', 'bi te',
     'te xuong', 'bat tinh', 'ngat', 'co giat', 'dot quy', 'meo mieng', 'te nua nguoi', 'chay mau', 'cap cuu', 'cuu',
+    'mat y thuc', 'yeu nua nguoi', 'noi ngong', 'noi kho', 'kho noi',
   ],
-  medical_decision: ['doi lieu', 'tang lieu', 'giam lieu', 'ke don', 'bo thuoc', 'uong them thuoc', 'doi thuoc'],
+  medical_decision: ['doi lieu', 'tang lieu', 'giam lieu', 'ke don', 'bo thuoc', 'uong them thuoc', 'doi thuoc', 'ngung thuoc', 'dung thuoc'],
   problem: ['het thuoc', 'met', 'chong mat', 'dau dau', 'sot', 'khong khoe', 'buon non'],
   reminder: ['nhac', 'dat lich nhac'],
   contact: ['goi con', 'goi cho', 'lien he', 'nhan con', 'con gai', 'con trai'],
@@ -23,18 +24,20 @@ const KW = {
 }
 const SERVICE_KW: [ServiceType, string[]][] = [
   ['medicine', ['mua thuoc', 'lay thuoc']],
-  ['groceries', ['di cho', 'mua do', 'mua rau', 'thuc pham']],
+  ['groceries', ['di cho', 'mua do', 'mua rau', 'thuc pham', 'gao', 'do an', 'mua giup']],
   ['clinic', ['di kham', 'kham benh', 'tai kham', 'benh vien']],
   ['daily_help', ['don dep', 'giat', 'ho tro sinh hoat', 'tham']],
 ]
 
 // "ngã ba/tư/năm/sáu" are road junctions in addresses, not falls.
 const JUNCTION = /\bnga (ba|tu|nam|sau)\b/g
+// "uống thêm 2 viên" is a dose change; "uống thêm nước" is not.
+const EXTRA_DOSE = /\buong them (\d+|mot|hai|ba) vien\b/
 
 export function classify(text: string): { intent: Intent; service?: ServiceType } {
   const w = normalize(text).replace(JUNCTION, ' ')
   if (has(w, KW.emergency)) return { intent: 'emergency' }
-  if (has(w, KW.medical_decision)) return { intent: 'medical_decision' }
+  if (has(w, KW.medical_decision) || EXTRA_DOSE.test(w)) return { intent: 'medical_decision' }
   if (has(w, KW.problem)) return { intent: 'problem' }
   if (has(w, KW.reminder)) return { intent: 'reminder', service: 'add_reminder' }
   if (has(w, KW.contact)) return { intent: 'contact', service: 'contact_family' }
@@ -81,6 +84,9 @@ function isRefusal(text: string): boolean {
   return plain === raw && has(plain, ['thoi', 'huy', 'khong can'])
 }
 
+// A bare "không" answers the first question with a refusal; later it is a valid field answer ("Không, bác tự đi được").
+const FIRST_REFUSAL = /^khong( (muon|phai|can|a|dau))*$/
+
 const reqById = (s: State, id: string) => s.cases.find((c) => c.id === id) as RequestCase
 const nextField = (c: RequestCase) =>
   SERVICE_FIELDS[c.service].find((f) => c.fields[f.key] === undefined && !c.unclear.includes(f.label))
@@ -110,6 +116,7 @@ function askNextOrReadBack(s: State, c: RequestCase): State {
 
 function collect(s: State, c: RequestCase, field: string, text: string): State {
   if (isRefusal(text)) return refuse(s, c)
+  if (Object.keys(c.fields).length === 0 && c.unclear.length === 0 && FIRST_REFUSAL.test(normalize(text))) return refuse(s, c)
   const spec = SERVICE_FIELDS[c.service].find((f) => f.key === field)!
   const w = normalize(text)
   let patch: Partial<RequestCase>
@@ -158,7 +165,7 @@ function readback(s: State, c: RequestCase, text: string): State {
 function miss(s: State, text: string, reask: string): State {
   const out = { ...s, chat: { ...s.chat, misses: s.chat.misses + 1, recentMisses: [...s.chat.recentMisses, text.trim()] } }
   if (out.chat.misses >= 2) return handoff(out)
-  return sayAi(out, `Cháu chưa hiểu ý bác. ${reask} Hoặc bác bấm “Nhờ con giúp”.`)
+  return sayAi(out, `Cháu chưa hiểu ý bác. ${reask} Hoặc bác bấm “Gặp nhân viên”.`)
 }
 
 const HEALTH: [DeviceKind, string[]][] = [['bp', ['huyet ap']], ['hr', ['nhip tim']], ['glucose', ['duong huyet']], ['spo2', ['spo2', 'oxy']]]
@@ -186,13 +193,14 @@ function answerInfo(s: State, text: string): State {
 
 export function handoff(s: State): State {
   const name = familyName(s)
-  const unclear = s.chat.recentMisses.length ? s.chat.recentMisses : ['Người cao tuổi chọn nhờ con giúp']
+  const unclear = s.chat.recentMisses.length ? s.chat.recentMisses : ['Người cao tuổi chọn gặp nhân viên']
   let [out, id] = createEvent(s, {
-    title: 'AI chưa hiểu yêu cầu', detail: `Cần ${name} gọi lại cho bác.`, source: 'ai', priority: 'uncertain',
-    priorityReason: s.chat.recentMisses.length ? 'AI không hiểu sau khi hỏi lại' : 'Người dùng chọn nhờ con giúp', unclear,
+    title: 'AI chưa hiểu yêu cầu', detail: 'Cần nhân viên CAREBOX gọi lại cho bác.', source: 'ai', priority: 'uncertain',
+    priorityReason: s.chat.recentMisses.length ? 'AI không hiểu sau khi hỏi lại' : 'Người dùng chọn gặp nhân viên', unclear,
   })
-  out = notify(out, 'family', `${id}: AI chưa hiểu yêu cầu, cần ${name} gọi lại cho bác.`, 'other', 'ai', id)
-  return sayAi(clearChat(out, { misses: 0, recentMisses: [] }), `Cháu đã báo ${name} gọi lại cho bác ạ.`)
+  out = notify(out, 'staff', `${id}: AI chưa hiểu yêu cầu của bác, cần gọi lại.`, 'other', 'ai', id)
+  out = notify(out, 'family', `${id}: AI chưa hiểu yêu cầu của bác, đã chuyển nhân viên CAREBOX.`, 'other', 'ai', id)
+  return sayAi(clearChat(out, { misses: 0, recentMisses: [] }), `Cháu đã chuyển cho nhân viên CAREBOX và báo ${name}. Nhân viên sẽ liên hệ lại với bác ạ.`)
 }
 
 export function startService(s: State, service: ServiceType): State {
@@ -209,11 +217,13 @@ export function handleUtterance(s: State, text: string, alreadyRecorded = false)
   }
   if (intent === 'medical_decision') {
     // Checked before any pending question so a dose request is never stored as a field answer.
-    ;[out] = createEvent(clearChat(out, { misses: 0, recentMisses: [] }), {
+    let id: string
+    ;[out, id] = createEvent(clearChat(out, { misses: 0, recentMisses: [] }), {
       title: 'Yêu cầu vượt phạm vi AI: thay đổi thuốc', detail: text.trim(), source: 'elder', priority: 'normal',
       priorityReason: 'AI không được tự quyết định y tế',
     })
-    return sayAi(out, `Cháu không thể thay đổi thuốc hay liều. Bác hỏi bác sĩ hoặc dược sĩ nhé; cháu đã báo ${familyName(out)}.`)
+    out = notifyAlert(out, `Bác hỏi về thay đổi thuốc hoặc liều: “${text.trim()}”.`, 'health', 'elder', id)
+    return sayAi(out, 'Cháu không thể thay đổi thuốc hay liều. Bác hỏi bác sĩ hoặc dược sĩ nhé; cháu đã báo nhân viên CAREBOX.')
   }
   const p = out.chat.pending
   const pendingCase = p && reqById(out, p.caseId)
@@ -229,8 +239,8 @@ export function handleUtterance(s: State, text: string, alreadyRecorded = false)
     case 'problem': {
       let id: string
       ;[out, id] = createEvent(out, { title: text.trim(), detail: text.trim(), source: 'elder', priority: 'priority', priorityReason: 'Người cao tuổi báo vấn đề' })
-      out = notify(out, 'family', `Bác báo: “${text.trim()}”. Cần ${familyName(out)} xem và gọi lại cho bác.`, 'health', 'elder', id)
-      return sayAi(out, `Cháu đã ghi nhận và báo ${familyName(out)}. Nếu bác khó thở hay đau ngực, bác nói ngay để cháu hướng dẫn gọi 115 nhé.`)
+      out = notifyAlert(out, `Bác báo: “${text.trim()}”.`, 'health', 'elder', id)
+      return sayAi(out, `Cháu đã ghi nhận và báo nhân viên CAREBOX, ${familyName(out)}. Nếu bác khó thở hay đau ngực, bác nói ngay để cháu hướng dẫn gọi 115 nhé.`)
     }
     case 'info':
       return answerInfo(out, text)

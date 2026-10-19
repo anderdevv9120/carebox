@@ -62,7 +62,7 @@ export function Chat() {
     <div className="chat chat-screen">
       <div className="row between">
         <h1 className="screen-title"><img className="chat-bot" src="/carebot.svg" alt="" /> Trợ lý CAREBOX</h1>
-        <button className="btn ghost sm" disabled={chatBusy} onClick={() => dispatch({ type: 'chat/handoff' })}>Nhờ con giúp</button>
+        <button className="btn ghost sm" disabled={chatBusy} onClick={() => dispatch({ type: 'chat/handoff' })}>Gặp nhân viên</button>
       </div>
       <div className="messages">
         {messages.map((m) => (
