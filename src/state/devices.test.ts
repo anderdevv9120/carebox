@@ -129,6 +129,16 @@ describe('stale-device sweep', () => {
     expect(bpMissing(again).filter((e) => e.status === 'to_verify')).toHaveLength(1)
   })
 
+  test('a resolved disconnect does not mute the stale-data alert once the device reconnects and stays silent', () => {
+    const fresh = reduce(s0(), { type: 'device/push', deviceId: 'bp', mode: 'normal' })
+    const down = reduce(fresh, { type: 'device/disconnect', deviceId: 'bp' })
+    const id = events(down).find((e) => e.title === 'Thiết bị mất kết nối: Máy đo huyết áp')!.id
+    const closed = reduce(reduce({ ...down, now: down.now + 10 * MIN }, { type: 'staff/takeEvent', id }), { type: 'staff/resolveEvent', id, note: 'Đã kiểm tra máy' })
+    const back = reduce(closed, { type: 'device/reconnect', deviceId: 'bp' })
+    const later = tick(back, back.now + (STALE_AFTER + 1) * MIN).state
+    expect(events(later).filter((e) => e.title === 'Thiếu dữ liệu: Máy đo huyết áp')).toHaveLength(1)
+  })
+
   test('sweep skips disconnected devices (they have their own event) and the fall sensor', () => {
     const s = s0()
     const out = sweepDevices({ ...s, devices: s.devices.map((d) => (d.id === 'bp' ? { ...d, connected: false } : d)) })

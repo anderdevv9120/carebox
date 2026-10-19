@@ -70,9 +70,10 @@ const missingEvents = (s: State, id: DeviceKind) => s.cases.filter((c): c is Eve
 // An open "mất kết nối" / "thiếu dữ liệu" event for this device: a second one adds nothing.
 export const hasOpenMissing = (s: State, id: DeviceKind) => missingEvents(s, id).some((c) => c.status !== 'resolved')
 
-// Staff closed it (the last log entry is the closing one) after the last reading: only new data re-arms the sweep.
+// Staff closed the same gap (the last log entry is the closing one) after the last reading: only new data re-arms the sweep.
+// A resolved disconnect does not count: the device came back and then went silent.
 const closedSinceLastReading = (s: State, d: Device) =>
-  missingEvents(s, d.id).some((c) => c.status === 'resolved' && c.history.at(-1)!.at > (d.readings.at(-1)?.at ?? 0))
+  missingEvents(s, d.id).some((c) => c.status === 'resolved' && c.title.startsWith('Thiếu dữ liệu') && c.history.at(-1)!.at > (d.readings.at(-1)?.at ?? 0))
 
 export function disconnect(s: State, id: DeviceKind): State {
   const d = s.devices.find((x) => x.id === id)

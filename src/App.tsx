@@ -3,6 +3,7 @@ import { TabBar, type TabItem } from './ui/TabBar'
 import { EmergencyOverlay } from './ui/EmergencyOverlay'
 import { useStore } from './state/store'
 import { isFinal } from './state/cases'
+import { familyNotifications } from './state/helpers'
 import type { EventCase, Screen } from './state/types'
 import { Home } from './elder/Home'
 import { Schedule } from './elder/Schedule'
@@ -49,7 +50,7 @@ export default function App() {
     tabs = [
       { id: 'f-dashboard', label: 'Tổng quan', icon: '🏠' },
       { id: 'f-requests', label: 'Yêu cầu của mẹ', icon: '📋', badge: toHandle },
-      { id: 'f-notifications', label: 'Thông báo', icon: '🔔', badge: state.notifications.filter((n) => !n.read).length },
+      { id: 'f-notifications', label: 'Thông báo', icon: '🔔', badge: familyNotifications(state).filter((n) => !n.read).length },
       { id: 'f-profile', label: 'Hồ sơ & thiết bị', icon: '👵' },
       { id: 'f-report', label: 'Báo cáo', icon: '📄' },
     ]

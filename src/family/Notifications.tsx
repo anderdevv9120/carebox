@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../state/store'
-import { fmtTime } from '../state/helpers'
+import { familyNotifications, fmtTime } from '../state/helpers'
 import { SourceTag } from '../ui/Badges'
 import type { NotifCategory } from '../state/types'
 
@@ -15,11 +15,11 @@ const ICON: Record<NotifCategory, string> = { request: '🛒', health: '💓', o
 export function Notifications() {
   const { state, dispatch } = useStore()
   const [tab, setTab] = useState<NotifCategory | 'all'>('all')
-  const [unreadAtOpen] = useState(() => new Set(state.notifications.filter((n) => !n.read).map((n) => n.id)))
+  const [unreadAtOpen] = useState(() => new Set(familyNotifications(state).filter((n) => !n.read).map((n) => n.id)))
   useEffect(() => {
     dispatch({ type: 'notif/readAll', to: 'family' })
   }, [dispatch, state.notifications.length])
-  const list = state.notifications
+  const list = familyNotifications(state)
     .filter((n) => tab === 'all' || n.category === tab)
     .sort((a, b) => b.at - a.at)
   return (
