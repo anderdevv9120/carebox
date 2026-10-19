@@ -11,7 +11,7 @@ const SESSION_KEY = 'carebox-session'
 function readSession(): Session | null {
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null')
-    return s && typeof s.token === 'string' && (s.role === 'elder' || s.role === 'family') ? s : null
+    return s && typeof s.token === 'string' && (s.role === 'elder' || s.role === 'family' || s.role === 'staff') ? s : null
   } catch {
     return null
   }

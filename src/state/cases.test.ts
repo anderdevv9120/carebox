@@ -152,6 +152,8 @@ describe('staff request workflow', () => {
     })
     expect(c.partnerReportAt!).toBeLessThanOrEqual(c.completedAt!)
     expect(c.history.slice(-4).map((h) => h.by)).toEqual(['staff', 'staff', 'staff', 'staff'])
+    // staff records the Care Partner's words; the entry must not read as the Care Partner's own verified claim
+    expect(c.history.at(-2)!.text).toBe('Anh Nam ghi nhận báo cáo của Care Partner Anh Tuấn: Đã mua thuốc')
     const fresh = s.notifications.slice(start.notifications.length)
     expect(fresh).toHaveLength(1)
     expect(fresh[0]).toMatchObject({ to: 'family', caseId: 'CB-010' })

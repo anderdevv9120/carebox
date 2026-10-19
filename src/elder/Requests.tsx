@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../state/store'
-import { fmtTime } from '../state/helpers'
+import { fmtWhen } from '../state/helpers'
 import { isFinal, nextOwner } from '../state/cases'
 import { SERVICE_ICON } from '../state/labels'
 import { SERVICE_FIELDS } from '../state/assistant'
@@ -23,7 +23,7 @@ export function RequestCard({ c, s, onCancel }: { c: RequestCase; s: State; onCa
             <b>{c.title}</b>
             <span className="row" style={{ gap: 4 }}><StatusBadge c={c} /></span>
           </div>
-          <div className="muted small">{c.id} · Tiếp nhận {fmtTime(c.createdAt)}</div>
+          <div className="muted small">{c.id} · Tiếp nhận {fmtWhen(c.createdAt, s.now)}</div>
         </div>
       </div>
       <ul className="fields">
@@ -36,7 +36,7 @@ export function RequestCard({ c, s, onCancel }: { c: RequestCase; s: State; onCa
       {c.status === 'done' && c.doneNote && <div className="note small">📝 {c.doneBy ?? 'Gia đình'}: {c.doneNote}</div>}
       {c.status === 'done' && c.partnerReport && <div className="note small">Care Partner báo: {c.partnerReport}</div>}
       <ul className="timeline">
-        {c.history.map((h, i) => <li key={i}><b>{fmtTime(h.at)}</b> {h.text}</li>)}
+        {c.history.map((h, i) => <li key={i}><b>{fmtWhen(h.at, s.now)}</b> {h.text}</li>)}
       </ul>
       {onCancel && !isFinal(c) && <button className="btn ghost sm" onClick={onCancel}>Hủy yêu cầu</button>}
     </div>

@@ -2,8 +2,9 @@ import { describe, expect, test } from 'vitest'
 import { seed } from './seed'
 import { seedBare } from './testing'
 import { reduce } from './reducer'
-import { MIN, atVN, fmtDayMonth, fmtTime, vnDay } from './helpers'
+import { MIN, atVN, fmtDayMonth, fmtTime, fmtWhen, vnDay } from './helpers'
 import { rollover, tick } from './clock'
+import { deviceStatus } from './devices'
 import type { RequestCase, State } from './types'
 
 const NOW = Date.UTC(2026, 9, 18, 8, 0) // 15:00 in Vietnam
@@ -14,6 +15,11 @@ describe('Vietnam time', () => {
     expect(fmtTime(Date.UTC(2026, 9, 18, 1, 30))).toBe('08:30')
     expect(vnDay(Date.UTC(2026, 9, 18, 18, 0))).toBe('2026-10-19')
     expect(fmtDayMonth(NOW)).toBe('18/10')
+  })
+
+  test('fmtWhen adds the date only for another Vietnam day', () => {
+    expect(fmtWhen(NOW - 60 * MIN, NOW)).toBe('14:00')
+    expect(fmtWhen(NOW - DAY, NOW)).toBe('15:00 17/10')
   })
 
   test('atVN resolves HH:MM on the Vietnam date, with a day offset', () => {
@@ -51,9 +57,25 @@ describe('seed', () => {
     expect(s.notifications.find((n) => n.caseId === 'CB-002')!.at).toBe(c2.completedAt)
   })
 
-  test('device history ends 1 hour before reset', () => {
+  test('device history ends 1 hour before reset, except the BP reading behind EVT-001', () => {
     const s = seed(NOW)
-    expect(s.devices.find((d) => d.id === 'bp')!.readings.at(-1)!.at).toBe(NOW - 60 * MIN)
+    expect(s.devices.find((d) => d.id === 'hr')!.readings.at(-1)!.at).toBe(NOW - 60 * MIN)
+    const bp = s.devices.find((d) => d.id === 'bp')!
+    const evt = s.cases.find((c) => c.id === 'EVT-001')!
+    expect(bp.readings.at(-1)).toEqual({ at: evt.createdAt, value: [165, 100] })
+    expect(deviceStatus(bp, NOW)).toBe('attention')
+    // the bare seed drops the event and the reading behind it
+    expect(deviceStatus(seedBare(NOW).devices.find((d) => d.id === 'bp')!, NOW)).toBe('normal')
+  })
+
+  test('seed CB-002 history and notification use the runtime wording', () => {
+    const s = seed(NOW)
+    const c2 = s.cases.find((c) => c.id === 'CB-002')!
+    expect(c2.history.slice(-2).map((h) => h.text)).toEqual([
+      'Anh Nam ghi nhận báo cáo của Care Partner Anh Tuấn: Đã đưa bác đi khám và về nhà.',
+      'Anh Nam xác nhận hoàn tất.',
+    ])
+    expect(s.notifications.find((n) => n.caseId === 'CB-002')!.text).toBe('Đi khám bệnh: nhân viên CAREBOX đã xác nhận hoàn tất.')
   })
 
   test('reset re-seeds at the current moment', () => {

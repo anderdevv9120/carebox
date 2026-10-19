@@ -24,6 +24,11 @@ export function fmtDayMonth(ms: number): string {
   return `${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)}`
 }
 
+// Timelines that span days: HH:MM today, HH:MM dd/mm otherwise.
+export function fmtWhen(ms: number, now: number): string {
+  return vnDay(ms) === vnDay(now) ? fmtTime(ms) : `${fmtTime(ms)} ${fmtDayMonth(ms)}`
+}
+
 export function vnDay(ms: number): string {
   const d = vn(ms)
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`

@@ -1,5 +1,5 @@
 import { useStore } from '../state/store'
-import { fmtTime } from '../state/helpers'
+import { fmtTime, fmtWhen } from '../state/helpers'
 import { familyTodo, isFinal, nextOwner } from '../state/cases'
 import { deviceStatus } from '../state/devices'
 import { reminderStatus } from '../state/reminders'
@@ -97,7 +97,7 @@ export function Dashboard() {
         <ul className="timeline">
           {activity.map((h, i) => (
             <li key={i}>
-              <b>{fmtTime(h.at)}</b> {h.title}: {h.text} <SourceTag source={h.by} />
+              <b>{fmtWhen(h.at, state.now)}</b> {h.title}: {h.text} <SourceTag source={h.by} />
             </li>
           ))}
         </ul>

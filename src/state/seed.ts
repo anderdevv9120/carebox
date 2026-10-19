@@ -27,7 +27,7 @@ export function seed(now: number): State {
   const c1 = now - 20 * MIN
   const devices: Device[] = [
     { id: 'bp', name: 'Máy đo huyết áp', unit: 'mmHg', connected: true,
-      readings: week(now, [[126, 80], [122, 78], [130, 82], [124, 79], [128, 83], [125, 80], [127, 81]]) },
+      readings: [...week(now, [[126, 80], [122, 78], [130, 82], [124, 79], [128, 83], [125, 80], [127, 81]]), { at: now - 10 * MIN, value: [165, 100] }] }, // the reading behind EVT-001
     { id: 'hr', name: 'Thiết bị đo nhịp tim', unit: 'bpm', connected: true, readings: week(now, [72, 75, 70, 74, 78, 73, 72]) },
     { id: 'glucose', name: 'Máy đo đường huyết', unit: 'mmol/L', connected: true, readings: week(now, [5.6, 5.9, 5.4, 6.1, 5.8, 5.5, 5.6]) },
     { id: 'spo2', name: 'Máy đo SpO₂', unit: '%', connected: true, readings: week(now, [97, 98, 97, 96, 97, 98, 98]) },
@@ -67,8 +67,8 @@ export function seed(now: number): State {
           { at: now - 2 * DAY + 10 * MIN, by: 'staff', text: 'Anh Nam xác nhận lại với bác.' },
           { at: now - 2 * DAY + 15 * MIN, by: 'staff', text: 'Anh Nam đã xác minh yêu cầu.' },
           { at: now - 2 * DAY + 25 * MIN, by: 'staff', text: 'Anh Nam giao Care Partner Anh Tuấn.' },
-          { at: now - DAY - 30 * MIN, by: 'staff', text: 'Care Partner Anh Tuấn báo: Đã đưa bác đi khám và về nhà.' },
-          { at: now - DAY, by: 'staff', text: 'Anh Nam báo đã xong: Đã đưa bác đi khám và về nhà.' },
+          { at: now - DAY - 30 * MIN, by: 'staff', text: 'Anh Nam ghi nhận báo cáo của Care Partner Anh Tuấn: Đã đưa bác đi khám và về nhà.' },
+          { at: now - DAY, by: 'staff', text: 'Anh Nam xác nhận hoàn tất.' },
         ],
       },
       {
@@ -93,7 +93,7 @@ export function seed(now: number): State {
       { id: 'n1', at: c1, to: 'family', category: 'request', source: 'ai', caseId: 'CB-001', read: false,
         text: `${fmtTime(c1)} – Yêu cầu lấy thuốc đã được ghi nhận. Chưa xác nhận có người thực hiện.` },
       { id: 'n2', at: now - DAY, to: 'family', category: 'request', source: 'staff', caseId: 'CB-002', read: true,
-        text: 'Đi khám bệnh: Anh Nam đã báo xong.' },
+        text: 'Đi khám bệnh: nhân viên CAREBOX đã xác nhận hoàn tất.' },
     ],
     chat: {
       messages: [{ id: 'n3', from: 'ai', at: now,

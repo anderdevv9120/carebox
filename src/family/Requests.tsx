@@ -9,11 +9,19 @@ import type { Case, EventCase, RequestCase } from '../state/types'
 
 const MAX_TEXT = 500 // server rejects longer notes
 
-// CAREBOX's open question for the daughter, with the reply box.
+// CAREBOX's question for the daughter: the reply box while open, then her answer read-only.
 function AskReply({ c }: { c: Case }) {
   const { dispatch } = useStore()
   const [text, setText] = useState('')
-  if (!c.familyAsk || c.familyAsk.reply !== undefined) return null
+  if (!c.familyAsk) return null
+  if (c.familyAsk.reply !== undefined) {
+    return (
+      <div className="note small">
+        <b>CAREBOX hỏi:</b> {c.familyAsk.question}
+        <div><b>Chị trả lời:</b> {c.familyAsk.reply}</div>
+      </div>
+    )
+  }
   return (
     <div className="note small">
       <b>CAREBOX hỏi:</b> {c.familyAsk.question}
@@ -35,7 +43,7 @@ function AlertCard({ c, now }: { c: EventCase; now: number }) {
         <span className="muted">{c.id} · {fmtTime(c.createdAt)}</span><SourceTag source={c.source} /><StatusBadge c={c} />
       </div>
       {c.detail && <p className="small" style={{ marginTop: 6 }}>{c.detail}</p>}
-      {c.unclear.length > 0 && <div className="unclear small">Chưa rõ: {c.unclear.join(', ')}</div>}
+      {c.unclear.length > 0 && <div className="unclear small">Chưa rõ: {[...new Set(c.unclear)].join(', ')}</div>}
       <div className="small"><span className="muted">Phụ trách:</span> <b>{nextOwner(c, state)}</b></div>
       <AskReply c={c} />
       <div className="actions">

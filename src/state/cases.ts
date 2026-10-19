@@ -178,7 +178,7 @@ function staffTransition(s: State, c: RequestCase, a: CaseAction): State {
     case 'staff/partnerReport': {
       const note = a.note.trim()
       if (c.status !== 'in_progress' || !c.assignee || c.partnerReport || !note) return s
-      return updateCase(s, c.id, { partnerReport: note, partnerReportAt: s.now }, log(`${c.assignee} báo lại: ${note}`))
+      return updateCase(s, c.id, { partnerReport: note, partnerReportAt: s.now }, log(`${name} ghi nhận báo cáo của Care Partner ${c.assignee}: ${note}`))
     }
     case 'staff/complete':
       if (c.status !== 'in_progress' || !c.partnerReport) return s
