@@ -18,11 +18,11 @@ export const ROLE_ACTIONS: Record<Role, Type[]> = {
   ],
   family: [
     'reset', 'notif/readAll', 'family/decline', 'family/approveReminder',
-    'family/contacted', 'case/ack',
+    'family/contacted', 'case/ack', 'family/reply',
   ],
   staff: [
     'reset', 'staff/verify', 'staff/assign', 'staff/partnerReport', 'staff/complete', 'staff/decline',
-    'staff/approveReminder', 'staff/contacted', 'staff/takeEvent', 'staff/resolveEvent', 'case/ack',
+    'staff/approveReminder', 'staff/contacted', 'staff/takeEvent', 'staff/resolveEvent', 'case/ack', 'staff/askFamily',
   ],
 }
 
@@ -57,6 +57,8 @@ const FIELDS: Record<Type, Record<string, Check>> = {
   'staff/takeEvent': { id: 'id' },
   'staff/resolveEvent': { id: 'id', note: 'text' },
   'case/ack': { id: 'id' },
+  'staff/askFamily': { id: 'id', question: 'text' },
+  'family/reply': { id: 'id', text: 'text' },
   'emergency/call115': {},
 }
 

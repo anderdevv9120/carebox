@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'vitest'
 import { seedBare } from './testing'
+import { seed } from './seed'
 import { reduce, type Action } from './reducer'
 import { MIN, addCase, fmtTime } from './helpers'
-import { effectivePriority, familyQueue, isAbandoned, nextOwner, ownerAtConfirm } from './cases'
+import { effectivePriority, familyTodo, familyView, isAbandoned, nextOwner, ownerAtConfirm } from './cases'
 import type { EventCase, RequestCase, ServiceType, State } from './types'
 
 const s0 = () => seedBare(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
@@ -403,32 +404,111 @@ describe('derived', () => {
   })
 })
 
-describe('familyQueue: the daughter\'s "Yêu cầu của mẹ" list', () => {
+describe('familyView: the daughter\'s "Yêu cầu của mẹ" list', () => {
   const ev = (id: string, priority: EventCase['priority'], createdAt: number, status: EventCase['status'] = 'to_verify'): EventCase => ({
     id, kind: 'event', title: id, detail: '', source: 'device', priority, priorityReason: '', createdAt, history: [], unclear: [], owner: 'staff', status,
   })
-  const rq = (id: string, createdAt: number, status: RequestCase['status']): RequestCase => ({
+  const rq = (id: string, createdAt: number, status: RequestCase['status'], extra: Partial<RequestCase> = {}): RequestCase => ({
     id, kind: 'request', service: 'medicine', title: id, detail: '', source: 'elder', priority: 'normal', priorityReason: '',
-    createdAt, history: [], unclear: [], owner: 'family', fields: {}, status,
+    createdAt, history: [], unclear: [], owner: 'family', fields: {}, status, ...extra,
   })
+  const t = Date.UTC(2026, 9, 18, 5, 0)
+  const withCases = (...cases: (EventCase | RequestCase)[]): State => ({ ...s0(), now: t, cases })
+  const ids = (cs: { id: string }[]) => cs.map((c) => c.id)
 
   test('open alerts sort by priority (emergency > priority > uncertain > normal), then oldest first; closed ones are left out', () => {
-    const t = Date.UTC(2026, 9, 18, 5, 0)
-    const s = { ...s0(), now: t, cases: [
+    const s = withCases(
       ev('E-normal', 'normal', t - 50 * MIN), ev('E-unsure', 'uncertain', t - 40 * MIN), ev('E-prio-new', 'priority', t - 5 * MIN),
       ev('E-sos', 'emergency', t - 1 * MIN), ev('E-prio-old', 'priority', t - 20 * MIN), ev('E-done', 'emergency', t, 'resolved'),
-    ] }
-    expect(familyQueue(s).alerts.map((c) => c.id)).toEqual(['E-sos', 'E-prio-old', 'E-prio-new', 'E-unsure', 'E-normal'])
+    )
+    expect(ids(familyView(s).others)).toEqual(['E-sos', 'E-prio-old', 'E-prio-new', 'E-unsure', 'E-normal'])
   })
 
   test('open requests: abandoned (Bỏ ngỏ) first, then oldest first; every open status is listed, final ones are not', () => {
-    const t = Date.UTC(2026, 9, 18, 5, 0)
-    const s = { ...s0(), now: t, cases: [
+    const s = withCases(
       rq('R-progress-old', t - 90 * MIN, 'in_progress'), rq('R-confirm', t - 10 * MIN, 'await_confirm'),
       rq('R-abandoned', t - 40 * MIN, 'need_info'), rq('R-family', t - 20 * MIN, 'await_family'), rq('R-done', t - 99 * MIN, 'done'),
-    ] }
-    expect(familyQueue(s).requests.map((c) => c.id)).toEqual(['R-abandoned', 'R-progress-old', 'R-family', 'R-confirm'])
+    )
+    expect(ids(familyView(s).others)).toEqual(['R-abandoned', 'R-progress-old', 'R-family', 'R-confirm'])
     expect(isAbandoned(s.cases[2], t)).toBe(true)
     expect(isAbandoned(s.cases[0], t)).toBe(false) // accepted work is never "Bỏ ngỏ"
+  })
+
+  const ask = { question: 'Chị giúp hỏi bác?', askedAt: t }
+  const family = (id: string, createdAt: number, status: RequestCase['status'], extra: Partial<RequestCase> = {}) =>
+    rq(id, createdAt, status, { service: 'contact_family', ...extra })
+  const board = () => withCases(
+    ev('E-ask', 'priority', t - 5 * MIN, 'handling'), { ...ev('E-sos', 'emergency', t - 1 * MIN), familyAsk: { ...ask } },
+    family('R-mine-new', t - 10 * MIN, 'await_family'), family('R-mine-old', t - 20 * MIN, 'await_staff'),
+    family('R-ask-and-mine', t - 15 * MIN, 'await_staff', { owner: 'staff', familyAsk: { ...ask } }),
+    family('R-answered', t - 25 * MIN, 'await_staff', { owner: 'staff', familyAsk: { ...ask, reply: 'Rồi', repliedAt: t } }),
+    family('R-confirm', t - 30 * MIN, 'await_confirm'), rq('R-medicine', t - 35 * MIN, 'await_staff', { owner: 'staff' }),
+    family('R-done', t - 40 * MIN, 'done', { owner: 'staff', familyAsk: { ...ask } }),
+  )
+
+  test('familyView splits asks / mine / others', () => {
+    const v = familyView(board())
+    expect(ids(v.asks)).toEqual(['E-sos', 'R-ask-and-mine']) // alerts first; a case is listed once, asks win over mine
+    expect(ids(v.mine)).toEqual(['R-answered', 'R-mine-old', 'R-mine-new']) // only what the elder confirmed for the daughter, or staff left to her; an answered ask returns here
+    expect(ids(v.others)).toEqual(['E-ask', 'R-medicine', 'R-confirm']) // staff work and unconfirmed requests; closed cases are left out
+  })
+
+  test('familyTodo counts asks, mine and unacked emergencies', () => {
+    expect(familyTodo(board())).toBe(2 + 3 + 1)
+    // acknowledging the emergency drops it from the emergency count; its open ask stays
+    expect(familyTodo(run(board(), { type: 'case/ack', id: 'E-sos', by: 'family' }))).toBe(2 + 3)
+    expect(familyTodo(withCases())).toBe(0)
+  })
+})
+
+describe('staff asks the family for help', () => {
+  const real = () => seed(Date.UTC(2026, 9, 18, 5, 0)) // CB-001 is the seeded staff-owned need_info request
+  const ask = (s: State, question = 'Chị giúp hỏi bác giờ lấy thuốc?', id = 'CB-001') => reduce(s, { type: 'staff/askFamily', id, question })
+  const reply = (s: State, text = 'Chiều nay em hỏi bác.', id = 'CB-001') => reduce(s, { type: 'family/reply', id, text })
+  const last = (s: State, to: 'family' | 'staff') => s.notifications.filter((n) => n.to === to).at(-1)
+
+  test('ask then reply round-trip', () => {
+    const asked = ask(real())
+    expect(get(asked, 'CB-001').familyAsk).toEqual({ question: 'Chị giúp hỏi bác giờ lấy thuốc?', askedAt: asked.now })
+    expect(last(asked, 'family')).toMatchObject({ text: 'CAREBOX nhờ hỗ trợ (CB-001): Chị giúp hỏi bác giờ lấy thuốc?', caseId: 'CB-001', read: false })
+    expect(get(asked, 'CB-001').history.at(-1)?.by).toBe('staff')
+    expect(familyView(asked).asks.map((c) => c.id)).toEqual(['CB-001'])
+
+    const answered = reply({ ...asked, now: asked.now + 5 * MIN })
+    expect(get(answered, 'CB-001').familyAsk).toMatchObject({ reply: 'Chiều nay em hỏi bác.', repliedAt: asked.now + 5 * MIN })
+    expect(last(answered, 'staff')?.text).toContain('Chiều nay em hỏi bác.')
+    expect(last(answered, 'staff')?.caseId).toBe('CB-001')
+    expect(get(answered, 'CB-001').history.at(-1)).toMatchObject({ by: 'family' })
+    expect(familyView(answered).asks).toEqual([])
+  })
+
+  test('second ask blocked until replied; allowed after', () => {
+    const asked = ask(real())
+    expect(ask(asked, 'Câu hỏi khác')).toBe(asked)
+    const answered = reply(asked)
+    expect(reply(answered, 'Trả lời lần nữa')).toBe(answered) // nothing left to answer
+    const again = ask(answered, 'Câu hỏi khác')
+    expect(get(again, 'CB-001').familyAsk).toMatchObject({ question: 'Câu hỏi khác' })
+    expect(get(again, 'CB-001').familyAsk?.reply).toBeUndefined()
+    expect(get(again, 'CB-001').history.filter((h) => h.by === 'staff' && h.text.includes('Chị giúp hỏi bác')).length).toBe(1) // the old ask stays in history
+  })
+
+  test('blank question or reply, unknown id, family-owned case: no-op', () => {
+    const s = real()
+    expect(ask(s, '   ')).toBe(s)
+    expect(ask(s, 'x', 'NOPE')).toBe(s)
+    const fam = withRequest('contact_family', 'await_family', 'family')
+    expect(ask(fam, 'x', 'CB-010')).toBe(fam)
+    const asked = ask(s)
+    expect(reply(asked, '  ')).toBe(asked)
+    expect(reply(s)).toBe(s) // no ask to answer
+  })
+
+  test('reply on a resolved case is a no-op', () => {
+    const asked = ask(real())
+    const closed = { ...asked, cases: asked.cases.map((c) => (c.id === 'CB-001' ? { ...req(asked, 'CB-001'), status: 'refused' as const } : c)) }
+    expect(reply(closed)).toBe(closed)
+    expect(ask(closed, 'Hỏi tiếp')).toBe(closed) // nor can staff open a new ask on a closed case
+    expect(familyView(closed).asks).toEqual([])
   })
 })

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../state/store'
 import { fmtTime } from '../state/helpers'
-import { familyQueue, isAbandoned } from '../state/cases'
+import { familyView, isAbandoned, sortQueue } from '../state/cases'
 import { SERVICE_ICON } from '../state/labels'
 import { SERVICE_FIELDS } from '../state/assistant'
 import { PriorityBadge, SourceTag, StatusBadge } from '../ui/Badges'
@@ -92,7 +92,10 @@ function RequestItem({ c, now }: { c: RequestCase; now: number }) {
 
 export function Requests() {
   const { state } = useStore()
-  const { alerts, requests } = familyQueue(state)
+  const { asks, mine, others } = familyView(state)
+  const open = sortQueue([...asks, ...mine, ...others], state.now)
+  const alerts = open.filter((c): c is EventCase => c.kind === 'event')
+  const requests = open.filter((c): c is RequestCase => c.kind === 'request')
   return (
     <div className="family-page family-requests-screen">
       <h1 className="screen-title">📋 Yêu cầu của mẹ</h1>

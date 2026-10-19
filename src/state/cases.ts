@@ -28,6 +28,8 @@ export type CaseAction =
   | { type: 'staff/contacted'; id: string }
   | { type: 'staff/takeEvent'; id: string }
   | { type: 'staff/resolveEvent'; id: string; note: string }
+  | { type: 'staff/askFamily'; id: string; question: string }
+  | { type: 'family/reply'; id: string; text: string }
   | { type: 'case/ack'; id: string; by: Owner } // `by` is set by the server from the caller's role
   | { type: 'emergency/call115' }
 
@@ -51,13 +53,26 @@ export function effectivePriority(c: Case, now: number): { priority: Priority; r
 
 const RANK: Record<Priority, number> = { emergency: 0, priority: 1, uncertain: 2, normal: 3 }
 
-// The daughter's work list: open alerts by urgency, open requests with "Bỏ ngỏ" on top; oldest first within each.
-export function familyQueue(s: State): { alerts: EventCase[]; requests: RequestCase[] } {
-  const open = s.cases.filter((c) => !isFinal(c)).sort((a, b) => a.createdAt - b.createdAt)
-  const alerts = open.filter((c): c is EventCase => c.kind === 'event').sort((a, b) => RANK[a.priority] - RANK[b.priority])
-  const requests = open.filter((c): c is RequestCase => c.kind === 'request')
-    .sort((a, b) => Number(isAbandoned(b, s.now)) - Number(isAbandoned(a, s.now)))
-  return { alerts, requests }
+// Open alerts by urgency, then open requests with "Bỏ ngỏ" on top; oldest first within each.
+export function sortQueue(cs: Case[], now: number): Case[] {
+  const key = (c: Case) => (c.kind === 'event' ? RANK[c.priority] : isAbandoned(c, now) ? 4 : 5)
+  return [...cs].sort((a, b) => key(a) - key(b) || a.createdAt - b.createdAt)
+}
+
+// The daughter's work list. A case sits in one list only: asks first, then mine, then the rest.
+export function familyView(s: State): { asks: Case[]; mine: RequestCase[]; others: Case[] } {
+  const open = sortQueue(s.cases.filter((c) => !isFinal(c)), s.now)
+  const asks = open.filter((c) => c.familyAsk && c.familyAsk.reply === undefined)
+  const rest = open.filter((c) => !asks.includes(c))
+  const mine = rest.filter((c): c is RequestCase => c.kind === 'request' && FAMILY_OPEN.includes(c.status) && ownerAtConfirm(c) === 'family')
+  return { asks, mine, others: rest.filter((c) => !mine.includes(c as RequestCase)) }
+}
+
+// What the tab badge counts: asks, requests left to her, and emergencies nobody has taken yet.
+export function familyTodo(s: State): number {
+  const { asks, mine } = familyView(s)
+  const emergencies = s.cases.filter((c) => c.kind === 'event' && c.priority === 'emergency' && c.status === 'to_verify')
+  return asks.length + mine.length + emergencies.length
 }
 
 export function nextOwner(c: Case, s: State): string {
@@ -204,6 +219,22 @@ function eventTransition(s: State, c: EventCase, a: CaseAction): State {
   }
 }
 
+// Staff ask the daughter for help on an open case; one question at a time, a new ask replaces the answered one (history keeps both).
+function askFamily(s: State, c: Case, question: string): State {
+  const q = question.trim()
+  if (isFinal(c) || c.owner !== 'staff' || !q || (c.familyAsk && c.familyAsk.reply === undefined)) return s
+  const out = updateCase(s, c.id, { familyAsk: { question: q, askedAt: s.now } }, { by: 'staff', text: `${staffName(s)} nhờ ${familyName(s)} hỗ trợ: ${q}` })
+  return notify(out, 'family', `CAREBOX nhờ hỗ trợ (${c.id}): ${q}`, c.kind === 'event' ? 'health' : 'request', 'staff', c.id)
+}
+
+function replyToAsk(s: State, c: Case, text: string): State {
+  const reply = text.trim()
+  if (isFinal(c) || !c.familyAsk || c.familyAsk.reply !== undefined || !reply) return s
+  const name = familyName(s)
+  const out = updateCase(s, c.id, { familyAsk: { ...c.familyAsk, reply, repliedAt: s.now } }, { by: 'family', text: `${name} trả lời: ${reply}` })
+  return notify(out, 'staff', `${name} trả lời (${c.id}): ${reply}`, c.kind === 'event' ? 'health' : 'request', 'family', c.id)
+}
+
 export function transition(s: State, a: CaseAction): State {
   if (a.type === 'emergency/call115') {
     if (!s.emergency || s.emergency.calling) return s
@@ -211,6 +242,8 @@ export function transition(s: State, a: CaseAction): State {
   }
   const c = s.cases.find((x) => x.id === a.id)
   if (!c) return s
+  if (a.type === 'staff/askFamily') return askFamily(s, c, a.question)
+  if (a.type === 'family/reply') return replyToAsk(s, c, a.text)
   if (c.kind !== 'request') return eventTransition(s, c, a)
   return a.type.startsWith('staff/') ? staffTransition(s, c, a) : requestTransition(s, c, a)
 }
