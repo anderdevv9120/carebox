@@ -16,7 +16,7 @@ const KW = {
     'te xuong', 'bat tinh', 'ngat', 'co giat', 'dot quy', 'meo mieng', 'te nua nguoi', 'chay mau', 'cap cuu', 'cuu',
     'mat y thuc', 'yeu nua nguoi', 'noi ngong', 'noi kho', 'kho noi',
   ],
-  medical_decision: ['doi lieu', 'tang lieu', 'giam lieu', 'ke don', 'bo thuoc', 'uong them thuoc', 'doi thuoc', 'ngung thuoc', 'dung thuoc'],
+  medical_decision: ['doi lieu', 'tang lieu', 'giam lieu', 'ke don', 'bo thuoc', 'uong them thuoc', 'doi thuoc', 'ngung thuoc'],
   problem: ['het thuoc', 'met', 'chong mat', 'dau dau', 'sot', 'khong khoe', 'buon non'],
   reminder: ['nhac', 'dat lich nhac'],
   contact: ['goi con', 'goi cho', 'lien he', 'nhan con', 'con gai', 'con trai'],
@@ -33,11 +33,13 @@ const SERVICE_KW: [ServiceType, string[]][] = [
 const JUNCTION = /\bnga (ba|tu|nam|sau)\b/g
 // "uống thêm 2 viên" is a dose change; "uống thêm nước" is not.
 const EXTRA_DOSE = /\buong them (\d+|mot|hai|ba) vien\b/
+// "dừng thuốc" is matched on the accented text: normalized it collides with "dùng thuốc" / "đúng thuốc".
+const STOP_MEDICINE = /\bdừng thuốc\b/
 
 export function classify(text: string): { intent: Intent; service?: ServiceType } {
   const w = normalize(text).replace(JUNCTION, ' ')
   if (has(w, KW.emergency)) return { intent: 'emergency' }
-  if (has(w, KW.medical_decision) || EXTRA_DOSE.test(w)) return { intent: 'medical_decision' }
+  if (has(w, KW.medical_decision) || EXTRA_DOSE.test(w) || STOP_MEDICINE.test(text.normalize('NFC').toLowerCase())) return { intent: 'medical_decision' }
   if (has(w, KW.problem)) return { intent: 'problem' }
   if (has(w, KW.reminder)) return { intent: 'reminder', service: 'add_reminder' }
   if (has(w, KW.contact)) return { intent: 'contact', service: 'contact_family' }

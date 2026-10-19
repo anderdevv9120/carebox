@@ -208,6 +208,11 @@ describe('handleUtterance', () => {
     for (const t of ['uống thêm nước', 'ngã tư Sở']) expect(['medical_decision', 'emergency']).not.toContain(classify(t).intent)
   })
 
+  test('dừng thuốc is a medical decision; dùng/đúng thuốc are not', () => {
+    expect(classify('dừng thuốc huyết áp').intent).toBe('medical_decision')
+    for (const t of ['Bác dùng thuốc rồi', 'cách dùng thuốc', 'đúng thuốc rồi']) expect(classify(t).intent).not.toBe('medical_decision')
+  })
+
   test('Mua giúp bác ít gạo starts groceries', () => {
     expect(classify('Mua giúp bác ít gạo')).toEqual({ intent: 'service', service: 'groceries' })
     expect(newRequest(say(s0(), 'Mua giúp bác ít gạo')).service).toBe('groceries')
