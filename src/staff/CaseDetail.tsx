@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../state/store'
-import { familyName, fmtDayMonth, fmtTime } from '../state/helpers'
+import { familyName, fmtDayMonth, fmtTime, staffName } from '../state/helpers'
 import { can, effectivePriority, nextOwner, type CaseAction } from '../state/cases'
 import { SERVICE_FIELDS } from '../state/assistant'
 import { PARTNER_PENDING } from '../state/labels'
@@ -84,9 +84,9 @@ function FieldList({ c, known }: { c: RequestCase; known?: boolean }) {
   )
 }
 
-function result(c: Case): string {
+function result(c: Case, staff: string): string {
   if (c.kind === 'event') return c.status === 'resolved' ? `Đã đóng: ${c.closingNote}` : c.status === 'handling' ? `${c.handler} đang xử lý` : 'Chưa có kết quả'
-  if (c.status === 'done') return `Hoàn tất${c.completedAt ? ` lúc ${when(c.completedAt)}` : ''}, nhân viên xác nhận: ${c.doneBy}`
+  if (c.status === 'done') return `Hoàn tất${c.completedAt ? ` lúc ${when(c.completedAt)}` : ''}, ${c.doneBy === staff ? 'nhân viên' : 'gia đình'} xác nhận: ${c.doneBy}`
   if (c.status === 'refused') return `Từ chối: ${c.closedReason}`
   if (c.partnerReport) return `Care Partner báo: ${c.partnerReport}`
   return 'Chưa có kết quả'
@@ -132,7 +132,7 @@ export function CaseDetail() {
           <li><span className="muted">Thông tin đã xác minh:</span> {verified}</li>
           <li><span className="muted">Chưa rõ / còn thiếu:</span> {missing.join(', ') || 'Không có'}</li>
           <li><span className="muted">Ai làm tiếp:</span> {nextOwner(c, state)}</li>
-          <li><span className="muted">Trạng thái và kết quả:</span> <StatusBadge c={c} /> {result(c)}</li>
+          <li><span className="muted">Trạng thái và kết quả:</span> <StatusBadge c={c} /> {result(c, staffName(state))}</li>
         </ul>
       </div>
 

@@ -45,7 +45,8 @@ describe('seed', () => {
     const c1 = s.cases.find((c) => c.id === 'CB-001') as RequestCase
     const c2 = s.cases.find((c) => c.id === 'CB-002') as RequestCase
     expect(c1).toMatchObject({ status: 'need_info', createdAt: NOW - 20 * MIN })
-    expect(c2).toMatchObject({ status: 'done', createdAt: NOW - 2 * DAY, completedAt: NOW - DAY, doneBy: 'Anh Nam', doneNote: 'Đã đưa bác đi khám và về nhà.' })
+    expect(c2).toMatchObject({ status: 'done', createdAt: NOW - 2 * DAY, completedAt: NOW - DAY, doneBy: 'Anh Nam', partnerReport: 'Đã đưa bác đi khám và về nhà.' })
+    expect(c2.doneNote).toBeUndefined()
     expect(s.notifications.find((n) => n.caseId === 'CB-001')!.at).toBe(c1.createdAt)
     expect(s.notifications.find((n) => n.caseId === 'CB-002')!.at).toBe(c2.completedAt)
   })

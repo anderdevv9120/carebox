@@ -12,7 +12,7 @@ Chỉ trả về một đối tượng JSON, không có markdown: {"status":"ans
 Chọn "unclear" chỉ khi bác đang muốn nhờ thực hiện một việc nhưng cháu không hiểu bác muốn làm gì ngay cả khi xét hội thoại trước đó. Nếu unclear, reply là một câu hỏi làm rõ ngắn gọn.
 Chọn "answered" cho chào hỏi, tâm sự, kể chuyện, câu hỏi thông thường và những câu bác có thể trả lời hoặc hướng dẫn. Đừng coi lời hỏi thêm thông tin bình thường trong cuộc trò chuyện là không hiểu yêu cầu.
 Chọn "service" chỉ khi bác nói rõ muốn CAREBOX thực hiện một trong các dịch vụ: medicine (lấy thuốc), groceries (mua đồ), clinic (đi khám), daily_help (hỗ trợ sinh hoạt), contact_family (liên hệ gia đình), add_reminder (thêm lịch nhắc). Khi đó reply chỉ là một câu xác nhận ngắn; hệ thống sẽ hỏi tiếp thông tin còn thiếu.
-Chọn "emergency" với mọi dấu hiệu nguy hiểm khẩn cấp (đau ngực, khó thở, ngã, ngất, đột quỵ, chảy máu nhiều...); reply là một câu ngắn khuyên gọi 115 ngay.`
+Chọn "emergency" với mọi dấu hiệu nguy hiểm khẩn cấp (đau ngực, khó thở, ngã, ngất, đột quỵ, chảy máu nhiều...; ngã ba/ngã tư là giao lộ, không phải té ngã); reply là một câu ngắn khuyên gọi 115 ngay.`
 
 export type AIReply = { text: string; kind: 'answered' | 'unclear' | 'service' | 'emergency'; service?: ServiceType }
 

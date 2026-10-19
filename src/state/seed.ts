@@ -61,7 +61,7 @@ export function seed(now: number): State {
         confirmedAt: now - 2 * DAY + 10 * MIN, verifiedBy: 'Anh Nam', verifiedAt: now - 2 * DAY + 15 * MIN,
         verifyNote: 'Đã gọi bác xác nhận lịch khám.', assignee: 'Anh Tuấn',
         partnerReport: 'Đã đưa bác đi khám và về nhà.', partnerReportAt: now - DAY - 30 * MIN,
-        doneBy: 'Anh Nam', doneNote: 'Đã đưa bác đi khám và về nhà.',
+        doneBy: 'Anh Nam',
         history: [
           { at: now - 2 * DAY, by: 'ai', text: 'AI ghi nhận yêu cầu, bác đã xác nhận nội dung.' },
           { at: now - 2 * DAY + 10 * MIN, by: 'staff', text: 'Anh Nam xác nhận lại với bác.' },

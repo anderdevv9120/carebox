@@ -7,10 +7,15 @@ export const FAMILY_FALLBACK_AFTER = 30 // minutes a family-owned request may wa
 export const SERVICE_JOBS: ServiceType[] = ['medicine', 'groceries', 'clinic', 'daily_help']
 
 // A reminder about medicine goes to staff; any other reminder or a family call stays with the daughter.
-// "bệnh viện" holds "viện" but is a place, not a pill.
-export const isMedicineReminder = (c: RequestCase) =>
-  c.service === 'add_reminder' &&
-  has(normalize(`${c.detail} ${c.fields.noi_dung ?? ''}`).replace(/\bbenh vien\b/g, ' '), ['thuoc', 'vien', 'lieu', 'tiem', 'insulin'])
+// "viện" is a pill, but also in "bệnh viện", "công viên", "nhân viên", ...: those are stripped first.
+// "tiêm" (injection) is matched accented: normalized it collides with "tiệm" (shop).
+const NOT_A_PILL = /\b((benh|cong|nhan|thanh|sinh|hoi) vien|vien chuc)\b/g
+const INJECT = /(?<!\p{L})tiêm(?!\p{L})/u
+export const isMedicineReminder = (c: RequestCase) => {
+  const text = `${c.detail} ${c.fields.noi_dung ?? ''}`
+  return c.service === 'add_reminder' &&
+    (has(normalize(text).replace(NOT_A_PILL, ' '), ['thuoc', 'vien', 'lieu', 'insulin']) || INJECT.test(text.normalize('NFC').toLowerCase()))
+}
 export const ownerAtConfirm = (c: RequestCase): Owner =>
   c.service === 'contact_family' || (c.service === 'add_reminder' && !isMedicineReminder(c)) ? 'family' : 'staff'
 

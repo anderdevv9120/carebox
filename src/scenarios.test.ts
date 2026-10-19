@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { seed } from './state/seed'
 import { seedBare } from './state/testing'
+import { SERVICE_FIELDS } from './state/assistant'
 import { reduce, type Action } from './state/reducer'
 import { tick } from './state/clock'
 import { STALE_AFTER, deviceStatus } from './state/devices'
@@ -34,7 +35,7 @@ describe('doc §8 scenarios', () => {
     const [r] = requests(s)
     expect(requests(s)).toHaveLength(1)
     expect(r).toMatchObject({ service: 'groceries', status: 'await_staff', owner: 'staff' })
-    expect(Object.values(r.fields).every((v) => v !== 'chưa rõ')).toBe(true)
+    for (const f of SERVICE_FIELDS.groceries) expect(r.fields[f.key], f.key).toBeTruthy()
     expect(forCase(s, r.id, 'staff')).toHaveLength(1)
     expect(forCase(s, r.id, 'family')).toHaveLength(1)
     expect(s.cases.filter((c) => c.status === 'done').map((c) => c.id)).toEqual(['CB-002'])
@@ -76,7 +77,7 @@ describe('doc §8 scenarios', () => {
       expect(s.chat.pending).toBeNull()
     })
 
-    test.each(['Không', 'Không muốn', 'Không phải'])('first-question %s → refused, never stored as an answer', (no) => {
+    test.each(['Không', 'Không muốn', 'Không phải', 'Không muốn nữa'])('first-question %s → refused, never stored as an answer', (no) => {
       const s = starts(no)
       const [r] = requests(s)
       expect(requests(s)).toHaveLength(1)

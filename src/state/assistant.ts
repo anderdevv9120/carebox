@@ -89,7 +89,7 @@ function isRefusal(text: string): boolean {
 }
 
 // A bare "không" answers the first question with a refusal; later it is a valid field answer ("Không, bác tự đi được").
-const FIRST_REFUSAL = /^khong( (muon|phai|can|a|dau))*$/
+const FIRST_REFUSAL = /^khong( (muon|phai|can|a|dau|nua))*$/
 
 const reqById = (s: State, id: string) => s.cases.find((c) => c.id === id) as RequestCase
 const nextField = (c: RequestCase) =>

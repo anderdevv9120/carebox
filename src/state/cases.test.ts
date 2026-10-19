@@ -253,6 +253,15 @@ describe('staff request workflow', () => {
     expect(ownerAtConfirm(c('add_reminder', 'Nhắc bác tiêm insulin'))).toBe('staff')
     expect(ownerAtConfirm(c('add_reminder', 'Nhắc bác đi bệnh viện tái khám'))).toBe('family')
   })
+
+  test.each(['Nhắc bác đi bộ ở công viên lúc 5h', 'Nhắc bác gặp nhân viên phường', 'Nhắc bác ghé tiệm tạp hóa', 'Nhắc bác họp với thành viên câu lạc bộ'])(
+    'ownerAtConfirm: "%s" is not a medicine reminder', (text) => {
+      const c = req(withRequest('add_reminder', 'await_confirm', 'staff', text), 'CB-010')
+      expect(ownerAtConfirm(c)).toBe('family')
+    })
+  test('ownerAtConfirm: "tiêm" with diacritics stays a medicine reminder', () => {
+    expect(ownerAtConfirm(req(withRequest('add_reminder', 'await_confirm', 'staff', 'Nhắc bác đi tiêm lúc 9h'), 'CB-010'))).toBe('staff')
+  })
 })
 
 describe('event workflow', () => {

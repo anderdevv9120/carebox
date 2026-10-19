@@ -7,7 +7,8 @@ Use these seven scenarios to verify AI escalation, ordinary chat, manual handoff
 Open CAREBOX in two browsers or devices:
 
 - **Browser A:** Log in as `ba.lan` (elderly user).
-- **Browser B:** Log in as `con.gai` (family member).
+- **Browser B:** Log in as `nhan.vien` (staff, Anh Nam).
+- **Browser C (optional):** Log in as `con.gai` (family member) to check what Chị Minh sees.
 - Configure `GEMINI_API_KEY` and confirm Gemma 4 26B A4B is responding to free-form chat.
 - Allow approximately **3 seconds** for changes to appear on the family side.
 - Start each scenario with a fresh demo reset, or otherwise record existing alerts first so you can identify **new** alerts.
@@ -16,10 +17,10 @@ Open CAREBOX in two browsers or devices:
 
 | # | Scenario | Messages / actions | Expected result |
 | --- | --- | --- | --- |
-| 1 | Normal conversation | “Cháu kể chuyện vui cho bác nghe đi.” → “Kể tiếp đi cháu.” | Gemma 4 26B A4B responds naturally. No **new** misunderstanding alert for the family. |
-| 2 | Two unclear requests | “Bác muốn nhờ làm cái việc hôm trước ấy.” → “Cái việc mà bác đã nói lần trước đó.” | CAREBOX asks once for clarification, then escalates to Chị Minh **if Gemma 4 26B A4B marks both requests unclear**. |
+| 1 | Normal conversation | “Cháu kể chuyện vui cho bác nghe đi.” → “Kể tiếp đi cháu.” | Gemma 4 26B A4B responds naturally. No **new** misunderstanding alert for staff or the family. |
+| 2 | Two unclear requests | “Bác muốn nhờ làm cái việc hôm trước ấy.” → “Cái việc mà bác đã nói lần trước đó.” | CAREBOX asks once for clarification, then hands off to staff **if Gemma 4 26B A4B marks both requests unclear**. |
 | 3 | Understanding resets escalation | “Bác muốn làm cái đó ấy.” → “Cháu kể chuyện cho bác nghe đi.” → “Bác muốn cái hồi trước.” | If Gemma 4 26B A4B marks the first and third unclear but understands the middle message, no handoff occurs. |
-| 4 | Manual escalation | Press **Nhờ con giúp**. | Creates a new alert for Chị Minh immediately, without needing two unclear messages. |
+| 4 | Manual escalation | Press **Gặp nhân viên**. | Creates a new staff-owned alert immediately, without needing two unclear messages. |
 | 5 | Recognized service request | “Bác muốn mua thuốc.” | Starts collecting service details; no misunderstanding escalation. |
 | 6 | Emergency | “Bác đau ngực.” | The emergency workflow activates immediately and bypasses Gemma 4 26B A4B’s ordinary-chat path. |
 | 7 | Medication safety | “Bác muốn tăng liều thuốc.” | CAREBOX refuses to change medication or dosage and creates the corresponding event. |
@@ -32,7 +33,7 @@ Open CAREBOX in two browsers or devices:
 
 If Gemma 4 26B A4B marks the request unclear, CAREBOX should respond along these lines:
 
-> Cháu chưa hiểu ý bác. Bác nói lại ngắn gọn giúp cháu nhé. Hoặc bác bấm “Nhờ con giúp”.
+> Cháu chưa hiểu ý bác. Bác nói lại ngắn gọn giúp cháu nhé. Hoặc bác bấm “Gặp nhân viên”.
 
 ### Step 2 — Bà Lan sends
 
@@ -40,17 +41,17 @@ If Gemma 4 26B A4B marks the request unclear, CAREBOX should respond along these
 
 If Gemma 4 26B A4B again marks the request unclear, CAREBOX should respond:
 
-> Cháu đã báo Chị Minh gọi lại cho bác ạ.
+> Cháu đã chuyển cho nhân viên CAREBOX và báo Chị Minh. Nhân viên sẽ liên hệ lại với bác ạ.
 
-### Step 3 — Check Chị Minh’s account
+### Step 3 — Check the staff and family accounts
 
 Verify that:
 
-- A new **AI chưa hiểu yêu cầu** alert appears.
+- A new **AI chưa hiểu yêu cầu** alert appears on Anh Nam’s board.
 - The alert priority is **Uncertain**.
 - Both unclear messages are recorded.
-- A notification is created for Chị Minh.
-- Chị Minh can receive and resolve the alert.
+- A notification is created for staff, and one for Chị Minh saying staff took it.
+- Anh Nam can take (**Tôi xem việc này**) and close (**Đã xử lý**) the alert. Chị Minh can only read it.
 
 ## Additional test: Gemma 4 26B A4B response formatting
 
