@@ -1,6 +1,6 @@
 import { useStore } from '../state/store'
 import { fmtTime } from '../state/helpers'
-import { isFinal, nextOwner } from '../state/cases'
+import { familyTodo, isFinal, nextOwner } from '../state/cases'
 import { deviceStatus } from '../state/devices'
 import { reminderStatus } from '../state/reminders'
 import { PriorityBadge, SourceTag, StatusBadge } from '../ui/Badges'
@@ -23,7 +23,7 @@ export function Dashboard() {
   const todayLeft = state.reminders.filter((r) => ['upcoming', 'due', 'snoozed'].includes(reminderStatus(r, state.now))).length
   const openRequests = state.cases.filter((c): c is RequestCase => c.kind === 'request' && !isFinal(c))
   const openEvents = state.cases.filter((c) => c.kind === 'event' && !isFinal(c))
-  const toHandle = state.cases.filter((c) => c.status === 'await_family' || c.status === 'to_verify').length
+  const toHandle = familyTodo(state)
   const activity = state.cases
     .flatMap((c) => c.history.map((h) => ({ ...h, caseId: c.id, title: c.title })))
     .sort((a, b) => b.at - a.at)
@@ -46,7 +46,7 @@ export function Dashboard() {
       </div>
       {toHandle > 0 && (
         <button className="card attn-card todo-card" onClick={() => go('f-requests')}>
-          <span className="grow"><b className="block">Cần chị xử lý</b><span className="muted small">{toHandle} việc chờ chị nhận hoặc xem</span></span>
+          <span className="grow"><b className="block">Cần chị xử lý</b><span className="muted small">{toHandle} việc chờ chị trả lời, nhận hoặc xem</span></span>
           <span className="chev">›</span>
         </button>
       )}

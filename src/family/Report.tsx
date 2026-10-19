@@ -5,6 +5,8 @@ import { REMINDER_ICON } from '../elder/Schedule'
 import { DeviceBadge, PriorityBadge, ReminderBadge, SourceTag, StatusBadge } from '../ui/Badges'
 import type { RequestCase } from '../state/types'
 
+const at = (ms: number) => `${fmtTime(ms)} ${fmtDate(ms)}`
+
 export function Report() {
   const { state } = useStore()
   const day = vnDay(state.now)
@@ -24,7 +26,7 @@ export function Report() {
 
       <section className="card">
         <div className="row between"><b>Tóm tắt yêu cầu</b><SourceTag source="ai" /></div>
-        <p className="small">Hôm nay tiếp nhận {receivedToday} yêu cầu · {done.length} đã hoàn tất (gia đình xác nhận) · {open.length} đang mở.</p>
+        <p className="small">Hôm nay tiếp nhận {receivedToday} yêu cầu · {done.length} đã hoàn tất (gia đình hoặc nhân viên xác nhận) · {open.length} đang mở.</p>
         {open.map((c) => (
           <div key={c.id} className="row between wrap small line">
             <span>{c.title} — <span className="muted">{nextOwner(c, state)}</span> <SourceTag source={c.source} /></span>
@@ -61,10 +63,17 @@ export function Report() {
         {done.map((c) => (
           <div key={c.id} className="service-report small">
             <div className="row between"><b>{c.title}</b><span className="muted">{c.id}</span></div>
-            <div><span className="muted">Kết quả thực hiện:</span> Đã hoàn tất theo xác nhận của gia đình.</div>
-            {c.doneNote && <div className="note">📝 {c.doneNote} <SourceTag source="family" /></div>}
-            {c.doneBy && <div><span className="muted">Người xác nhận:</span> {c.doneBy}{relationOf(c.doneBy)}</div>}
-            {c.completedAt && <div><span className="muted">Thời điểm hoàn tất:</span> {fmtTime(c.completedAt)} {fmtDate(c.completedAt)}</div>}
+            {c.assignee ? <>
+              <div><span className="muted">Kết quả thực hiện:</span> Đã hoàn tất theo báo cáo của Care Partner {c.assignee}.</div>
+              {c.doneBy && <div><span className="muted">Người xác nhận:</span> {c.doneBy} (nhân viên điều phối)</div>}
+              {c.partnerReportAt && <div><span className="muted">Thời điểm hoàn tất:</span> {at(c.partnerReportAt)}</div>}
+              {c.completedAt && <div><span className="muted">Thời điểm xác nhận:</span> {at(c.completedAt)}</div>}
+            </> : <>
+              <div><span className="muted">Kết quả thực hiện:</span> Đã hoàn tất theo xác nhận của gia đình.</div>
+              {c.doneNote && <div className="note">📝 {c.doneNote} <SourceTag source="family" /></div>}
+              {c.doneBy && <div><span className="muted">Người xác nhận:</span> {c.doneBy}{relationOf(c.doneBy)}</div>}
+              {c.completedAt && <div><span className="muted">Thời điểm hoàn tất:</span> {at(c.completedAt)}</div>}
+            </>}
           </div>
         ))}
       </section>
@@ -78,7 +87,7 @@ export function Report() {
           </div>
         ))}
       </section>
-      <p className="muted small center">Báo cáo phân biệt dữ liệu thiết bị, lời bác báo, xác nhận của gia đình và nội dung AI tổng hợp.</p>
+      <p className="muted small center">Báo cáo phân biệt dữ liệu thiết bị, lời bác báo, xác nhận của gia đình, xác minh của nhân viên và nội dung AI tổng hợp.</p>
     </div>
   )
 }

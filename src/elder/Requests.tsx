@@ -34,6 +34,7 @@ export function RequestCard({ c, s, onCancel }: { c: RequestCase; s: State; onCa
       <div className="small"><span className="muted">Phụ trách tiếp theo:</span> <b>{nextOwner(c, s)}</b></div>
       {c.status === 'refused' && c.closedReason && <div className="note small">Lý do từ chối: {c.closedReason}</div>}
       {c.status === 'done' && c.doneNote && <div className="note small">📝 {c.doneBy ?? 'Gia đình'}: {c.doneNote}</div>}
+      {c.status === 'done' && c.partnerReport && <div className="note small">Care Partner báo: {c.partnerReport}</div>}
       <ul className="timeline">
         {c.history.map((h, i) => <li key={i}><b>{fmtTime(h.at)}</b> {h.text}</li>)}
       </ul>

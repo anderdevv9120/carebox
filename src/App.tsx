@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { TabBar, type TabItem } from './ui/TabBar'
 import { EmergencyOverlay } from './ui/EmergencyOverlay'
 import { useStore } from './state/store'
-import { isFinal, staffBoard } from './state/cases'
+import { familyTodo, isFinal, staffBoard } from './state/cases'
 import { notificationsFor } from './state/helpers'
 import type { EventCase, Screen } from './state/types'
 import { Home } from './elder/Home'
@@ -61,10 +61,9 @@ export default function App() {
     ]
   } else {
     View = FAMILY[view.screen] ?? Dashboard
-    const toHandle = state.cases.filter((c) => c.status === 'await_family' || c.status === 'to_verify').length
     tabs = [
       { id: 'f-dashboard', label: 'Tổng quan', icon: '🏠' },
-      { id: 'f-requests', label: 'Yêu cầu của mẹ', icon: '📋', badge: toHandle },
+      { id: 'f-requests', label: 'Yêu cầu của mẹ', icon: '📋', badge: familyTodo(state) },
       { id: 'f-notifications', label: 'Thông báo', icon: '🔔', badge: notificationsFor(state, 'family').filter((n) => !n.read).length },
       { id: 'f-profile', label: 'Hồ sơ & thiết bị', icon: '👵' },
       { id: 'f-report', label: 'Báo cáo', icon: '📄' },
