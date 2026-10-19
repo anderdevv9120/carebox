@@ -1,5 +1,5 @@
 import { useStore } from '../state/store'
-import { fmtDate, fmtTime, vnDay } from '../state/helpers'
+import { fmtDate, fmtTime, staffName, vnDay } from '../state/helpers'
 import { isFinal, nextOwner } from '../state/cases'
 import { REMINDER_ICON } from '../elder/Schedule'
 import { DeviceBadge, PriorityBadge, ReminderBadge, SourceTag, StatusBadge } from '../ui/Badges'
@@ -63,8 +63,8 @@ export function Report() {
         {done.map((c) => (
           <div key={c.id} className="service-report small">
             <div className="row between"><b>{c.title}</b><span className="muted">{c.id}</span></div>
-            {c.assignee ? <>
-              <div><span className="muted">Kết quả thực hiện:</span> Đã hoàn tất theo báo cáo của Care Partner {c.assignee}.</div>
+            {c.assignee || c.doneBy === staffName(state) ? <>
+              <div><span className="muted">Kết quả thực hiện:</span> {c.assignee ? `Đã hoàn tất theo báo cáo của Care Partner ${c.assignee}.` : 'Đã hoàn tất theo xác nhận của nhân viên điều phối.'}</div>
               {c.doneBy && <div><span className="muted">Người xác nhận:</span> {c.doneBy} (nhân viên điều phối)</div>}
               {c.partnerReportAt && <div><span className="muted">Thời điểm hoàn tất:</span> {at(c.partnerReportAt)}</div>}
               {c.completedAt && <div><span className="muted">Thời điểm xác nhận:</span> {at(c.completedAt)}</div>}
