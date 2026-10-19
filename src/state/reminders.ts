@@ -1,4 +1,4 @@
-import { MIN, createEvent, familyName, notify } from './helpers.js'
+import { MIN, createEvent, notifyAlert } from './helpers.js'
 import type { Reminder, ReminderStatus, State } from './types.js'
 
 export const NO_CONFIRM_AFTER = 30 // demo minutes after due
@@ -27,12 +27,12 @@ export function respondReminder(s: State, id: string, response: 'received' | 'sn
     let evId: string
     ;[out, evId] = createEvent(out, {
       title: `Không thực hiện được: ${r.title}`,
-      detail: `Người cao tuổi báo không thực hiện được hoạt động theo lịch nhắc. Cần ${familyName(s)} liên hệ hỏi bác.`,
+      detail: `Người cao tuổi báo không thực hiện được hoạt động theo lịch nhắc. Cần liên hệ hỏi bác.`,
       priority: r.kind === 'medicine' ? 'priority' : 'normal',
       priorityReason: r.kind === 'medicine' ? 'Liên quan lịch uống thuốc' : 'Hoạt động sinh hoạt',
       source: 'elder', reminderId: id,
     })
-    out = notify(out, 'family', `Bác báo không thực hiện được: ${r.title}. Cần ${familyName(s)} liên hệ hỏi bác.`, 'other', 'elder', evId)
+    out = notifyAlert(out, `Bác báo không thực hiện được: ${r.title}.`, 'other', 'elder', evId)
   }
   return out
 }
@@ -48,7 +48,7 @@ export function sweepReminders(s: State): State {
       priority: 'uncertain', priorityReason: 'Người dùng không xác nhận', source: 'ai', reminderId: r.id,
     })
     out = patch(out, r.id, { escalated: true })
-    out = notify(out, 'family', `Chưa có xác nhận sau lịch nhắc "${r.title}". Không kết luận bác đã thực hiện.`, 'other', 'ai', evId)
+    out = notifyAlert(out, `Chưa có xác nhận sau lịch nhắc "${r.title}". Không kết luận bác đã thực hiện.`, 'other', 'ai', evId)
   }
   return out
 }

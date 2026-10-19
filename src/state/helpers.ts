@@ -60,7 +60,7 @@ export function createEvent(s: State, e: NewEvent): [State, string] {
   const { log, ...rest } = e
   const c: EventCase = {
     kind: 'event', id, createdAt: s.now, status: 'to_verify', unclear: [], owner: 'staff', ...rest,
-    history: [{ at: s.now, by: e.source === 'device' ? 'device' : 'ai', text: log ?? 'Tạo cảnh báo, chờ gia đình xem.' }],
+    history: [{ at: s.now, by: e.source === 'device' ? 'device' : 'ai', text: log ?? 'Tạo cảnh báo, chờ nhân viên xem.' }],
   }
   return [addCase(out, c), id]
 }
@@ -77,6 +77,11 @@ export function updateCase(s: State, id: string, patch: Partial<Case>, log?: { b
 export function notify(s: State, to: Audience, text: string, category: NotifCategory, source: Source, caseId?: string): State {
   const [out, id] = nextN(s)
   return { ...out, notifications: [...out.notifications, { id, at: s.now, text, category, source, to, caseId, read: false }] }
+}
+
+// An alert goes to staff as is; the family hear the same fact and that staff were handed it.
+export function notifyAlert(s: State, text: string, category: NotifCategory, source: Source, caseId: string): State {
+  return notify(notify(s, 'staff', text, category, source, caseId), 'family', `${text} Đã chuyển nhân viên CAREBOX kiểm tra.`, category, source, caseId)
 }
 
 // The family member who takes over requests and alerts.

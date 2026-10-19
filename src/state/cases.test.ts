@@ -257,37 +257,97 @@ describe('staff request workflow', () => {
 describe('event workflow', () => {
   const withEvent = () => run(s0(), { type: 'device/push', deviceId: 'bp', mode: 'high' })
 
-  test('takeEvent sets handler = family name; resolveEvent needs note and clears s.emergency for that case', () => {
-    const taken = reduce(withEvent(), { type: 'family/takeEvent', id: 'EVT-001' })
-    expect(get(taken, 'EVT-001')).toMatchObject({ status: 'handling', handler: 'Chị Minh' })
-    expect(get(taken, 'EVT-001').history.at(-1)!.by).toBe('family')
-    expect(reduce(taken, { type: 'family/resolveEvent', id: 'EVT-001', note: '  ' })).toBe(taken)
-    const done = reduce(taken, { type: 'family/resolveEvent', id: 'EVT-001', note: 'Đã gọi mẹ, đo lại theo ngưỡng.' })
-    expect(get(done, 'EVT-001')).toMatchObject({ status: 'resolved', closingNote: 'Đã gọi mẹ, đo lại theo ngưỡng.' })
+  test('staff takeEvent sets handler = staff name; only staff resolve, with a note, and that clears s.emergency for that case', () => {
+    const taken = reduce(withEvent(), { type: 'staff/takeEvent', id: 'EVT-001' })
+    expect(get(taken, 'EVT-001')).toMatchObject({ status: 'handling', handler: 'Anh Nam', owner: 'staff' })
+    expect(get(taken, 'EVT-001').history.at(-1)!.by).toBe('staff')
+    expect(reduce(taken, { type: 'staff/resolveEvent', id: 'EVT-001', note: '  ' })).toBe(taken)
+    const done = reduce(taken, { type: 'staff/resolveEvent', id: 'EVT-001', note: 'Đã gọi bác, đo lại theo ngưỡng.' })
+    expect(get(done, 'EVT-001')).toMatchObject({ status: 'resolved', closingNote: 'Đã gọi bác, đo lại theo ngưỡng.' })
+    expect(get(done, 'EVT-001').history.at(-1)!.by).toBe('staff')
 
-    const em = run(s0(), { type: 'device/fall' }, { type: 'family/takeEvent', id: 'EVT-001' })
+    const em = run(s0(), { type: 'device/fall' }, { type: 'staff/takeEvent', id: 'EVT-001' })
     expect(em.emergency).not.toBeNull()
-    expect(reduce(em, { type: 'family/resolveEvent', id: 'EVT-001', note: 'Đã gọi 115, xe cấp cứu đã đến' }).emergency).toBeNull()
+    expect(reduce(em, { type: 'staff/resolveEvent', id: 'EVT-001', note: 'Đã gọi 115, xe cấp cứu đã đến' }).emergency).toBeNull()
   })
 
-  test('resolveEvent from to_verify is a no-op', () => {
+  test('family can no longer take or resolve an event', () => {
     const s = withEvent()
-    expect(reduce(s, { type: 'family/resolveEvent', id: 'EVT-001', note: 'x' })).toBe(s)
+    for (const type of ['family/takeEvent', 'family/resolveEvent'])
+      expect(reduce(s, { type, id: 'EVT-001', note: 'x' } as unknown as Action)).toBe(s)
+  })
+
+  test('staff takeEvent only from to_verify, resolveEvent only from handling', () => {
+    const s = withEvent()
+    expect(reduce(s, { type: 'staff/resolveEvent', id: 'EVT-001', note: 'x' })).toBe(s)
+    const taken = reduce(s, { type: 'staff/takeEvent', id: 'EVT-001' })
+    expect(reduce(taken, { type: 'staff/takeEvent', id: 'EVT-001' })).toBe(taken)
+  })
+
+  test('case/ack by family sets handler Chị Minh; by staff sets Anh Nam; only for emergencies', () => {
+    const em = () => reduce(s0(), { type: 'device/fall' })
+    const byFamily = reduce(em(), { type: 'case/ack', id: 'EVT-001', by: 'family' })
+    expect(get(byFamily, 'EVT-001')).toMatchObject({ status: 'handling', handler: 'Chị Minh' })
+    expect(get(byFamily, 'EVT-001').history.at(-1)!.by).toBe('family')
+    const byStaff = reduce(em(), { type: 'case/ack', id: 'EVT-001', by: 'staff' })
+    expect(get(byStaff, 'EVT-001')).toMatchObject({ status: 'handling', handler: 'Anh Nam' })
+    expect(get(byStaff, 'EVT-001').history.at(-1)!.by).toBe('staff')
+    // already taken: a second ack changes nothing
+    expect(reduce(byFamily, { type: 'case/ack', id: 'EVT-001', by: 'staff' })).toBe(byFamily)
+    // a priority (non-emergency) event is not acked this way
+    const prio = withEvent()
+    expect(reduce(prio, { type: 'case/ack', id: 'EVT-001', by: 'family' })).toBe(prio)
+    expect(reduce(prio, { type: 'case/ack', id: 'EVT-001', by: 'staff' })).toBe(prio)
+  })
+
+  test('push high → staff-owned to_verify, staff and family notified, family text says staff were told', () => {
+    const before = s0()
+    const out = reduce(before, { type: 'device/push', deviceId: 'bp', mode: 'high' })
+    expect(get(out, 'EVT-001')).toMatchObject({ owner: 'staff', status: 'to_verify' })
+    const fresh = out.notifications.slice(before.notifications.length)
+    expect(fresh.map((n) => n.to).sort()).toEqual(['family', 'staff'])
+    expect(fresh.every((n) => n.caseId === 'EVT-001')).toBe(true)
+    const fam = fresh.find((n) => n.to === 'family')!
+    expect(fam.text).toContain('Đã chuyển nhân viên CAREBOX kiểm tra')
+    expect(fam.text).not.toContain('Cần gia đình')
+    expect(fresh.find((n) => n.to === 'staff')!.text).not.toContain('Đã chuyển nhân viên CAREBOX kiểm tra')
+  })
+
+  test('cant_do on a medicine reminder → staff-owned priority event, both audiences told', () => {
+    const before = s0()
+    const r = before.reminders.find((x) => x.kind === 'medicine' && !x.response)!
+    const out = reduce(before, { type: 'reminder/respond', id: r.id, response: 'cant_do' })
+    expect(get(out, 'EVT-001')).toMatchObject({ owner: 'staff', priority: 'priority', status: 'to_verify', reminderId: r.id })
+    const fresh = out.notifications.slice(before.notifications.length)
+    expect(fresh.map((n) => n.to).sort()).toEqual(['family', 'staff'])
+    expect(fresh.find((n) => n.to === 'family')!.text).toContain('Đã chuyển nhân viên CAREBOX kiểm tra')
   })
 })
 
 describe('emergency', () => {
-  test('raiseEmergency sets state.emergency, creates an unacknowledged emergency event and notifies once, naming the daughter', () => {
+  test('raiseEmergency sets state.emergency and notifies family and staff, unacknowledged', () => {
     const s = s0()
     const out = reduce(s, { type: 'device/fall' })
     const ev = get(out, 'EVT-001') as EventCase
     expect(out.emergency).toEqual({ caseId: 'EVT-001', calling: false })
-    expect(ev).toMatchObject({ priority: 'emergency', status: 'to_verify' })
+    expect(ev).toMatchObject({ priority: 'emergency', status: 'to_verify', owner: 'staff' })
     expect(ev.handler).toBeUndefined()
-    expect(ev.history[0].text).toContain('Thông báo tự động chưa có nghĩa là đã có người tiếp nhận')
+    expect(ev.history[0].text).toBe('Hướng dẫn gọi 115; đã thông báo Chị Minh và nhân viên CAREBOX. Thông báo tự động chưa có nghĩa là đã có người tiếp nhận.')
     const fresh = out.notifications.slice(s.notifications.length)
-    expect(fresh).toHaveLength(1)
-    expect(fresh[0].text).toContain('Chị Minh')
+    expect(fresh.map((n) => n.to).sort()).toEqual(['family', 'staff'])
+    for (const n of fresh) {
+      expect(n.caseId).toBe('EVT-001')
+      expect(n.text.endsWith('Cần xác nhận đã tiếp nhận tình huống.')).toBe(true)
+    }
+  })
+
+  test('elder saying chest pain notifies family and staff; case stays to_verify', () => {
+    const s = s0()
+    const out = reduce(s, { type: 'chat/say', text: 'Tôi bị đau ngực quá' })
+    expect(get(out, 'EVT-001')).toMatchObject({ priority: 'emergency', status: 'to_verify' })
+    const fresh = out.notifications.filter((n) => n.caseId === 'EVT-001')
+    expect(fresh.map((n) => n.to).sort()).toEqual(['family', 'staff'])
+    expect(get(out, 'EVT-001').history[0].text).toContain('Chị Minh và nhân viên CAREBOX')
   })
 
   test('device/fall raises an emergency', () => {
@@ -337,8 +397,8 @@ describe('derived', () => {
     expect(own('medicine', 'done')).toBe('—')
     const e = run(s0(), { type: 'device/push', deviceId: 'bp', mode: 'high' })
     expect(nextOwner(get(e, 'EVT-001'), e)).toBe('Chị Minh (xem và tiếp nhận)')
-    const taken = reduce(e, { type: 'family/takeEvent', id: 'EVT-001' })
-    expect(nextOwner(get(taken, 'EVT-001'), taken)).toBe('Chị Minh')
+    const taken = reduce(e, { type: 'staff/takeEvent', id: 'EVT-001' })
+    expect(nextOwner(get(taken, 'EVT-001'), taken)).toBe('Anh Nam')
     expect(nextOwner(get(s0(), 'CB-002'), s0())).toBe('—')
   })
 })

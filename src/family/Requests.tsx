@@ -11,7 +11,6 @@ const MAX_TEXT = 500 // server rejects longer notes
 
 function AlertCard({ c, now }: { c: EventCase; now: number }) {
   const { dispatch } = useStore()
-  const [note, setNote] = useState('')
   const sos = c.priority === 'emergency'
   return (
     <div className={`card ${sos ? 'sos-card' : ''}`}>
@@ -22,17 +21,8 @@ function AlertCard({ c, now }: { c: EventCase; now: number }) {
       {c.detail && <p className="small" style={{ marginTop: 6 }}>{c.detail}</p>}
       {c.unclear.length > 0 && <div className="unclear small">Chưa rõ: {c.unclear.join(', ')}</div>}
       <div className="actions">
-        {c.status === 'to_verify' && (
-          <button className={`btn ${sos ? 'danger' : ''}`} onClick={() => dispatch({ type: 'family/takeEvent', id: c.id })}>
-            {sos ? 'Tôi đã tiếp nhận' : 'Tôi xem việc này'}
-          </button>
-        )}
-        {c.status === 'handling' && (
-          <div className="action-row col">
-            <input className="input" maxLength={MAX_TEXT} value={note} onChange={(e) => setNote(e.target.value)}
-              placeholder={sos ? 'Ai đã tiếp nhận? VD: Đã gọi 115, xe cấp cứu đã đến' : 'Ghi chú cách đã xử lý (bắt buộc)'} />
-            <button className="btn ok" disabled={!note.trim()} onClick={() => dispatch({ type: 'family/resolveEvent', id: c.id, note })}>Đã xử lý</button>
-          </div>
+        {sos && c.status === 'to_verify' && (
+          <button className="btn danger" onClick={() => dispatch({ type: 'case/ack', id: c.id, by: 'family' })}>Tôi đã tiếp nhận</button>
         )}
       </div>
     </div>

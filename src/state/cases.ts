@@ -26,8 +26,9 @@ export type CaseAction =
   | { type: 'staff/decline'; id: string; reason: string }
   | { type: 'staff/approveReminder'; id: string; time: string }
   | { type: 'staff/contacted'; id: string }
-  | { type: 'family/takeEvent'; id: string }
-  | { type: 'family/resolveEvent'; id: string; note: string }
+  | { type: 'staff/takeEvent'; id: string }
+  | { type: 'staff/resolveEvent'; id: string; note: string }
+  | { type: 'case/ack'; id: string; by: Owner } // `by` is set by the server from the caller's role
   | { type: 'emergency/call115' }
 
 const FINAL = ['done', 'refused', 'resolved']
@@ -95,10 +96,11 @@ export function raiseEmergency(s: State, title: string, detail: string, source: 
   const name = familyName(s)
   const [out, id] = createEvent(s, {
     title, detail, source, priority: 'emergency', priorityReason: 'Dấu hiệu khẩn cấp',
-    log: `Hướng dẫn gọi 115; đã thông báo ${name}. Thông báo tự động chưa có nghĩa là đã có người tiếp nhận.`,
+    log: `Hướng dẫn gọi 115; đã thông báo ${name} và nhân viên CAREBOX. Thông báo tự động chưa có nghĩa là đã có người tiếp nhận.`,
   })
-  return notify({ ...out, emergency: { caseId: id, calling: false } },
-    'family', `KHẨN CẤP: ${title}. Đang hướng dẫn gọi 115. Cần ${name} xác nhận đã tiếp nhận tình huống.`, 'health', source, id)
+  const text = `KHẨN CẤP: ${title}. Đang hướng dẫn gọi 115. Cần xác nhận đã tiếp nhận tình huống.`
+  const sent = notify({ ...out, emergency: { caseId: id, calling: false } }, 'staff', text, 'health', source, id)
+  return notify(sent, 'family', text, 'health', source, id)
 }
 
 function addReminder(s: State, c: RequestCase, time: string, approver: string, kind: ReminderKind): State {
@@ -180,16 +182,22 @@ function staffTransition(s: State, c: RequestCase, a: CaseAction): State {
 }
 
 function eventTransition(s: State, c: EventCase, a: CaseAction): State {
-  const name = familyName(s)
+  const name = staffName(s)
   switch (a.type) {
-    case 'family/takeEvent':
+    case 'staff/takeEvent':
       if (c.status !== 'to_verify') return s
-      return updateCase(s, c.id, { status: 'handling', handler: name }, { by: 'family', text: `${name} tiếp nhận.` })
-    case 'family/resolveEvent': {
+      return updateCase(s, c.id, { status: 'handling', handler: name }, { by: 'staff', text: `${name} tiếp nhận.` })
+    // The daughter or staff acknowledge an emergency they were told about; other alerts are staff's to take.
+    case 'case/ack': {
+      if (c.priority !== 'emergency' || c.status !== 'to_verify') return s
+      const handler = a.by === 'staff' ? name : familyName(s)
+      return updateCase(s, c.id, { status: 'handling', handler }, { by: a.by, text: `${handler} tiếp nhận.` })
+    }
+    case 'staff/resolveEvent': {
       const note = a.note.trim()
       if (c.status !== 'handling' || !note) return s
       const out = s.emergency?.caseId === c.id ? { ...s, emergency: null } : s
-      return updateCase(out, c.id, { status: 'resolved', closingNote: note }, { by: 'family', text: `Đóng sự kiện: ${note}` })
+      return updateCase(out, c.id, { status: 'resolved', closingNote: note }, { by: 'staff', text: `Đóng sự kiện: ${note}` })
     }
     default:
       return s

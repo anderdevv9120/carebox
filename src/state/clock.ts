@@ -1,4 +1,5 @@
 import { sweepFamilyFallback } from './cases.js'
+import { sweepDevices } from './devices.js'
 import { atVN, fmtTime, vnDay } from './helpers.js'
 import { sweepReminders } from './reminders.js'
 import type { State } from './types.js'
@@ -14,6 +15,6 @@ export function rollover(s: State, now: number): State {
 }
 
 export function tick(s: State, now: number): { state: State; changed: boolean } {
-  const state = sweepFamilyFallback(sweepReminders(rollover({ ...s, now }, now)))
-  return { state, changed: state.day !== s.day || state.reminders !== s.reminders || state.cases !== s.cases }
+  const state = sweepDevices(sweepFamilyFallback(sweepReminders(rollover({ ...s, now }, now))))
+  return { state, changed: state.day !== s.day || state.reminders !== s.reminders || state.cases !== s.cases || state.notifications !== s.notifications }
 }

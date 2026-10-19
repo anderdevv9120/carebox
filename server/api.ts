@@ -18,11 +18,11 @@ export const ROLE_ACTIONS: Record<Role, Type[]> = {
   ],
   family: [
     'reset', 'notif/readAll', 'family/decline', 'family/approveReminder',
-    'family/contacted', 'family/takeEvent', 'family/resolveEvent',
+    'family/contacted', 'case/ack',
   ],
   staff: [
     'reset', 'staff/verify', 'staff/assign', 'staff/partnerReport', 'staff/complete', 'staff/decline',
-    'staff/approveReminder', 'staff/contacted',
+    'staff/approveReminder', 'staff/contacted', 'staff/takeEvent', 'staff/resolveEvent', 'case/ack',
   ],
 }
 
@@ -47,8 +47,6 @@ const FIELDS: Record<Type, Record<string, Check>> = {
   'family/decline': { id: 'id', reason: 'text' },
   'family/approveReminder': { id: 'id', time: 'text' },
   'family/contacted': { id: 'id' },
-  'family/takeEvent': { id: 'id' },
-  'family/resolveEvent': { id: 'id', note: 'text' },
   'staff/verify': { id: 'id', note: 'text' },
   'staff/assign': { id: 'id', partner: 'text' },
   'staff/partnerReport': { id: 'id', note: 'text' },
@@ -56,6 +54,9 @@ const FIELDS: Record<Type, Record<string, Check>> = {
   'staff/decline': { id: 'id', reason: 'text' },
   'staff/approveReminder': { id: 'id', time: 'text' },
   'staff/contacted': { id: 'id' },
+  'staff/takeEvent': { id: 'id' },
+  'staff/resolveEvent': { id: 'id', note: 'text' },
+  'case/ack': { id: 'id' },
   'emergency/call115': {},
 }
 
@@ -72,9 +73,9 @@ function parseAction(body: unknown, role: Role): Action | 400 | 403 {
   if (!ROLE_ACTIONS[role].includes(type)) return 403
   const spec = Object.entries(FIELDS[type])
   if (!spec.every(([k, c]) => ok(b[k], c))) return 400
-  // the audience is the caller's role, never the client's choice
-  const audience = type === 'notif/readAll' ? { to: role } : {}
-  return { type, ...Object.fromEntries(spec.map(([k]) => [k, b[k]])), ...audience } as Action
+  // the audience, and who acknowledges, is the caller's role, never the client's choice
+  const injected = type === 'notif/readAll' ? { to: role } : type === 'case/ack' ? { by: role } : {}
+  return { type, ...Object.fromEntries(spec.map(([k]) => [k, b[k]])), ...injected } as Action
 }
 
 // ponytail: shallow shape check, not a schema; bump `version` when the State shape changes.

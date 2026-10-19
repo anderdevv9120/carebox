@@ -184,17 +184,26 @@ describe('validation', () => {
 })
 
 describe('shared state', () => {
-  test('interleaved elder chat confirm and family takeEvent both persist', async () => {
+  test('interleaved elder chat confirm and family case/ack both persist', async () => {
     const say = (text: string) => post('/api/action', elder, { type: 'chat/say', text })
     await post('/api/action', elder, { type: 'chat/startService', service: 'groceries' })
     await say('Rau, trứng')
     await say('Sáng mai')
     await say('Đúng rồi')
-    expect((await post('/api/action', family, { type: 'family/takeEvent', id: 'EVT-001' })).status).toBe(200)
+    await say('đau ngực')
+    const raised = (await getState(family)).cases.find((c) => c.kind === 'event' && c.priority === 'emergency')!
+    expect((await post('/api/action', family, { type: 'case/ack', id: raised.id })).status).toBe(200)
     await say('lịch hôm nay')
     const s = await getState(family)
-    expect(s.cases.find((c) => c.id === 'EVT-001')!.status).toBe('handling')
+    expect(s.cases.find((c) => c.id === raised.id)!.status).toBe('handling')
     expect(s.chat.messages.at(-2)!.text).toBe('lịch hôm nay')
+  })
+
+  test('case/ack handler comes from the caller role, not a client-sent by', async () => {
+    const raised: State = await (await post('/api/action', elder, { type: 'chat/say', text: 'đau ngực' })).json()
+    const id = raised.cases.find((c) => c.kind === 'event' && c.priority === 'emergency')!.id
+    const after: State = await (await post('/api/action', family, { type: 'case/ack', id, by: 'staff' })).json()
+    expect(after.cases.find((c) => c.id === id)).toMatchObject({ status: 'handling', handler: 'Chị Minh' })
   })
 
   test('stored version:1 state is replaced by a fresh seed, not a 500', async () => {

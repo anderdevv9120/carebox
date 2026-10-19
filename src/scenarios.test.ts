@@ -72,7 +72,7 @@ describe('doc §8 scenarios', () => {
     expect(s.emergency).not.toBeNull()
     const ev = events(s).find((e) => e.priority === 'emergency')!
     expect(ev.status).toBe('to_verify')
-    expect(s.notifications.filter((n) => n.caseId === ev.id)).toHaveLength(1)
+    expect(s.notifications.filter((n) => n.caseId === ev.id)).toHaveLength(2) // staff and family
   })
 
   test('8 · dose change is refused and routed to a doctor', () => {

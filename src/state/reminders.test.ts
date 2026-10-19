@@ -30,15 +30,15 @@ describe('respond', () => {
     expect(r1(out).response).toBeUndefined()
   })
 
-  test('cant_do on a medicine reminder creates a priority event with reminderId and notifies the family once', () => {
+  test('cant_do on a medicine reminder creates a priority event with reminderId and notifies staff and family', () => {
     const s = atR1()
     const out = reduce(s, { type: 'reminder/respond', id: 'r1', response: 'cant_do' })
     const ev = events(out)
     expect(ev).toHaveLength(1)
     expect(ev[0]).toMatchObject({ priority: 'priority', reminderId: 'r1', status: 'to_verify' })
     const fresh = out.notifications.slice(s.notifications.length)
-    expect(fresh).toHaveLength(1)
-    expect(fresh[0].caseId).toBe(ev[0].id)
+    expect(fresh).toHaveLength(2)
+    expect(fresh.map((n) => [n.to, n.caseId])).toEqual([['staff', ev[0].id], ['family', ev[0].id]])
   })
 
   test('received records response and respondedAt', () => {

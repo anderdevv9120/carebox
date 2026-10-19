@@ -1,4 +1,4 @@
-import { MIN, createEvent, notify } from './helpers.js'
+import { MIN, createEvent, notifyAlert } from './helpers.js'
 import { raiseEmergency } from './cases.js'
 import type { Device, DeviceKind, DeviceStatus, Reading, State } from './types.js'
 
@@ -54,27 +54,42 @@ export function pushReading(s: State, id: Metric, mode: 'normal' | 'high' | 'sus
       detail: 'Dữ liệu giả lập vượt ngưỡng đã cấu hình. Chưa có kết luận y tế và chưa xác nhận nguyên nhân.',
       priority: 'priority', priorityReason: `${name}: vượt ngưỡng giả lập`, source: 'device', deviceId: id,
     })
-    return notify(out, 'family', `${name}: dữ liệu vượt ngưỡng đã cấu hình. Cần gia đình xem, chưa có kết luận y tế.`, 'health', 'device', evId)
+    return notifyAlert(out, `${name}: dữ liệu vượt ngưỡng đã cấu hình, chưa có kết luận y tế.`, 'health', 'device', evId)
   }
   ;[out, evId] = createEvent(out, {
     title: 'Dữ liệu đáng nghi',
     detail: 'Dữ liệu có thể sai do đo hoặc truyền dẫn. Cần kiểm tra nguồn, đo lại nếu phù hợp.',
     priority: 'uncertain', priorityReason: `${name}: giá trị ngoài khoảng hợp lý`, source: 'device', deviceId: id,
   })
-  return notify(out, 'family', `${name}: dữ liệu đáng nghi, cần kiểm tra nguồn.`, 'health', 'device', evId)
+  return notifyAlert(out, `${name}: dữ liệu đáng nghi, cần kiểm tra nguồn.`, 'health', 'device', evId)
 }
+
+// An open "mất kết nối" / "thiếu dữ liệu" event for this device: a second one adds nothing.
+export const hasOpenMissing = (s: State, id: DeviceKind) =>
+  s.cases.some((c) => c.kind === 'event' && c.status !== 'resolved' && c.deviceId === id && /^(Thiết bị mất kết nối|Thiếu dữ liệu)/.test(c.title))
 
 export function disconnect(s: State, id: DeviceKind): State {
   const d = s.devices.find((x) => x.id === id)
   if (!d || !d.connected) return s
-  let out = patchDevice(s, id, () => ({ connected: false }))
-  let evId: string
-  ;[out, evId] = createEvent(out, {
-    title: `Thiết bị mất kết nối: ${d.name}`,
-    detail: 'Không đủ dữ liệu. Không kết luận người dùng an toàn.',
-    priority: 'uncertain', priorityReason: 'Dữ liệu thiết bị bị gián đoạn', source: 'device', deviceId: id,
+  const out = patchDevice(s, id, () => ({ connected: false }))
+  return hasOpenMissing(s, id) ? out : missingEvent(out, d, 'Thiết bị mất kết nối', 'Không đủ dữ liệu. Không kết luận người dùng an toàn.', `${d.name} mất kết nối. Không đủ dữ liệu. Không kết luận người dùng an toàn.`)
+}
+
+// ponytail: the fall sensor streams no readings, so it is never "stale": deviceStatus only calls it missing once disconnected.
+export function sweepDevices(s: State): State {
+  let out = s
+  for (const d of s.devices)
+    if (d.connected && deviceStatus(d, s.now) === 'missing' && !hasOpenMissing(out, d.id))
+      out = missingEvent(out, d, 'Thiếu dữ liệu', 'Thiết bị chưa gửi dữ liệu mới. Không kết luận người dùng an toàn.', `${d.name}: chưa gửi dữ liệu mới. Không kết luận người dùng an toàn.`)
+  return out
+}
+
+function missingEvent(s: State, d: Device, title: string, detail: string, text: string): State {
+  const [out, evId] = createEvent(s, {
+    title: `${title}: ${d.name}`, detail,
+    priority: 'uncertain', priorityReason: 'Dữ liệu thiết bị bị gián đoạn', source: 'device', deviceId: d.id,
   })
-  return notify(out, 'family', `${d.name} mất kết nối. Không đủ dữ liệu. Không kết luận người dùng an toàn.`, 'health', 'device', evId)
+  return notifyAlert(out, text, 'health', 'device', evId)
 }
 
 export function reconnect(s: State, id: DeviceKind): State {

@@ -47,12 +47,12 @@ describe('final review fixes', () => {
     expect(ev.status).toBe('to_verify')
     expect(ev.handler).toBeUndefined()
     expect(nextOwner(ev, s)).toBe('Chị Minh (xem và tiếp nhận)')
-    const taken = reduce(s, { type: 'family/takeEvent', id: 'EVT-001' })
+    const taken = reduce(s, { type: 'case/ack', id: 'EVT-001', by: 'family' })
     expect(nextOwner(events(taken)[0], taken)).toBe('Chị Minh')
   })
 
   test('resolving the emergency clears the overlay', () => {
-    const s = run(s0(), { type: 'device/fall' }, { type: 'family/takeEvent', id: 'EVT-001' }, { type: 'family/resolveEvent', id: 'EVT-001', note: 'Đội 115 đã tiếp nhận lúc 07:10' })
+    const s = run(s0(), { type: 'device/fall' }, { type: 'case/ack', id: 'EVT-001', by: 'family' }, { type: 'staff/resolveEvent', id: 'EVT-001', note: 'Đội 115 đã tiếp nhận lúc 07:10' })
     expect(s.emergency).toBeNull()
   })
 
