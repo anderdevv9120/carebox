@@ -92,3 +92,16 @@ export function sayElder(s: State, text: string): State {
   const [out, id] = nextN(s)
   return { ...out, chat: { ...out.chat, messages: [...out.chat.messages, { id, from: 'elder', text, at: s.now }] } }
 }
+
+export function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+// Phrase match on whole words: " dau nguc " inside " toi bi dau nguc qua ".
+export const has = (words: string, kws: string[]) => kws.some((k) => ` ${words} `.includes(` ${k} `))

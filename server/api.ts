@@ -17,10 +17,13 @@ export const ROLE_ACTIONS: Record<Role, Type[]> = {
     'chat/say', 'chat/startService', 'chat/handoff', 'chat/clear', 'request/cancel', 'emergency/call115',
   ],
   family: [
-    'reset', 'notif/readAll', 'family/accept', 'family/done', 'family/decline', 'family/approveReminder',
+    'reset', 'notif/readAll', 'family/decline', 'family/approveReminder',
     'family/contacted', 'family/takeEvent', 'family/resolveEvent',
   ],
-  staff: ['reset'],
+  staff: [
+    'reset', 'staff/verify', 'staff/assign', 'staff/partnerReport', 'staff/complete', 'staff/decline',
+    'staff/approveReminder', 'staff/contacted',
+  ],
 }
 
 // 'id' = non-empty string, 'text' = string; both at most MAX_TEXT. An array lists the allowed literals.
@@ -41,13 +44,18 @@ const FIELDS: Record<Type, Record<string, Check>> = {
   'chat/clear': {},
   'notif/readAll': {},
   'request/cancel': { id: 'id' },
-  'family/accept': { id: 'id' },
-  'family/done': { id: 'id', note: 'text' },
   'family/decline': { id: 'id', reason: 'text' },
   'family/approveReminder': { id: 'id', time: 'text' },
   'family/contacted': { id: 'id' },
   'family/takeEvent': { id: 'id' },
   'family/resolveEvent': { id: 'id', note: 'text' },
+  'staff/verify': { id: 'id', note: 'text' },
+  'staff/assign': { id: 'id', partner: 'text' },
+  'staff/partnerReport': { id: 'id', note: 'text' },
+  'staff/complete': { id: 'id' },
+  'staff/decline': { id: 'id', reason: 'text' },
+  'staff/approveReminder': { id: 'id', time: 'text' },
+  'staff/contacted': { id: 'id' },
   'emergency/call115': {},
 }
 

@@ -1,4 +1,4 @@
-import { addCase, createEvent, familyName, fmtTime, fmtValue, nextCaseId, notify, sayAi, sayElder, updateCase } from './helpers.js'
+import { addCase, createEvent, familyName, fmtTime, fmtValue, has, nextCaseId, normalize, notify, sayAi, sayElder, updateCase } from './helpers.js'
 import { REMINDER_STATUS, REQUEST_STATUS, SERVICE } from './labels.js'
 import { isFinal, nextOwner, raiseEmergency, transition } from './cases.js'
 import { deviceStatus } from './devices.js'
@@ -7,18 +7,7 @@ import type { DeviceKind, RequestCase, ServiceType, State } from './types.js'
 
 export type Intent = 'emergency' | 'medical_decision' | 'problem' | 'reminder' | 'contact' | 'service' | 'info' | 'unknown'
 
-export function normalize(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .replace(/đ/g, 'd')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-}
-
-// Phrase match on whole words: " dau nguc " inside " toi bi dau nguc qua ".
-const has = (words: string, kws: string[]) => kws.some((k) => ` ${words} `.includes(` ${k} `))
+export { normalize }
 
 // ponytail: keyword rules stand in for the real NLU; good enough to demo routing, not to understand people.
 const KW = {

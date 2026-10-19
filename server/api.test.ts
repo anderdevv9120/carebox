@@ -3,7 +3,7 @@ import { ROLE_ACTIONS, handle } from './api'
 import * as ai from './ai'
 import { loadState, resetMemory, saveState } from './storage'
 import { seed } from '../src/state/seed'
-import type { RequestCase, State } from '../src/state/types'
+import type { State } from '../src/state/types'
 
 const send = (path: string, init: RequestInit = {}, token?: string) =>
   handle(new Request(`http://x${path}`, { ...init, headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) } }))
@@ -151,9 +151,9 @@ describe('auth', () => {
     expect((await send('/api/state', {}, elder)).status).toBe(200)
   })
 
-  test('elder cannot send family/accept; family cannot send chat/say → 403, state unchanged', async () => {
+  test('elder cannot send family/decline; family cannot send chat/say → 403, state unchanged', async () => {
     const before = await getState(elder)
-    expect((await post('/api/action', elder, { type: 'family/accept', id: 'CB-001' })).status).toBe(403)
+    expect((await post('/api/action', elder, { type: 'family/decline', id: 'CB-001', reason: 'x' })).status).toBe(403)
     expect((await post('/api/action', family, { type: 'chat/say', text: 'Tôi là bà Lan' })).status).toBe(403)
     const after = await getState(elder)
     expect(after.rev).toBe(before.rev)
@@ -171,11 +171,11 @@ describe('validation', () => {
     const before = await getState(elder)
     const tokenFor = (b: { type?: unknown }) => (typeof b.type === 'string' && b.type.startsWith('family/') ? family : elder)
     const bodies: { type?: unknown; [k: string]: unknown }[] = [
-      {}, { type: 'nope' }, { type: 42 }, { type: 'family/accept' }, { type: 'family/accept', id: '' },
+      {}, { type: 'nope' }, { type: 42 }, { type: 'family/contacted' }, { type: 'family/contacted', id: '' },
       { type: 'chat/say', text: 42 }, { type: 'chat/say', text: 'a'.repeat(5000) },
       { type: 'chat/startService', service: 'massage' }, { type: 'device/push', deviceId: 'fall', mode: 'high' },
       { type: 'device/push', deviceId: 'bp', mode: 'loud' }, { type: 'reminder/respond', id: 'r1', response: 'maybe' },
-      { type: 'family/done', id: 'CB-001', note: null }, { type: 'family/approveReminder', id: 'CB-001', time: 7 },
+      { type: 'family/decline', id: 'CB-001', reason: null }, { type: 'family/approveReminder', id: 'CB-001', time: 7 },
     ]
     for (const body of bodies) expect((await post('/api/action', tokenFor(body), body)).status, JSON.stringify(body).slice(0, 60)).toBe(400)
     for (const raw of ['{not json', '42', 'null', '[]']) expect((await send('/api/action', { method: 'POST', body: raw }, elder)).status, raw).toBe(400)
@@ -184,16 +184,16 @@ describe('validation', () => {
 })
 
 describe('shared state', () => {
-  test('interleaved elder chat confirm and family accept both persist', async () => {
+  test('interleaved elder chat confirm and family takeEvent both persist', async () => {
     const say = (text: string) => post('/api/action', elder, { type: 'chat/say', text })
     await post('/api/action', elder, { type: 'chat/startService', service: 'groceries' })
     await say('Rau, trứng')
     await say('Sáng mai')
     await say('Đúng rồi')
-    expect((await post('/api/action', family, { type: 'family/accept', id: 'CB-003' })).status).toBe(200)
+    expect((await post('/api/action', family, { type: 'family/takeEvent', id: 'EVT-001' })).status).toBe(200)
     await say('lịch hôm nay')
     const s = await getState(family)
-    expect((s.cases.find((c) => c.id === 'CB-003') as RequestCase).status).toBe('in_progress')
+    expect(s.cases.find((c) => c.id === 'EVT-001')!.status).toBe('handling')
     expect(s.chat.messages.at(-2)!.text).toBe('lịch hôm nay')
   })
 

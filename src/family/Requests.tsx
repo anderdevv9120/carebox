@@ -42,18 +42,9 @@ function AlertCard({ c, now }: { c: EventCase; now: number }) {
 function RequestActions({ c }: { c: RequestCase }) {
   const { dispatch } = useStore()
   const [time, setTime] = useState('')
-  const [note, setNote] = useState('')
   const [reason, setReason] = useState<string | null>(null) // null = decline box closed
 
   if (c.status === 'need_info' || c.status === 'await_confirm') return <p className="muted small">Mẹ đang bổ sung / xác nhận</p>
-  if (c.status === 'in_progress' && c.service !== 'add_reminder' && c.service !== 'contact_family') {
-    return (
-      <div className="action-row col">
-        <input className="input" maxLength={MAX_TEXT} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ghi chú đã làm gì (không bắt buộc)" />
-        <button className="btn ok" onClick={() => dispatch({ type: 'family/done', id: c.id, note })}>Đã xong</button>
-      </div>
-    )
-  }
 
   let main
   if (c.service === 'add_reminder') {
@@ -65,8 +56,6 @@ function RequestActions({ c }: { c: RequestCase }) {
     )
   } else if (c.service === 'contact_family') {
     main = <button className="btn" onClick={() => dispatch({ type: 'family/contacted', id: c.id })}>Đã liên hệ</button>
-  } else {
-    main = <button className="btn" onClick={() => dispatch({ type: 'family/accept', id: c.id })}>Nhận việc</button>
   }
   return (
     <>
