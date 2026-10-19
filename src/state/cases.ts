@@ -120,7 +120,8 @@ function requestTransition(s: State, c: RequestCase, a: CaseAction): State {
       let out = updateCase(s, c.id, { status: 'refused', closedReason: 'Người cao tuổi từ chối' }, { by: 'elder', text: 'Người cao tuổi hủy/từ chối yêu cầu.' })
       if (c.assignee) out = updateCase(out, c.id, {}, { by: 'ai', text: `Đã báo hủy cho Care Partner ${c.assignee}.` })
       out = notify(out, 'family', `${c.title}: bác đã từ chối dịch vụ. Không đặt lại nếu bác không yêu cầu.`, 'request', 'elder', c.id)
-      return c.owner === 'staff' ? notify(out, 'staff', `${c.title}: bác đã hủy yêu cầu.`, 'request', 'elder', c.id) : out
+      // staff hear of a cancel only if the request ever reached them
+      return c.owner === 'staff' && c.confirmedAt !== undefined ? notify(out, 'staff', `${c.title}: bác đã hủy yêu cầu.`, 'request', 'elder', c.id) : out
     }
     case 'family/decline': {
       const reason = a.reason.trim()

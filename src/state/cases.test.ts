@@ -61,8 +61,11 @@ describe('request workflow', () => {
     expect(req(s, 'CB-001').history.at(-1)!.by).toBe('elder')
   })
 
+  const confirmed = (s: State): State => ({ ...s, cases: s.cases.map((c) => (c.id === 'CB-010' ? { ...c, confirmedAt: s.now } : c)) })
+  const staffNotes = (s: State, from: number) => s.notifications.slice(from).filter((n) => n.to === 'staff' && n.caseId === 'CB-010')
+
   test('cancel after assign logs Care Partner cancellation and notifies staff', () => {
-    const start = run(withRequest('medicine', 'await_staff'),
+    const start = run(confirmed(withRequest('medicine', 'await_staff')),
       { type: 'staff/verify', id: 'CB-010', note: '' }, { type: 'staff/assign', id: 'CB-010', partner: 'Anh Tuấn' })
     const s = reduce(start, { type: 'request/cancel', id: 'CB-010' })
     const c = req(s, 'CB-010')
@@ -71,11 +74,26 @@ describe('request workflow', () => {
     const fresh = s.notifications.slice(start.notifications.length)
     expect(fresh.map((n) => n.to).sort()).toEqual(['family', 'staff'])
     expect(fresh.every((n) => n.caseId === 'CB-010')).toBe(true)
+    expect(fresh.find((n) => n.to === 'staff')!.text).toBe('Test: bác đã hủy yêu cầu.')
   })
 
-  test('cancel without assignee logs no Care Partner line; family-owned notifies the daughter only', () => {
-    const s = reduce(withRequest('medicine', 'await_staff'), { type: 'request/cancel', id: 'CB-010' })
+  test('cancel of an unassigned confirmed request notifies staff once, with no Care Partner line', () => {
+    const start = confirmed(withRequest('medicine', 'await_staff'))
+    const s = reduce(start, { type: 'request/cancel', id: 'CB-010' })
     expect(req(s, 'CB-010').history.some((h) => h.text.includes('Care Partner'))).toBe(false)
+    expect(staffNotes(s, start.notifications.length)).toHaveLength(1)
+  })
+
+  test('refusing a staff-owned request staff never received does not notify staff', () => {
+    for (const status of ['need_info', 'await_confirm'] as const) {
+      const start = withRequest('medicine', status)
+      const s = reduce(start, { type: 'request/cancel', id: 'CB-010' })
+      expect(req(s, 'CB-010').status).toBe('refused')
+      expect(staffNotes(s, start.notifications.length)).toHaveLength(0)
+    }
+  })
+
+  test('family-owned cancel notifies the daughter only', () => {
     const fam = withRequest('contact_family', 'await_family', 'family')
     const out = reduce(fam, { type: 'request/cancel', id: 'CB-010' })
     expect(out.notifications.slice(fam.notifications.length).map((n) => n.to)).toEqual(['family'])
