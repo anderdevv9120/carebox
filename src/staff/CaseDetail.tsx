@@ -105,7 +105,7 @@ export function CaseDetail() {
   const verified = req ? (req.verifiedBy ? <>
     {req.verifiedBy}{req.verifiedAt ? ` · ${when(req.verifiedAt)}` : ''}{req.verifyNote ? ` · ${req.verifyNote}` : ''}
     <FieldList c={req} known />
-  </> : 'Chưa xác minh') : c.kind === 'event' && c.handler ? `${c.handler} đã tiếp nhận` : 'Chưa xác minh'
+  </> : 'Chưa xác minh') : 'Chưa xác minh'
   return (
     <div className="family-page case-screen">
       {back}
@@ -116,7 +116,7 @@ export function CaseDetail() {
           {req?.partnerReport && req.status === 'in_progress' && <span className="badge b-attn">{PARTNER_PENDING}</span>}
           {c.owner === 'family' && <span className="badge b-neutral">Gia đình phụ trách</span>}
         </div>
-        <Actions c={c} />
+        <Actions key={c.id} c={c} />
       </div>
 
       <div className="card">

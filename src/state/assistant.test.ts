@@ -213,6 +213,16 @@ describe('handleUtterance', () => {
     for (const t of ['Bác dùng thuốc rồi', 'cách dùng thuốc', 'đúng thuốc rồi']) expect(classify(t).intent).not.toBe('medical_decision')
   })
 
+  test('"nói khó" is an emergency only with accents and not as "nói khó nghe"', () => {
+    for (const t of ['Con bé nói khó nghe quá', 'Chuyện này khó nói lắm', 'Để gạo ở nơi khô ráo']) expect(classify(t).intent).not.toBe('emergency')
+    for (const t of ['bác nói khó quá', 'Nói khó']) expect(classify(t).intent).toBe('emergency')
+  })
+
+  test('"Mua giúp … thuốc" is medicine, not groceries', () => {
+    for (const t of ['Mua giúp bác thuốc huyết áp', 'Mua giúp bác ít thuốc']) expect(classify(t)).toEqual({ intent: 'service', service: 'medicine' })
+    expect(classify('Mua giúp bác ít gạo').service).toBe('groceries')
+  })
+
   test('Mua giúp bác ít gạo starts groceries', () => {
     expect(classify('Mua giúp bác ít gạo')).toEqual({ intent: 'service', service: 'groceries' })
     expect(newRequest(say(s0(), 'Mua giúp bác ít gạo')).service).toBe('groceries')

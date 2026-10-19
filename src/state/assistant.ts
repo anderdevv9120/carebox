@@ -14,7 +14,7 @@ const KW = {
   emergency: [
     'dau nguc', 'tuc nguc', 'dau tim', 'kho tho', 'khong tho duoc', 'tho khong duoc', 'tho khong noi', 'nga', 'te nga', 'bi te',
     'te xuong', 'bat tinh', 'ngat', 'co giat', 'dot quy', 'meo mieng', 'te nua nguoi', 'chay mau', 'cap cuu', 'cuu',
-    'mat y thuc', 'yeu nua nguoi', 'noi ngong', 'noi kho', 'kho noi',
+    'mat y thuc', 'yeu nua nguoi', 'noi ngong',
   ],
   medical_decision: ['doi lieu', 'tang lieu', 'giam lieu', 'ke don', 'bo thuoc', 'uong them thuoc', 'doi thuoc', 'ngung thuoc'],
   problem: ['het thuoc', 'met', 'chong mat', 'dau dau', 'sot', 'khong khoe', 'buon non'],
@@ -35,16 +35,18 @@ const JUNCTION = /\bnga (ba|tu|nam|sau)\b/g
 const EXTRA_DOSE = /\buong them (\d+|mot|hai|ba) vien\b/
 // "dừng thuốc" is matched on the accented text: normalized it collides with "dùng thuốc" / "đúng thuốc".
 const STOP_MEDICINE = /\bdừng thuốc\b/
+// "nói khó" (slurred speech) is matched accented: normalized it collides with "nơi khô"; "nói khó nghe" just means hard to hear. No trailing \b: JS \b treats ó as non-word.
+const SLURRED = /(^|\s)nói khó(?! nghe)/
 
 export function classify(text: string): { intent: Intent; service?: ServiceType } {
   const w = normalize(text).replace(JUNCTION, ' ')
-  if (has(w, KW.emergency)) return { intent: 'emergency' }
+  if (has(w, KW.emergency) || SLURRED.test(text.normalize('NFC').toLowerCase())) return { intent: 'emergency' }
   if (has(w, KW.medical_decision) || EXTRA_DOSE.test(w) || STOP_MEDICINE.test(text.normalize('NFC').toLowerCase())) return { intent: 'medical_decision' }
   if (has(w, KW.problem)) return { intent: 'problem' }
   if (has(w, KW.reminder)) return { intent: 'reminder', service: 'add_reminder' }
   if (has(w, KW.contact)) return { intent: 'contact', service: 'contact_family' }
   const svc = SERVICE_KW.find(([, kws]) => has(w, kws))
-  if (svc) return { intent: 'service', service: svc[0] }
+  if (svc) return { intent: 'service', service: svc[0] === 'groceries' && has(w, ['thuoc']) ? 'medicine' : svc[0] }
   if (has(w, KW.info)) return { intent: 'info' }
   return { intent: 'unknown' }
 }
