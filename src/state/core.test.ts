@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { seed } from './seed'
 import { reduce } from './reducer'
 import { MIN, nextCaseId } from './helpers'
+import { isAbandoned } from './cases'
 import type { RequestCase } from './types'
 
 const s0 = () => seed(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
@@ -22,6 +23,10 @@ describe('seed', () => {
     expect(done).toMatchObject({ status: 'done', assignee: 'Anh Tuấn', doneBy: 'Anh Nam' })
     expect(done.partnerReport).toBeTruthy()
     expect(done.partnerReportAt).toBeLessThan(done.completedAt!)
+    expect(s.cases.find((c) => c.id === 'CB-003')).toMatchObject({ status: 'await_staff', owner: 'staff' })
+    expect((s.cases.find((c) => c.id === 'CB-003') as RequestCase).verifiedBy).toBeUndefined()
+    expect((s.cases.find((c) => c.id === 'CB-003') as RequestCase).confirmedAt).toBeDefined()
+    expect(isAbandoned(s.cases.find((c) => c.id === 'CB-003')!, s.now)).toBe(false)
     const events = s.cases.filter((c) => c.kind === 'event' && c.status !== 'resolved')
     expect(events).toHaveLength(1)
     expect(events[0]).toMatchObject({ owner: 'staff', status: 'to_verify' })
@@ -33,8 +38,8 @@ describe('seed', () => {
 describe('reduce core', () => {
   test('nextCaseId increments and pads', () => {
     const [s1, id1] = nextCaseId(s0(), 'request')
-    expect(id1).toBe('CB-003')
-    expect(nextCaseId(s1, 'request')[1]).toBe('CB-004')
+    expect(id1).toBe('CB-004')
+    expect(nextCaseId(s1, 'request')[1]).toBe('CB-005')
     expect(nextCaseId(s0(), 'event')[1]).toBe('EVT-002') // the seed holds EVT-001
   })
 
@@ -43,7 +48,7 @@ describe('reduce core', () => {
     const moved = reduce({ ...s, now: s.now + 90 * MIN }, { type: 'device/fall' })
     const r = reduce(moved, { type: 'reset' })
     expect(r.now).toBe(moved.now)
-    expect(r.cases).toHaveLength(3)
+    expect(r.cases).toHaveLength(4)
     expect(r.emergency).toBeNull()
   })
 })

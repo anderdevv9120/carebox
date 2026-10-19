@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'vitest'
 import { seed } from './state/seed'
+import { seedBare } from './state/testing'
 import { reduce, type Action } from './state/reducer'
 import { deviceStatus } from './state/devices'
 import { reminderStatus } from './state/reminders'
 import type { EventCase, RequestCase, State } from './state/types'
 
-const s0 = () => seed(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
+const s0 = () => seedBare(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
 const say = (text: string): Action => ({ type: 'chat/say', text })
 const clear: Action = { type: 'chat/clear' }
 const run = (s: State, ...as: Action[]) => as.reduce(reduce, s)

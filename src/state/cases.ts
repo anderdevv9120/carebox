@@ -6,8 +6,10 @@ export const ABANDONED_AFTER = 30 // minutes, "giả định thử nghiệm"
 export const SERVICE_JOBS: ServiceType[] = ['medicine', 'groceries', 'clinic', 'daily_help']
 
 // A reminder about medicine goes to staff; any other reminder or a family call stays with the daughter.
+// "bệnh viện" holds "viện" but is a place, not a pill.
 export const isMedicineReminder = (c: RequestCase) =>
-  c.service === 'add_reminder' && has(normalize(`${c.detail} ${c.fields.noi_dung ?? ''}`), ['thuoc', 'vien', 'lieu'])
+  c.service === 'add_reminder' &&
+  has(normalize(`${c.detail} ${c.fields.noi_dung ?? ''}`).replace(/\bbenh vien\b/g, ' '), ['thuoc', 'vien', 'lieu', 'tiem', 'insulin'])
 export const ownerAtConfirm = (c: RequestCase): Owner =>
   c.service === 'contact_family' || (c.service === 'add_reminder' && !isMedicineReminder(c)) ? 'family' : 'staff'
 
@@ -29,7 +31,7 @@ export type CaseAction =
 
 const FINAL = ['done', 'refused', 'resolved']
 export const isFinal = (c: Case) => FINAL.includes(c.status)
-const UNACCEPTED = ['need_info', 'await_confirm', 'await_family']
+const UNACCEPTED = ['need_info', 'await_confirm', 'await_family', 'await_staff']
 // The daughter acts only on what her mother confirmed for her, or what staff left to her.
 const FAMILY_OPEN = ['await_family', 'await_staff']
 const STAFF_DECLINABLE = ['need_info', 'await_confirm', 'await_staff', 'in_progress']

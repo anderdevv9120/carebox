@@ -129,6 +129,19 @@ describe('staff request workflow', () => {
     expect(reduce(fam, { type: 'staff/decline', id: 'CB-010', reason: 'x' })).toBe(fam)
   })
 
+  test('staff/decline from await_staff and in_progress; not from done', () => {
+    const decline: Action = { type: 'staff/decline', id: 'CB-010', reason: 'Đối tác không nhận được việc' }
+    const waiting = reduce(withRequest('medicine', 'await_staff'), decline)
+    expect(req(waiting, 'CB-010')).toMatchObject({ status: 'refused', closedReason: 'Đối tác không nhận được việc' })
+    const start = run(withRequest('medicine', 'await_staff'), verify, assign)
+    expect(req(start, 'CB-010').status).toBe('in_progress')
+    const out = reduce(start, decline)
+    expect(req(out, 'CB-010')).toMatchObject({ status: 'refused', closedReason: 'Đối tác không nhận được việc' })
+    expect(out.notifications.at(-1)).toMatchObject({ to: 'family', caseId: 'CB-010' })
+    const finished = run(start, report, complete)
+    expect(reduce(finished, decline)).toBe(finished)
+  })
+
   test('medicine reminder: staff approves with kind medicine', () => {
     const s = withRequest('add_reminder', 'await_staff', 'staff', 'Uống thuốc huyết áp')
     expect(reduce(s, { type: 'staff/approveReminder', id: 'CB-010', time: 'abc' })).toBe(s)
@@ -168,6 +181,8 @@ describe('staff request workflow', () => {
     expect(ownerAtConfirm(c('add_reminder', 'Nhắc uống nước'))).toBe('family')
     expect(ownerAtConfirm(c('add_reminder', 'nhắc uống 2 viên'))).toBe('staff')
     expect(ownerAtConfirm(c('groceries'))).toBe('staff')
+    expect(ownerAtConfirm(c('add_reminder', 'Nhắc bác tiêm insulin'))).toBe('staff')
+    expect(ownerAtConfirm(c('add_reminder', 'Nhắc bác đi bệnh viện tái khám'))).toBe('family')
   })
 })
 
@@ -223,7 +238,7 @@ describe('emergency', () => {
 
 describe('derived', () => {
   test('abandoned: unaccepted request older than 30 min in need_info/await_confirm/await_family → priority "Bỏ ngỏ…"', () => {
-    for (const status of ['need_info', 'await_confirm', 'await_family'] as const) {
+    for (const status of ['need_info', 'await_confirm', 'await_family', 'await_staff'] as const) {
       const s = withRequest('medicine', status)
       const c = get(s, 'CB-010')
       expect(effectivePriority(c, s.now + 29 * MIN).priority).toBe('normal')

@@ -72,6 +72,17 @@ export function seed(now: number): State {
         ],
       },
       {
+        id: 'CB-003', kind: 'request', service: 'groceries', title: 'Đi chợ giúp bác',
+        detail: 'Bác nhờ mua rau và trứng.', source: 'elder', priority: 'normal',
+        priorityReason: 'Yêu cầu dịch vụ thông thường', createdAt: now - 15 * MIN,
+        fields: { danh_sach: 'Rau cải, 10 quả trứng', thoi_gian: 'Sáng mai' },
+        status: 'await_staff', unclear: [], owner: 'staff', confirmedAt: now - 12 * MIN,
+        history: [
+          { at: now - 15 * MIN, by: 'ai', text: 'AI ghi nhận yêu cầu.' },
+          { at: now - 12 * MIN, by: 'elder', text: 'Bác đã xác nhận nội dung. Chờ nhân viên điều phối.' },
+        ],
+      },
+      {
         id: 'EVT-001', kind: 'event', title: 'Dữ liệu thiết bị vượt ngưỡng', detail: 'Máy đo huyết áp ghi nhận chỉ số vượt ngưỡng đã cấu hình.',
         source: 'device', priority: 'priority', priorityReason: 'Dữ liệu vượt ngưỡng đã cấu hình', createdAt: now - 10 * MIN,
         status: 'to_verify', unclear: [], owner: 'staff', deviceId: 'bp',
@@ -92,7 +103,7 @@ export function seed(now: number): State {
       recentMisses: [],
     },
     emergency: null,
-    seq: { cb: 3, evt: 2, n: 4 },
+    seq: { cb: 4, evt: 2, n: 4 },
   }
 }
 
