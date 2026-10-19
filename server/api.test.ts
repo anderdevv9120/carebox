@@ -19,10 +19,12 @@ async function getState(token: string): Promise<State> {
 
 let elder: string
 let family: string
+let staff: string
 beforeEach(async () => {
   resetMemory()
   elder = await tokenFor('ba.lan')
   family = await tokenFor('con.gai')
+  staff = await tokenFor('nhan.vien')
 })
 afterEach(() => {
   delete process.env.GEMINI_API_KEY
@@ -32,7 +34,7 @@ afterEach(() => {
 describe('real AI chat', () => {
   test('uses Gemma for free-form messages, without false handoff; keeps emergencies deterministic', async () => {
     process.env.GEMINI_API_KEY = 'test-key'
-    const model = vi.spyOn(ai, 'generateReply').mockResolvedValue({ text: 'Cháu đang nghe bác kể chuyện ạ.', unclear: false })
+    const model = vi.spyOn(ai, 'generateReply').mockResolvedValue({ text: 'Cháu đang nghe bác kể chuyện ạ.', kind: 'answered' })
     for (const text of ['Cháu kể chuyện vui đi', 'Kể tiếp đi cháu']) {
       const response = await post('/api/action', elder, { type: 'chat/say', text })
       expect(response.status).toBe(200)
@@ -49,7 +51,7 @@ describe('real AI chat', () => {
 
   test('two genuinely unclear Gemma messages alert the daughter with both utterances', async () => {
     process.env.GEMINI_API_KEY = 'test-key'
-    const model = vi.spyOn(ai, 'generateReply').mockResolvedValue({ text: 'Bác nói rõ hơn giúp cháu nhé.', unclear: true })
+    const model = vi.spyOn(ai, 'generateReply').mockResolvedValue({ text: 'Bác nói rõ hơn giúp cháu nhé.', kind: 'unclear' })
     const first: State = await (await post('/api/action', elder, { type: 'chat/say', text: 'Bác muốn cái hôm trước ấy' })).json()
     expect(first.chat.misses).toBe(1)
     expect(first.chat.messages.at(-1)?.text).toContain('Gặp nhân viên')
@@ -66,12 +68,40 @@ describe('real AI chat', () => {
     expect(next.chat.messages.at(-1)?.text).toContain('báo Chị Minh')
   })
 
+  test('Gemma service status starts the request flow', async () => {
+    process.env.GEMINI_API_KEY = 'test-key'
+    const text = 'Sắm giúp bác ít nếp nhé' // no keyword, or classify() would answer without Gemma
+    const model = vi.spyOn(ai, 'generateReply').mockResolvedValue({ text: 'Dạ cháu giúp bác ạ.', kind: 'service', service: 'groceries' })
+    const s: State = await (await post('/api/action', elder, { type: 'chat/say', text })).json()
+    expect(model).toHaveBeenCalledOnce()
+    expect(s.cases.at(-1)).toMatchObject({ kind: 'request', service: 'groceries', status: 'need_info', source: 'elder', detail: text })
+    expect(s.chat.pending).toMatchObject({ caseId: s.cases.at(-1)!.id, stage: 'collect', field: 'danh_sach' })
+    expect(s.chat.messages.at(-1)).toMatchObject({ from: 'ai', text: expect.stringContaining('Bác cần mua những gì') })
+    expect(s.chat.messages.filter((m) => m.from === 'elder' && m.text === text)).toHaveLength(1)
+    expect(s.chat.messages.some((m) => m.text === 'Dạ cháu giúp bác ạ.')).toBe(false)
+  })
+
+  test('Gemma emergency status raises the emergency', async () => {
+    process.env.GEMINI_API_KEY = 'test-key'
+    const text = 'Bác thấy tối sầm mắt lại rồi'
+    const before = await getState(elder)
+    vi.spyOn(ai, 'generateReply').mockResolvedValue({ text: 'Bác gọi 115 ngay ạ.', kind: 'emergency' })
+    const s: State = await (await post('/api/action', elder, { type: 'chat/say', text })).json()
+    expect(s.emergency).not.toBeNull()
+    const raised = s.cases.find((c) => c.id === s.emergency!.caseId)!
+    expect(raised).toMatchObject({ kind: 'event', priority: 'emergency', source: 'elder', detail: text })
+    expect(s.notifications.filter((n) => n.caseId === raised.id).map((n) => n.to).sort()).toEqual(['family', 'staff'])
+    expect(s.notifications.length).toBe(before.notifications.length + 2)
+    expect(s.chat.messages.at(-1)).toMatchObject({ from: 'ai', text: 'Cháu đang hướng dẫn gọi 115 và đã báo Chị Minh.' })
+    expect(s.chat.messages.filter((m) => m.from === 'elder' && m.text === text)).toHaveLength(1)
+  })
+
   test('understood Gemma messages reset the unclear streak', async () => {
     process.env.GEMINI_API_KEY = 'test-key'
     const model = vi.spyOn(ai, 'generateReply')
-      .mockResolvedValueOnce({ text: 'Bác nói lại giúp cháu ạ.', unclear: true })
-      .mockResolvedValueOnce({ text: 'Cháu nghe bác kể chuyện đây ạ.', unclear: false })
-      .mockResolvedValueOnce({ text: 'Bác nói rõ hơn ạ.', unclear: true })
+      .mockResolvedValueOnce({ text: 'Bác nói lại giúp cháu ạ.', kind: 'unclear' })
+      .mockResolvedValueOnce({ text: 'Cháu nghe bác kể chuyện đây ạ.', kind: 'answered' })
+      .mockResolvedValueOnce({ text: 'Bác nói rõ hơn ạ.', kind: 'unclear' })
     for (const text of ['Cái ấy đó', 'Kể chuyện cho bác nghe', 'Món hồi trước ấy'])
       await post('/api/action', elder, { type: 'chat/say', text })
     const state = await getState(elder)
@@ -96,7 +126,7 @@ describe('real AI chat', () => {
   test('failed follow-up does not erase an existing misunderstanding', async () => {
     process.env.GEMINI_API_KEY = 'test-key'
     vi.spyOn(ai, 'generateReply')
-      .mockResolvedValueOnce({ text: 'Bác nói rõ hơn ạ.', unclear: true })
+      .mockResolvedValueOnce({ text: 'Bác nói rõ hơn ạ.', kind: 'unclear' })
       .mockRejectedValueOnce(new Error('provider error'))
     await post('/api/action', elder, { type: 'chat/say', text: 'Cái món hôm trước' })
     const before = await getState(elder)
@@ -118,7 +148,7 @@ describe('real AI chat', () => {
     expect(inProgress.chat.messages.at(-1)).toMatchObject({ from: 'elder', text: 'Cháu kể chuyện nhé' })
     const other = await post('/api/action', family, { type: 'notif/readAll' })
     const updated: State = await other.json()
-    answer({ text: 'Cháu đang kể chuyện đây ạ.', unclear: false })
+    answer({ text: 'Cháu đang kể chuyện đây ạ.', kind: 'answered' })
     const response: State = await (await pending).json()
     expect(response.rev).toBe(updated.rev + 1)
     expect(response.notifications.every((n) => n.read)).toBe(true)
@@ -151,6 +181,20 @@ describe('auth', () => {
     expect((await send('/api/state', {}, elder)).status).toBe(200)
   })
 
+  test('staff login returns role staff', async () => {
+    const r = await post('/api/login', undefined, { user: 'nhan.vien', password: 'carebox' })
+    expect(r.status).toBe(200)
+    expect(await r.json()).toMatchObject({ user: 'nhan.vien', role: 'staff', name: 'Anh Nam', token: expect.any(String) })
+  })
+
+  test('family cannot send staff/complete; staff cannot send chat/say or family/reply → 403, rev unchanged', async () => {
+    const before = await getState(elder)
+    expect((await post('/api/action', family, { type: 'staff/complete', id: 'CB-001' })).status).toBe(403)
+    expect((await post('/api/action', staff, { type: 'chat/say', text: 'Tôi là bà Lan' })).status).toBe(403)
+    expect((await post('/api/action', staff, { type: 'family/reply', id: 'CB-001', text: 'x' })).status).toBe(403)
+    expect((await getState(elder)).rev).toBe(before.rev)
+  })
+
   test('elder cannot send family/decline; family cannot send chat/say → 403, state unchanged', async () => {
     const before = await getState(elder)
     expect((await post('/api/action', elder, { type: 'family/decline', id: 'CB-001', reason: 'x' })).status).toBe(403)
@@ -160,9 +204,12 @@ describe('auth', () => {
     expect(after.chat.messages).toEqual(before.chat.messages)
   })
 
-  test('every action type belongs to a role, and only reset is shared', () => {
-    const shared = ROLE_ACTIONS.elder.filter((t) => ROLE_ACTIONS.family.includes(t))
-    expect(shared).toEqual(['reset'])
+  test('every action type belongs to a role; reset, notif/readAll and case/ack are the only shared ones', () => {
+    const all = Object.values(ROLE_ACTIONS).flat()
+    const shared = [...new Set(all.filter((t, i) => all.indexOf(t) !== i))].sort()
+    expect(shared).toEqual(['case/ack', 'notif/readAll', 'reset'])
+    for (const t of shared) expect(ROLE_ACTIONS.staff).toContain(t)
+    expect(ROLE_ACTIONS.elder.filter((t) => t !== 'reset' && all.filter((x) => x === t).length > 1)).toEqual([])
   })
 })
 
@@ -204,6 +251,31 @@ describe('shared state', () => {
     const id = raised.cases.find((c) => c.kind === 'event' && c.priority === 'emergency')!.id
     const after: State = await (await post('/api/action', family, { type: 'case/ack', id, by: 'staff' })).json()
     expect(after.cases.find((c) => c.id === id)).toMatchObject({ status: 'handling', handler: 'Chị Minh' })
+  })
+
+  test('case/ack via API records who acked; a client-sent by is ignored', async () => {
+    const raised: State = await (await post('/api/action', elder, { type: 'chat/say', text: 'đau ngực' })).json()
+    const id = raised.cases.find((c) => c.kind === 'event' && c.priority === 'emergency')!.id
+    const after: State = await (await post('/api/action', staff, { type: 'case/ack', id, by: 'family' })).json()
+    expect(after.cases.find((c) => c.id === id)).toMatchObject({ status: 'handling', handler: 'Anh Nam' })
+  })
+
+  test('notif/readAll is per audience: family readAll leaves staff notifications unread', async () => {
+    await post('/api/action', elder, { type: 'chat/say', text: 'đau ngực' })
+    const s: State = await (await post('/api/action', family, { type: 'notif/readAll', to: 'staff' })).json()
+    expect(s.notifications.filter((n) => n.to === 'family').every((n) => n.read)).toBe(true)
+    expect(s.notifications.filter((n) => n.to === 'staff').some((n) => !n.read)).toBe(true)
+    const t: State = await (await post('/api/action', staff, { type: 'notif/readAll', to: 'family' })).json()
+    expect(t.notifications.filter((n) => n.to === 'staff').every((n) => n.read)).toBe(true)
+    expect(t.notifications.filter((n) => n.to === 'family').every((n) => n.read)).toBe(true)
+  })
+
+  test('stored version:2 state is replaced by a fresh v3 seed, not a 500', async () => {
+    await saveState({ ...seed(Date.now()), version: 2 } as unknown as State)
+    const r = await send('/api/state', {}, staff)
+    expect(r.status).toBe(200)
+    expect(((await r.json()) as State).version).toBe(3)
+    expect(((await loadState()) as State).version).toBe(3)
   })
 
   test('stored version:1 state is replaced by a fresh seed, not a 500', async () => {

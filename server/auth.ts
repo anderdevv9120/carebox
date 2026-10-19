@@ -1,9 +1,10 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { Role } from '../src/state/types.js'
 
-export const ACCOUNTS: Record<'ba.lan' | 'con.gai', { role: Role; name: string }> = {
+export const ACCOUNTS: Record<'ba.lan' | 'con.gai' | 'nhan.vien', { role: Role; name: string }> = {
   'ba.lan': { role: 'elder', name: 'Bà Nguyễn Thị Lan' },
   'con.gai': { role: 'family', name: 'Chị Minh' },
+  'nhan.vien': { role: 'staff', name: 'Anh Nam' },
 }
 export const PASSWORD = 'carebox'
 

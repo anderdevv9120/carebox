@@ -2,7 +2,7 @@ import { reduce, type Action } from '../src/state/reducer.js'
 import { seed } from '../src/state/seed.js'
 import { tick } from '../src/state/clock.js'
 import { SERVICE } from '../src/state/labels.js'
-import { classify, handleUtterance } from '../src/state/assistant.js'
+import { classify, handleUtterance, raiseElderEmergency, startService } from '../src/state/assistant.js'
 import { sayAi, sayElder } from '../src/state/helpers.js'
 import type { Role, State } from '../src/state/types.js'
 import { ACCOUNTS, PASSWORD, isAccount, signToken, verifyToken } from './auth.js'
@@ -21,7 +21,7 @@ export const ROLE_ACTIONS: Record<Role, Type[]> = {
     'family/contacted', 'case/ack', 'family/reply',
   ],
   staff: [
-    'reset', 'staff/verify', 'staff/assign', 'staff/partnerReport', 'staff/complete', 'staff/decline',
+    'reset', 'notif/readAll', 'staff/verify', 'staff/assign', 'staff/partnerReport', 'staff/complete', 'staff/decline',
     'staff/approveReminder', 'staff/contacted', 'staff/takeEvent', 'staff/resolveEvent', 'case/ack', 'staff/askFamily',
   ],
 }
@@ -133,9 +133,13 @@ async function apply(action?: Action): Promise<Response> {
   const base = fresh ? seed(Date.now()) : raw
   const { state, changed } = tick(base, Date.now())
   const next = reply
-    ? reply.unclear
+    ? reply.kind === 'unclear'
       ? handleUtterance(state, text, true) // The existing miss counter and handoff produce the family alert.
-      : sayAi({ ...state, chat: { ...state.chat, misses: 0, recentMisses: [] } }, reply.text)
+      : reply.kind === 'emergency'
+        ? raiseElderEmergency(state, text)
+        : reply.kind === 'service'
+          ? startService(state, reply.service!, true, text)
+          : sayAi({ ...state, chat: { ...state.chat, misses: 0, recentMisses: [] } }, reply.text)
     : action ? reduce(state, action) : state
   if (!fresh && !changed && next === state) return json(200, next)
   // rev comes from the stored state, so a reset (which re-seeds at rev 0) still moves clients forward;

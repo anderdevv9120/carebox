@@ -1,5 +1,6 @@
 import { GoogleGenAI, ThinkingLevel, type Content } from '@google/genai'
-import type { State } from '../src/state/types.js'
+import { SERVICE } from '../src/state/labels.js'
+import type { ServiceType, State } from '../src/state/types.js'
 
 // The model talks to the elder; case creation, reminders and emergency actions remain server-owned.
 const SYSTEM = `Bạn là trợ lý CAREBOX, nói chuyện với Bà Lan (người cao tuổi) bằng tiếng Việt thân thiện, ngắn gọn, dễ hiểu.
@@ -7,11 +8,13 @@ Chỉ trả lời và trò chuyện; không giả vờ đã tạo lịch nhắc,
 Khi bác muốn làm những việc đó, hướng dẫn bác dùng các nút Dịch vụ, Lịch trình, Sức khỏe hoặc “Gặp nhân viên”.
 Không tự kê đơn, chỉnh liều hoặc chẩn đoán bệnh. Nếu bác nói dấu hiệu cấp cứu, khuyên gọi 115 ngay và nhờ người gần đó hỗ trợ.
 Đừng tự bịa thông tin cá nhân, tình trạng sức khỏe hay kết quả xử lý của CAREBOX. Trả lời tối đa 3 câu trừ khi bác yêu cầu chi tiết.
-Chỉ trả về một đối tượng JSON, không có markdown: {"status":"answered","reply":"câu trả lời tiếng Việt"} hoặc {"status":"unclear","reply":"câu hỏi làm rõ"}.
+Chỉ trả về một đối tượng JSON, không có markdown: {"status":"answered","reply":"câu trả lời tiếng Việt"}, {"status":"unclear","reply":"câu hỏi làm rõ"}, {"status":"service","service":"medicine|groceries|clinic|daily_help|contact_family|add_reminder","reply":"câu xác nhận ngắn"} hoặc {"status":"emergency","reply":"lời khuyên gọi 115"}.
 Chọn "unclear" chỉ khi bác đang muốn nhờ thực hiện một việc nhưng cháu không hiểu bác muốn làm gì ngay cả khi xét hội thoại trước đó. Nếu unclear, reply là một câu hỏi làm rõ ngắn gọn.
-Chọn "answered" cho chào hỏi, tâm sự, kể chuyện, câu hỏi thông thường và những câu bác có thể trả lời hoặc hướng dẫn. Đừng coi lời hỏi thêm thông tin bình thường trong cuộc trò chuyện là không hiểu yêu cầu.`
+Chọn "answered" cho chào hỏi, tâm sự, kể chuyện, câu hỏi thông thường và những câu bác có thể trả lời hoặc hướng dẫn. Đừng coi lời hỏi thêm thông tin bình thường trong cuộc trò chuyện là không hiểu yêu cầu.
+Chọn "service" chỉ khi bác nói rõ muốn CAREBOX thực hiện một trong các dịch vụ: medicine (lấy thuốc), groceries (mua đồ), clinic (đi khám), daily_help (hỗ trợ sinh hoạt), contact_family (liên hệ gia đình), add_reminder (thêm lịch nhắc). Khi đó reply chỉ là một câu xác nhận ngắn; hệ thống sẽ hỏi tiếp thông tin còn thiếu.
+Chọn "emergency" với mọi dấu hiệu nguy hiểm khẩn cấp (đau ngực, khó thở, ngã, ngất, đột quỵ, chảy máu nhiều...); reply là một câu ngắn khuyên gọi 115 ngay.`
 
-export type AIReply = { text: string; unclear: boolean }
+export type AIReply = { text: string; kind: 'answered' | 'unclear' | 'service' | 'emergency'; service?: ServiceType }
 
 export async function generateReply(s: State, text: string): Promise<AIReply> {
   const apiKey = process.env.GEMINI_API_KEY?.trim()
@@ -33,14 +36,18 @@ export async function generateReply(s: State, text: string): Promise<AIReply> {
       try {
         const result: unknown = JSON.parse(jsonText)
         if (result && typeof result === 'object' && !Array.isArray(result)) {
-          const { status, reply } = result as Record<string, unknown>
-          if ((status === 'answered' || status === 'unclear') && typeof reply === 'string' && reply.trim())
-            return { text: reply.trim(), unclear: status === 'unclear' }
+          const { status, reply, service } = result as Record<string, unknown>
+          if (typeof reply === 'string' && reply.trim()) {
+            const text = reply.trim()
+            if (status === 'answered' || status === 'unclear' || status === 'emergency') return { text, kind: status }
+            if (status === 'service') // an unknown service is just conversation
+              return typeof service === 'string' && Object.hasOwn(SERVICE, service) ? { text, kind: 'service', service: service as ServiceType } : { text, kind: 'answered' }
+          }
         }
       } catch { /* Plain-text responses are still valid conversation. */ }
       // shortcut: JSON formatting is not guaranteed; only explicitly tagged unclear replies count as misses.
       if (raw.startsWith('{') || raw.startsWith('[') || raw.startsWith('```')) throw new Error('Gemma returned an invalid structured reply')
-      return { text: raw, unclear: false }
+      return { text: raw, kind: 'answered' }
     } catch (err) {
       const status = (err as { status?: number }).status
       if (attempt >= 2 || (status !== 500 && status !== 503)) throw err

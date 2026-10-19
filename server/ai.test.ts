@@ -24,7 +24,7 @@ afterEach(() => {
 test('Gemma receives recent history and current message using the Google SDK', async () => {
   generateContent.mockResolvedValue(ok('{"status":"answered","reply":"  Dạ cháu nghe đây ạ.  "}'))
   const result = await generateReply(seed(Date.now()), 'Bác thích nghe chuyện')
-  expect(result).toEqual({ text: 'Dạ cháu nghe đây ạ.', unclear: false })
+  expect(result).toEqual({ text: 'Dạ cháu nghe đây ạ.', kind: 'answered' })
   expect(constructorArgs).toHaveBeenCalledWith({ apiKey: 'test-key' })
   expect(generateContent).toHaveBeenCalledOnce()
   const body = generateContent.mock.calls[0][0]
@@ -38,14 +38,28 @@ test('Gemma receives recent history and current message using the Google SDK', a
 test('Gemma marks a request that needs clarification in its one response', async () => {
   generateContent.mockResolvedValue(ok('```json\n{"status":"unclear","reply":"Bác muốn mua món gì ạ?"}\n```'))
   expect(await generateReply(seed(Date.now()), 'Bác muốn cái trước đó')).toEqual({
-    text: 'Bác muốn mua món gì ạ?', unclear: true,
+    text: 'Bác muốn mua món gì ạ?', kind: 'unclear',
   })
+})
+
+test('parser maps the service and emergency statuses', async () => {
+  generateContent.mockResolvedValueOnce(ok('{"status":"service","service":"groceries","reply":"Dạ cháu ghi nhận ạ."}'))
+  expect(await generateReply(seed(Date.now()), 'Sắm giúp bác ít gạo')).toEqual({ text: 'Dạ cháu ghi nhận ạ.', kind: 'service', service: 'groceries' })
+  generateContent.mockResolvedValueOnce(ok('{"status":"emergency","reply":"Bác gọi 115 ngay ạ."}'))
+  expect(await generateReply(seed(Date.now()), 'Bác tối sầm mắt')).toEqual({ text: 'Bác gọi 115 ngay ạ.', kind: 'emergency' })
+})
+
+test('an unknown or missing service falls back to answered', async () => {
+  for (const service of ['"massage"', '"toString"', '7', undefined]) {
+    generateContent.mockResolvedValueOnce(ok(`{"status":"service",${service === undefined ? '' : `"service":${service},`}"reply":"Dạ cháu nghe ạ."}`))
+    expect(await generateReply(seed(Date.now()), 'Làm giúp bác việc này')).toEqual({ text: 'Dạ cháu nghe ạ.', kind: 'answered' })
+  }
 })
 
 test('plain conversational replies work if Gemma ignores JSON format', async () => {
   generateContent.mockResolvedValue(ok('Cháu đang nghe bác kể chuyện ạ.'))
   expect(await generateReply(seed(Date.now()), 'Kể chuyện cho bác nghe')).toEqual({
-    text: 'Cháu đang nghe bác kể chuyện ạ.', unclear: false,
+    text: 'Cháu đang nghe bác kể chuyện ạ.', kind: 'answered',
   })
 })
 
@@ -62,7 +76,7 @@ test('empty model response is rejected', async () => {
 test('retries temporary provider 500s and keeps the original request', async () => {
   generateContent.mockRejectedValueOnce(Object.assign(new Error('temporary failure'), { status: 500 }))
     .mockResolvedValueOnce(ok('Dạ cháu nghe ạ.'))
-  expect(await generateReply(seed(Date.now()), 'Chào cháu')).toEqual({ text: 'Dạ cháu nghe ạ.', unclear: false })
+  expect(await generateReply(seed(Date.now()), 'Chào cháu')).toEqual({ text: 'Dạ cháu nghe ạ.', kind: 'answered' })
   expect(generateContent).toHaveBeenCalledTimes(2)
   expect(generateContent.mock.calls[0][0]).toEqual(generateContent.mock.calls[1][0])
 })

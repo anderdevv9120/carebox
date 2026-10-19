@@ -205,18 +205,22 @@ export function handoff(s: State): State {
   return sayAi(clearChat(out, { misses: 0, recentMisses: [] }), `Cháu đã chuyển cho nhân viên CAREBOX và báo ${name}. Nhân viên sẽ liên hệ lại với bác ạ.`)
 }
 
-export function startService(s: State, service: ServiceType): State {
+// alreadyRecorded: the elder's own words are already in the chat (the AI path), so keep them as the detail instead of a button line.
+export function startService(s: State, service: ServiceType, alreadyRecorded = false, text = ''): State {
+  if (alreadyRecorded) return startRequest(clearChat(s), service, text.trim())
   return startRequest(sayElder(clearChat(s), `Tôi cần ${SERVICE[service].toLowerCase()}`), service, `Bác chọn dịch vụ ${SERVICE[service]}.`)
+}
+
+export function raiseElderEmergency(s: State, text: string): State {
+  const out = raiseEmergency(clearChat(s), 'Người dùng báo dấu hiệu khẩn cấp', text.trim(), 'elder')
+  return sayAi(out, `Cháu đang hướng dẫn gọi 115 và đã báo ${familyName(out)}.`)
 }
 
 export function handleUtterance(s: State, text: string, alreadyRecorded = false): State {
   if (!text.trim()) return s
   let out = alreadyRecorded ? s : sayElder(s, text.trim())
   const { intent, service } = classify(text)
-  if (intent === 'emergency') {
-    out = raiseEmergency(clearChat(out), 'Người dùng báo dấu hiệu khẩn cấp', text.trim(), 'elder')
-    return sayAi(out, `Cháu đang hướng dẫn gọi 115 và đã báo ${familyName(out)}.`)
-  }
+  if (intent === 'emergency') return raiseElderEmergency(out, text)
   if (intent === 'medical_decision') {
     // Checked before any pending question so a dose request is never stored as a field answer.
     let id: string
