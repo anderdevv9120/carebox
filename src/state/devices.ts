@@ -54,14 +54,14 @@ export function pushReading(s: State, id: Metric, mode: 'normal' | 'high' | 'sus
       detail: 'Dữ liệu giả lập vượt ngưỡng đã cấu hình. Chưa có kết luận y tế và chưa xác nhận nguyên nhân.',
       priority: 'priority', priorityReason: `${name}: vượt ngưỡng giả lập`, source: 'device', deviceId: id,
     })
-    return notify(out, `${name}: dữ liệu vượt ngưỡng đã cấu hình. Cần gia đình xem, chưa có kết luận y tế.`, 'health', 'device', evId)
+    return notify(out, 'family', `${name}: dữ liệu vượt ngưỡng đã cấu hình. Cần gia đình xem, chưa có kết luận y tế.`, 'health', 'device', evId)
   }
   ;[out, evId] = createEvent(out, {
     title: 'Dữ liệu đáng nghi',
     detail: 'Dữ liệu có thể sai do đo hoặc truyền dẫn. Cần kiểm tra nguồn, đo lại nếu phù hợp.',
     priority: 'uncertain', priorityReason: `${name}: giá trị ngoài khoảng hợp lý`, source: 'device', deviceId: id,
   })
-  return notify(out, `${name}: dữ liệu đáng nghi, cần kiểm tra nguồn.`, 'health', 'device', evId)
+  return notify(out, 'family', `${name}: dữ liệu đáng nghi, cần kiểm tra nguồn.`, 'health', 'device', evId)
 }
 
 export function disconnect(s: State, id: DeviceKind): State {
@@ -74,7 +74,7 @@ export function disconnect(s: State, id: DeviceKind): State {
     detail: 'Không đủ dữ liệu. Không kết luận người dùng an toàn.',
     priority: 'uncertain', priorityReason: 'Dữ liệu thiết bị bị gián đoạn', source: 'device', deviceId: id,
   })
-  return notify(out, `${d.name} mất kết nối. Không đủ dữ liệu. Không kết luận người dùng an toàn.`, 'health', 'device', evId)
+  return notify(out, 'family', `${d.name} mất kết nối. Không đủ dữ liệu. Không kết luận người dùng an toàn.`, 'health', 'device', evId)
 }
 
 export function reconnect(s: State, id: DeviceKind): State {

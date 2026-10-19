@@ -101,7 +101,7 @@ function startRequest(s: State, service: ServiceType, detail: string): State {
   let [out, id] = nextCaseId(s, 'request')
   const r: RequestCase = {
     id, kind: 'request', service, title: SERVICE[service], detail, source: 'elder', priority: 'normal',
-    priorityReason: 'Yêu cầu dịch vụ thông thường', createdAt: s.now, fields: {}, status: 'need_info', unclear: [],
+    priorityReason: 'Yêu cầu dịch vụ thông thường', createdAt: s.now, fields: {}, status: 'need_info', unclear: [], owner: 'staff',
     history: [{ at: s.now, by: 'ai', text: 'AI ghi nhận yêu cầu, đang hỏi thông tin còn thiếu.' }],
   }
   out = addCase(out, r)
@@ -142,7 +142,7 @@ function refuse(s: State, c: RequestCase): State {
 function confirm(s: State, c: RequestCase): State {
   const name = familyName(s)
   let out = updateCase(s, c.id, { status: 'await_family' }, { by: 'elder', text: `Bác xác nhận nội dung; chuyển ${name}.` })
-  out = notify(out, `${c.title}: chờ ${name} nhận việc`, 'request', 'ai', c.id)
+  out = notify(out, 'family', `${c.title}: chờ ${name} nhận việc`, 'request', 'ai', c.id)
   const msg = c.service === 'add_reminder'
     ? `Cháu đã gửi ${name} duyệt lịch nhắc. Lịch chỉ được thêm sau khi ${name} xác nhận, yêu cầu chưa hoàn tất ạ.`
     : c.service === 'contact_family'
@@ -194,7 +194,7 @@ export function handoff(s: State): State {
     title: 'AI chưa hiểu yêu cầu', detail: `Cần ${name} gọi lại cho bác.`, source: 'ai', priority: 'uncertain',
     priorityReason: s.chat.recentMisses.length ? 'AI không hiểu sau khi hỏi lại' : 'Người dùng chọn nhờ con giúp', unclear,
   })
-  out = notify(out, `${id}: AI chưa hiểu yêu cầu, cần ${name} gọi lại cho bác.`, 'other', 'ai', id)
+  out = notify(out, 'family', `${id}: AI chưa hiểu yêu cầu, cần ${name} gọi lại cho bác.`, 'other', 'ai', id)
   return sayAi(clearChat(out, { misses: 0, recentMisses: [] }), `Cháu đã báo ${name} gọi lại cho bác ạ.`)
 }
 
@@ -232,7 +232,7 @@ export function handleUtterance(s: State, text: string, alreadyRecorded = false)
     case 'problem': {
       let id: string
       ;[out, id] = createEvent(out, { title: text.trim(), detail: text.trim(), source: 'elder', priority: 'priority', priorityReason: 'Người cao tuổi báo vấn đề' })
-      out = notify(out, `Bác báo: “${text.trim()}”. Cần ${familyName(out)} xem và gọi lại cho bác.`, 'health', 'elder', id)
+      out = notify(out, 'family', `Bác báo: “${text.trim()}”. Cần ${familyName(out)} xem và gọi lại cho bác.`, 'health', 'elder', id)
       return sayAi(out, `Cháu đã ghi nhận và báo ${familyName(out)}. Nếu bác khó thở hay đau ngực, bác nói ngay để cháu hướng dẫn gọi 115 nhé.`)
     }
     case 'info':

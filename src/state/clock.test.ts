@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { seed } from './seed'
+import { seedBare } from './testing'
 import { reduce } from './reducer'
 import { MIN, atVN, fmtDayMonth, fmtTime, vnDay } from './helpers'
 import { rollover, tick } from './clock'
@@ -28,7 +29,8 @@ describe('seed', () => {
     expect(s).toMatchObject({ now: NOW, day: '2026-10-18', rev: 0 })
     expect(s.reminders.filter((r) => r.dueAt < NOW).every((r) => r.response === 'received')).toBe(true)
     expect(s.reminders.filter((r) => r.dueAt > NOW).every((r) => r.response === undefined)).toBe(true)
-    expect(tick(s, NOW).state.cases.filter((c) => c.kind === 'event')).toHaveLength(0)
+    // only the illustrative device event: the clock adds no reminder alerts
+    expect(tick(s, NOW).state.cases.filter((c) => c.kind === 'event')).toHaveLength(1)
   })
 
   test('seed adds one one-off reminder ~3 min after reset', () => {
@@ -38,12 +40,12 @@ describe('seed', () => {
     expect(extra[0].kind).toBe('medicine')
   })
 
-  test('seed cases read as recent: CB-001 created 20 min ago, CB-002 done yesterday by Chị Minh', () => {
+  test('seed cases read as recent: CB-001 created 20 min ago, CB-002 done yesterday by Anh Nam', () => {
     const s = seed(NOW)
     const c1 = s.cases.find((c) => c.id === 'CB-001') as RequestCase
     const c2 = s.cases.find((c) => c.id === 'CB-002') as RequestCase
     expect(c1).toMatchObject({ status: 'need_info', createdAt: NOW - 20 * MIN })
-    expect(c2).toMatchObject({ status: 'done', createdAt: NOW - 2 * DAY, completedAt: NOW - DAY, doneBy: 'Chị Minh', doneNote: 'Đã đưa mẹ đi khám và về nhà.' })
+    expect(c2).toMatchObject({ status: 'done', createdAt: NOW - 2 * DAY, completedAt: NOW - DAY, doneBy: 'Anh Nam', doneNote: 'Đã đưa bác đi khám và về nhà.' })
     expect(s.notifications.find((n) => n.caseId === 'CB-001')!.at).toBe(c1.createdAt)
     expect(s.notifications.find((n) => n.caseId === 'CB-002')!.at).toBe(c2.completedAt)
   })
@@ -61,7 +63,7 @@ describe('seed', () => {
 
 describe('rollover', () => {
   test('rollover next day: daily reminders move to the new date with responses/snooze/escalation cleared; one-offs dropped; cases/notifications/chat untouched', () => {
-    let s = seed(NOW)
+    let s = seedBare(NOW)
     s = { ...s, reminders: s.reminders.map((r) => (r.id === 'r5' ? { ...r, snoozedUntil: r.dueAt + 10 * MIN, escalated: true } : r)) }
     const next = NOW + DAY
     const out = rollover(s, next)
@@ -81,14 +83,14 @@ describe('rollover', () => {
   })
 
   test('rollover on the same day returns the state unchanged', () => {
-    const s = seed(NOW)
+    const s = seedBare(NOW)
     expect(rollover(s, NOW + 60 * MIN)).toBe(s)
   })
 })
 
 describe('tick', () => {
   test('tick: same day and nothing due → changed false; reminder past 30 min → changed true and one uncertain event', () => {
-    const s = seed(NOW)
+    const s = seedBare(NOW)
     const quiet = tick(s, NOW + MIN)
     expect(quiet.changed).toBe(false)
     expect(quiet.state.now).toBe(NOW + MIN)
@@ -100,7 +102,7 @@ describe('tick', () => {
   })
 
   test('tick across midnight reports changed', () => {
-    const s = seed(NOW)
+    const s = seedBare(NOW)
     const t = tick(s, NOW + DAY)
     expect(t.changed).toBe(true)
     expect(t.state.day).toBe('2026-10-19')
@@ -109,10 +111,10 @@ describe('tick', () => {
 
 describe('approveReminder in Vietnam time', () => {
   test('a time already past today is scheduled for tomorrow, not escalated at once', () => {
-    let s = seed(NOW)
+    let s = seedBare(NOW)
     const c: RequestCase = {
       id: 'CB-010', kind: 'request', service: 'add_reminder', title: 'Test', detail: '', source: 'elder', priority: 'normal',
-      priorityReason: '', createdAt: s.now, history: [], unclear: [], fields: { noi_dung: 'Nhắc uống nước' }, status: 'await_family',
+      priorityReason: '', createdAt: s.now, history: [], unclear: [], owner: 'family', fields: { noi_dung: 'Nhắc uống nước' }, status: 'await_family',
     }
     s = { ...s, cases: [...s.cases, c] }
     const out = reduce(s, { type: 'family/approveReminder', id: 'CB-010', time: '07:00' })

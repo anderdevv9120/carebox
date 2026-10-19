@@ -66,7 +66,7 @@ export function raiseEmergency(s: State, title: string, detail: string, source: 
     log: `Hướng dẫn gọi 115; đã thông báo ${name}. Thông báo tự động chưa có nghĩa là đã có người tiếp nhận.`,
   })
   return notify({ ...out, emergency: { caseId: id, calling: false } },
-    `KHẨN CẤP: ${title}. Đang hướng dẫn gọi 115. Cần ${name} xác nhận đã tiếp nhận tình huống.`, 'health', source, id)
+    'family', `KHẨN CẤP: ${title}. Đang hướng dẫn gọi 115. Cần ${name} xác nhận đã tiếp nhận tình huống.`, 'health', source, id)
 }
 
 function requestTransition(s: State, c: RequestCase, a: CaseAction): State {
@@ -79,7 +79,7 @@ function requestTransition(s: State, c: RequestCase, a: CaseAction): State {
     case 'request/cancel':
       if (isFinal(c)) return s
       return notify(updateCase(s, c.id, { status: 'refused', closedReason: 'Người cao tuổi từ chối' }, { by: 'elder', text: 'Người cao tuổi hủy/từ chối yêu cầu.' }),
-        `${c.title}: bác đã từ chối dịch vụ. Không đặt lại nếu bác không yêu cầu.`, 'request', 'elder', c.id)
+        'family', `${c.title}: bác đã từ chối dịch vụ. Không đặt lại nếu bác không yêu cầu.`, 'request', 'elder', c.id)
     case 'family/accept':
       if (c.status !== 'await_family') return s
       return updateCase(s, c.id, { status: 'in_progress', acceptedAt: s.now }, fam(`${name} nhận việc.`))

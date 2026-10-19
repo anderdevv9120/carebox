@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest'
-import { seed } from './seed'
+import { seedBare } from './testing'
 import { reduce } from './reducer'
 import { MIN } from './helpers'
 import { reminderStatus, sweepReminders } from './reminders'
 import type { EventCase, State } from './types'
 
-const s0 = () => seed(Date.UTC(2026, 9, 18, 0, 0)) // 07:00 Vietnam: no reminder answered yet
+const s0 = () => seedBare(Date.UTC(2026, 9, 18, 0, 0)) // 07:00 Vietnam: no reminder answered yet
 const r1 = (s: State) => s.reminders.find((r) => r.id === 'r1')!
 const atR1 = () => { const s = s0(); return { ...s, now: r1(s).dueAt } }
 const events = (s: State) => s.cases.filter((c): c is EventCase => c.kind === 'event')

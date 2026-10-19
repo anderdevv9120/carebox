@@ -20,6 +20,7 @@ export const ROLE_ACTIONS: Record<Role, Type[]> = {
     'reset', 'notif/readAll', 'family/accept', 'family/done', 'family/decline', 'family/approveReminder',
     'family/contacted', 'family/takeEvent', 'family/resolveEvent',
   ],
+  staff: ['reset'],
 }
 
 // 'id' = non-empty string, 'text' = string; both at most MAX_TEXT. An array lists the allowed literals.
@@ -63,13 +64,15 @@ function parseAction(body: unknown, role: Role): Action | 400 | 403 {
   if (!ROLE_ACTIONS[role].includes(type)) return 403
   const spec = Object.entries(FIELDS[type])
   if (!spec.every(([k, c]) => ok(b[k], c))) return 400
-  return { type, ...Object.fromEntries(spec.map(([k]) => [k, b[k]])) } as Action
+  // the audience is the caller's role, never the client's choice
+  const audience = type === 'notif/readAll' ? { to: role } : {}
+  return { type, ...Object.fromEntries(spec.map(([k]) => [k, b[k]])), ...audience } as Action
 }
 
 // ponytail: shallow shape check, not a schema; bump `version` when the State shape changes.
 function isState(v: unknown): v is State {
   const s = v as State
-  return !!s && typeof s === 'object' && s.version === 2 && typeof s.now === 'number' && typeof s.rev === 'number' &&
+  return !!s && typeof s === 'object' && s.version === 3 && typeof s.now === 'number' && typeof s.rev === 'number' &&
     typeof s.day === 'string' && !!s.elder && [s.cases, s.reminders, s.devices, s.notifications, s.family, s.chat?.messages].every(Array.isArray)
 }
 

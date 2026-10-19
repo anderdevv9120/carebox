@@ -32,7 +32,7 @@ export function respondReminder(s: State, id: string, response: 'received' | 'sn
       priorityReason: r.kind === 'medicine' ? 'Liên quan lịch uống thuốc' : 'Hoạt động sinh hoạt',
       source: 'elder', reminderId: id,
     })
-    out = notify(out, `Bác báo không thực hiện được: ${r.title}. Cần ${familyName(s)} liên hệ hỏi bác.`, 'other', 'elder', evId)
+    out = notify(out, 'family', `Bác báo không thực hiện được: ${r.title}. Cần ${familyName(s)} liên hệ hỏi bác.`, 'other', 'elder', evId)
   }
   return out
 }
@@ -48,7 +48,7 @@ export function sweepReminders(s: State): State {
       priority: 'uncertain', priorityReason: 'Người dùng không xác nhận', source: 'ai', reminderId: r.id,
     })
     out = patch(out, r.id, { escalated: true })
-    out = notify(out, `Chưa có xác nhận sau lịch nhắc "${r.title}". Không kết luận bác đã thực hiện.`, 'other', 'ai', evId)
+    out = notify(out, 'family', `Chưa có xác nhận sau lịch nhắc "${r.title}". Không kết luận bác đã thực hiện.`, 'other', 'ai', evId)
   }
   return out
 }

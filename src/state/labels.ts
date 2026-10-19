@@ -5,6 +5,7 @@ export const REQUEST_STATUS: Record<RequestStatus, string> = {
   need_info: 'Chờ bổ sung thông tin',
   await_confirm: 'Chờ xác nhận',
   await_family: 'Chờ gia đình nhận',
+  await_staff: 'Chờ điều phối',
   in_progress: 'Đang xử lý',
   done: 'Hoàn tất',
   refused: 'Đã từ chối',
@@ -28,6 +29,7 @@ export const SOURCE: Record<Source, string> = {
   elder: 'Người cao tuổi báo',
   family: 'Gia đình xác nhận',
   ai: 'AI tổng hợp',
+  staff: 'Nhân viên xác minh',
 }
 
 export const SERVICE: Record<ServiceType, string> = {
@@ -63,3 +65,6 @@ export const REMINDER_STATUS: Record<ReminderStatus, string> = {
   cant_do: 'Không thực hiện được',
   no_confirm: 'Chưa có xác nhận',
 }
+
+// Shown on a family request while no staff member has confirmed it with a care partner.
+export const PARTNER_PENDING = 'Chờ nhân viên xác nhận'

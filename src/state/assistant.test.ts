@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'vitest'
-import { seed } from './seed'
+import { seedBare } from './testing'
 import { reduce } from './reducer'
 import { classify, normalize } from './assistant'
 import type { EventCase, RequestCase, State } from './types'
 
-const s0 = () => seed(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
+const s0 = () => seedBare(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
 const say = (s: State, ...texts: string[]) => texts.reduce((acc, text) => reduce(acc, { type: 'chat/say', text }), s)
 const lastAi = (s: State) => s.chat.messages.filter((m) => m.from === 'ai').at(-1)!.text
 const newCases = (s: State) => s.cases.slice(2)

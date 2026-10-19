@@ -1,11 +1,14 @@
-export type Role = 'elder' | 'family'
+export type Role = 'elder' | 'family' | 'staff'
 export type Screen =
   | 'home' | 'schedule' | 'health' | 'services' | 'requests' | 'chat'
   | 'f-dashboard' | 'f-requests' | 'f-notifications' | 'f-profile' | 'f-report'
+  | 's-board' | 's-case' | 's-notifications' | 's-report' | 's-profile'
 export type Priority = 'normal' | 'priority' | 'emergency' | 'uncertain'
-export type Source = 'device' | 'elder' | 'family' | 'ai'
+export type Source = 'device' | 'elder' | 'family' | 'ai' | 'staff'
+export type Owner = 'staff' | 'family'
+export type Audience = 'family' | 'staff'
 export type ServiceType = 'medicine' | 'groceries' | 'clinic' | 'daily_help' | 'contact_family' | 'add_reminder'
-export type RequestStatus = 'need_info' | 'await_confirm' | 'await_family' | 'in_progress' | 'done' | 'refused'
+export type RequestStatus = 'need_info' | 'await_confirm' | 'await_family' | 'await_staff' | 'in_progress' | 'done' | 'refused'
 export type EventStatus = 'to_verify' | 'handling' | 'resolved'
 export type DeviceStatus = 'normal' | 'attention' | 'missing' | 'suspicious'
 export type ReminderStatus = 'upcoming' | 'due' | 'snoozed' | 'received' | 'cant_do' | 'no_confirm'
@@ -22,6 +25,8 @@ interface CaseBase {
   createdAt: number
   history: LogEntry[]
   unclear: string[]
+  owner: Owner
+  familyAsk?: { question: string; askedAt: number; reply?: string; repliedAt?: number }
 }
 
 export interface RequestCase extends CaseBase {
@@ -34,6 +39,13 @@ export interface RequestCase extends CaseBase {
   doneNote?: string
   doneBy?: string
   closedReason?: string
+  confirmedAt?: number
+  verifiedBy?: string
+  verifiedAt?: number
+  verifyNote?: string
+  assignee?: string
+  partnerReport?: string
+  partnerReportAt?: number
 }
 
 export interface EventCase extends CaseBase {
@@ -72,6 +84,7 @@ export interface Notification {
   text: string
   category: NotifCategory
   source: Source
+  to: Audience
   caseId?: string
   read: boolean
 }
@@ -85,12 +98,14 @@ export interface ChatState {
 }
 
 export interface State {
-  version: 2
+  version: 3
   rev: number // bumped on every save; clients keep the higher one
   now: number
   day: string // Vietnam date (YYYY-MM-DD) the reminder schedule belongs to
   elder: { name: string; age: number; birthDate: string; phone: string; address: string }
   family: { name: string; relation: string; phone: string }[]
+  staff: { name: string; title: string }
+  carePartners: string[]
   reminders: Reminder[]
   devices: Device[]
   cases: Case[]

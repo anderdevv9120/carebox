@@ -41,7 +41,7 @@ describe('real AI chat', () => {
     expect(model).toHaveBeenCalledTimes(2)
     const s = await getState(elder)
     expect(s.chat.misses).toBe(0)
-    expect(s.cases).toHaveLength(2)
+    expect(s.cases).toHaveLength(3)
     const emergency: State = await (await post('/api/action', elder, { type: 'chat/say', text: 'Bác đau ngực' })).json()
     expect(emergency.emergency).not.toBeNull()
     expect(model).toHaveBeenCalledTimes(2)
@@ -203,9 +203,9 @@ describe('shared state', () => {
       const r = await send('/api/state', {}, elder)
       expect(r.status).toBe(200)
       const s: State = await r.json()
-      expect(s.version).toBe(2)
-      expect(s.cases).toHaveLength(2)
-      expect(((await loadState()) as State).version).toBe(2)
+      expect(s.version).toBe(3)
+      expect(s.cases).toHaveLength(3)
+      expect(((await loadState()) as State).version).toBe(3)
     }
   })
 

@@ -5,7 +5,7 @@ import { reminderStatus } from '../state/reminders'
 import type { Case, Device, DeviceStatus, Priority, Reminder, ReminderStatus, Source } from '../state/types'
 
 const STATUS_CLASS: Record<Case['status'], string> = {
-  need_info: 'b-unsure', await_confirm: 'b-unsure', await_family: 'b-attn', to_verify: 'b-attn',
+  need_info: 'b-unsure', await_confirm: 'b-unsure', await_family: 'b-attn', await_staff: 'b-attn', to_verify: 'b-attn',
   in_progress: 'b-prog', handling: 'b-prog', done: 'b-ok', resolved: 'b-ok', refused: 'b-neutral',
 }
 

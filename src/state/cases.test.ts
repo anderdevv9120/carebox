@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest'
-import { seed } from './seed'
+import { seedBare } from './testing'
 import { reduce, type Action } from './reducer'
 import { MIN, addCase, fmtTime } from './helpers'
 import { effectivePriority, familyQueue, isAbandoned, nextOwner } from './cases'
 import type { EventCase, RequestCase, ServiceType, State } from './types'
 
-const s0 = () => seed(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
+const s0 = () => seedBare(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
 const get = (s: State, id: string) => s.cases.find((c) => c.id === id)!
 const req = (s: State, id: string) => get(s, id) as RequestCase
 const run = (s: State, ...as: Action[]) => as.reduce(reduce, s)
@@ -14,7 +14,7 @@ function withRequest(service: ServiceType = 'medicine', status: RequestCase['sta
   const s = s0()
   const c: RequestCase = {
     id: 'CB-010', kind: 'request', service, title: 'Test', detail: '', source: 'elder', priority: 'normal',
-    priorityReason: '', createdAt: s.now, history: [], unclear: [], fields: { noi_dung: 'Nhắc uống nước' }, status,
+    priorityReason: '', createdAt: s.now, history: [], unclear: [], owner: 'family', fields: { noi_dung: 'Nhắc uống nước' }, status,
   }
   return addCase(s, c)
 }
@@ -167,11 +167,11 @@ describe('derived', () => {
 
 describe('familyQueue: the daughter\'s "Yêu cầu của mẹ" list', () => {
   const ev = (id: string, priority: EventCase['priority'], createdAt: number, status: EventCase['status'] = 'to_verify'): EventCase => ({
-    id, kind: 'event', title: id, detail: '', source: 'device', priority, priorityReason: '', createdAt, history: [], unclear: [], status,
+    id, kind: 'event', title: id, detail: '', source: 'device', priority, priorityReason: '', createdAt, history: [], unclear: [], owner: 'staff', status,
   })
   const rq = (id: string, createdAt: number, status: RequestCase['status']): RequestCase => ({
     id, kind: 'request', service: 'medicine', title: id, detail: '', source: 'elder', priority: 'normal', priorityReason: '',
-    createdAt, history: [], unclear: [], fields: {}, status,
+    createdAt, history: [], unclear: [], owner: 'family', fields: {}, status,
   })
 
   test('open alerts sort by priority (emergency > priority > uncertain > normal), then oldest first; closed ones are left out', () => {

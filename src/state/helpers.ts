@@ -1,4 +1,4 @@
-import type { Case, EventCase, NotifCategory, Reading, Source, State } from './types.js'
+import type { Audience, Case, EventCase, NotifCategory, Reading, Source, State } from './types.js'
 
 export const MIN = 60_000
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -59,7 +59,7 @@ export function createEvent(s: State, e: NewEvent): [State, string] {
   const [out, id] = nextCaseId(s, 'event')
   const { log, ...rest } = e
   const c: EventCase = {
-    kind: 'event', id, createdAt: s.now, status: 'to_verify', unclear: [], ...rest,
+    kind: 'event', id, createdAt: s.now, status: 'to_verify', unclear: [], owner: 'staff', ...rest,
     history: [{ at: s.now, by: e.source === 'device' ? 'device' : 'ai', text: log ?? 'Tạo cảnh báo, chờ gia đình xem.' }],
   }
   return [addCase(out, c), id]
@@ -74,13 +74,14 @@ export function updateCase(s: State, id: string, patch: Partial<Case>, log?: { b
   }
 }
 
-export function notify(s: State, text: string, category: NotifCategory, source: Source, caseId?: string): State {
+export function notify(s: State, to: Audience, text: string, category: NotifCategory, source: Source, caseId?: string): State {
   const [out, id] = nextN(s)
-  return { ...out, notifications: [...out.notifications, { id, at: s.now, text, category, source, caseId, read: false }] }
+  return { ...out, notifications: [...out.notifications, { id, at: s.now, text, category, source, to, caseId, read: false }] }
 }
 
 // The family member who takes over requests and alerts.
 export const familyName = (s: State) => s.family[0].name
+export const staffName = (s: State) => s.staff.name
 
 export function sayAi(s: State, text: string): State {
   const [out, id] = nextN(s)

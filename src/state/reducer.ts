@@ -4,7 +4,7 @@ import { disconnect, pushReading, reconnect, reportFall } from './devices.js'
 import { transition, type CaseAction } from './cases.js'
 import { handleUtterance, handoff, startService } from './assistant.js'
 import { sayElder } from './helpers.js'
-import type { DeviceKind, ServiceType, State } from './types.js'
+import type { Audience, DeviceKind, ServiceType, State } from './types.js'
 
 export type Action =
   | { type: 'reset' }
@@ -17,7 +17,7 @@ export type Action =
   | { type: 'chat/startService'; service: ServiceType }
   | { type: 'chat/handoff' }
   | { type: 'chat/clear' }
-  | { type: 'notif/readAll' }
+  | { type: 'notif/readAll'; to: Audience }
   | CaseAction
 
 export function reduce(s: State, a: Action): State {
@@ -44,8 +44,8 @@ export function reduce(s: State, a: Action): State {
       // leaves any half-collected request on the board in its current status
       return { ...s, chat: { ...s.chat, pending: null, misses: 0, recentMisses: [] } }
     case 'notif/readAll':
-      if (!s.notifications.some((n) => !n.read)) return s
-      return { ...s, notifications: s.notifications.map((n) => ({ ...n, read: true })) }
+      if (!s.notifications.some((n) => n.to === a.to && !n.read)) return s
+      return { ...s, notifications: s.notifications.map((n) => (n.to === a.to ? { ...n, read: true } : n)) }
     default:
       return transition(s, a)
   }

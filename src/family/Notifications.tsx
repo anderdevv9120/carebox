@@ -17,7 +17,7 @@ export function Notifications() {
   const [tab, setTab] = useState<NotifCategory | 'all'>('all')
   const [unreadAtOpen] = useState(() => new Set(state.notifications.filter((n) => !n.read).map((n) => n.id)))
   useEffect(() => {
-    dispatch({ type: 'notif/readAll' })
+    dispatch({ type: 'notif/readAll', to: 'family' })
   }, [dispatch, state.notifications.length])
   const list = state.notifications
     .filter((n) => tab === 'all' || n.category === tab)

@@ -4,8 +4,6 @@ import { expect, test } from 'vitest'
 
 // Spec anti-goal: never claim health or completion the data can't support.
 const BANNED = ['khỏe mạnh', 'Ổn định', 'Đã hoàn thành', 'Không có dấu hiệu bất thường']
-// The staff role is gone: the daughter handles requests.
-const STAFF = ['Care Partner', 'nhân viên điều phối', 'Gặp nhân viên', 'Chờ điều phối']
 const SRC = join(import.meta.dirname, '.')
 
 function sources(dir: string): { f: string; text: string }[] {
@@ -21,10 +19,4 @@ test('UI and state copy never uses banned health/completion claims', () => {
   const files = sources(SRC)
   expect(files.length).toBeGreaterThan(10)
   expect(hits(files, BANNED)).toEqual([])
-})
-
-test('UI, state and server code never mention staff', () => {
-  const files = [...sources(SRC), ...sources(join(SRC, '..', 'server'))]
-  expect(files.length).toBeGreaterThan(10)
-  expect(hits(files, STAFF)).toEqual([])
 })

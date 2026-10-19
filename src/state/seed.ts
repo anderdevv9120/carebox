@@ -34,12 +34,14 @@ export function seed(now: number): State {
     { id: 'fall', name: 'Thiết bị phát hiện té ngã', unit: '', connected: true, readings: [] },
   ]
   return {
-    version: 2,
+    version: 3,
     rev: 0,
     now,
     day: vnDay(now),
     elder: { name: 'Bà Nguyễn Thị Lan', age: 72, birthDate: '12/03/1954', phone: '0987 654 321', address: 'Quận Cầu Giấy, Hà Nội' },
     family: [{ name: 'Chị Minh', relation: 'Con gái', phone: '0901 234 567' }],
+    staff: { name: 'Anh Nam', title: 'Nhân viên điều phối' },
+    carePartners: ['Anh Tuấn', 'Chị Hoa'],
     reminders,
     devices,
     cases: [
@@ -47,7 +49,7 @@ export function seed(now: number): State {
         id: 'CB-001', kind: 'request', service: 'medicine', title: 'Hỗ trợ lấy thuốc',
         detail: 'Bác muốn lấy thuốc huyết áp ở hiệu thuốc.', source: 'elder', priority: 'normal',
         priorityReason: 'Yêu cầu dịch vụ thông thường', createdAt: c1,
-        fields: { thuoc: 'Thuốc huyết áp' }, status: 'need_info', unclear: [],
+        fields: { thuoc: 'Thuốc huyết áp' }, status: 'need_info', unclear: [], owner: 'staff',
         history: [{ at: c1, by: 'ai', text: 'AI ghi nhận yêu cầu. Thiếu thông tin về địa điểm và thời gian.' }],
       },
       {
@@ -55,20 +57,32 @@ export function seed(now: number): State {
         detail: 'Hỗ trợ đưa bác đi khám định kỳ.', source: 'elder', priority: 'normal',
         priorityReason: 'Yêu cầu dịch vụ thông thường', createdAt: now - 2 * DAY,
         fields: { noi_kham: 'Bệnh viện E', thoi_gian: '08:30 hôm qua', di_lai: 'Cần người đưa đi bằng taxi' },
-        status: 'done', unclear: [], acceptedAt: now - 2 * DAY + 25 * MIN, completedAt: now - DAY,
-        doneBy: 'Chị Minh', doneNote: 'Đã đưa mẹ đi khám và về nhà.',
+        status: 'done', unclear: [], owner: 'staff', acceptedAt: now - 2 * DAY + 25 * MIN, completedAt: now - DAY,
+        confirmedAt: now - 2 * DAY + 10 * MIN, verifiedBy: 'Anh Nam', verifiedAt: now - 2 * DAY + 15 * MIN,
+        verifyNote: 'Đã gọi bác xác nhận lịch khám.', assignee: 'Anh Tuấn',
+        partnerReport: 'Đã đưa bác đi khám và về nhà.', partnerReportAt: now - DAY - 30 * MIN,
+        doneBy: 'Anh Nam', doneNote: 'Đã đưa bác đi khám và về nhà.',
         history: [
           { at: now - 2 * DAY, by: 'ai', text: 'AI ghi nhận yêu cầu, bác đã xác nhận nội dung.' },
-          { at: now - 2 * DAY + 25 * MIN, by: 'family', text: 'Chị Minh nhận việc.' },
-          { at: now - DAY, by: 'family', text: 'Chị Minh báo đã xong: Đã đưa mẹ đi khám và về nhà.' },
+          { at: now - 2 * DAY + 10 * MIN, by: 'staff', text: 'Anh Nam xác nhận lại với bác.' },
+          { at: now - 2 * DAY + 15 * MIN, by: 'staff', text: 'Anh Nam đã xác minh yêu cầu.' },
+          { at: now - 2 * DAY + 25 * MIN, by: 'staff', text: 'Anh Nam giao Care Partner Anh Tuấn.' },
+          { at: now - DAY - 30 * MIN, by: 'staff', text: 'Care Partner Anh Tuấn báo: Đã đưa bác đi khám và về nhà.' },
+          { at: now - DAY, by: 'staff', text: 'Anh Nam báo đã xong: Đã đưa bác đi khám và về nhà.' },
         ],
+      },
+      {
+        id: 'EVT-001', kind: 'event', title: 'Dữ liệu thiết bị vượt ngưỡng', detail: 'Máy đo huyết áp ghi nhận chỉ số vượt ngưỡng đã cấu hình.',
+        source: 'device', priority: 'priority', priorityReason: 'Dữ liệu vượt ngưỡng đã cấu hình', createdAt: now - 10 * MIN,
+        status: 'to_verify', unclear: [], owner: 'staff', deviceId: 'bp',
+        history: [{ at: now - 10 * MIN, by: 'device', text: 'Tạo cảnh báo, chờ nhân viên xem.' }],
       },
     ],
     notifications: [
-      { id: 'n1', at: c1, category: 'request', source: 'ai', caseId: 'CB-001', read: false,
+      { id: 'n1', at: c1, to: 'family', category: 'request', source: 'ai', caseId: 'CB-001', read: false,
         text: `${fmtTime(c1)} – Yêu cầu lấy thuốc đã được ghi nhận. Chưa xác nhận có người thực hiện.` },
-      { id: 'n2', at: now - DAY, category: 'request', source: 'family', caseId: 'CB-002', read: true,
-        text: 'Đi khám bệnh: Chị Minh đã báo xong.' },
+      { id: 'n2', at: now - DAY, to: 'family', category: 'request', source: 'staff', caseId: 'CB-002', read: true,
+        text: 'Đi khám bệnh: Anh Nam đã báo xong.' },
     ],
     chat: {
       messages: [{ id: 'n3', from: 'ai', at: now,
@@ -78,7 +92,7 @@ export function seed(now: number): State {
       recentMisses: [],
     },
     emergency: null,
-    seq: { cb: 3, evt: 1, n: 4 },
+    seq: { cb: 3, evt: 2, n: 4 },
   }
 }
 
