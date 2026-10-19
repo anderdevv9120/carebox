@@ -2,8 +2,8 @@ import type { ReactNode } from 'react'
 import { TabBar, type TabItem } from './ui/TabBar'
 import { EmergencyOverlay } from './ui/EmergencyOverlay'
 import { useStore } from './state/store'
-import { isFinal } from './state/cases'
-import { familyNotifications } from './state/helpers'
+import { isFinal, staffBoard } from './state/cases'
+import { notificationsFor } from './state/helpers'
 import type { EventCase, Screen } from './state/types'
 import { Home } from './elder/Home'
 import { Schedule } from './elder/Schedule'
@@ -16,6 +16,8 @@ import { Profile } from './family/Profile'
 import { Notifications } from './family/Notifications'
 import { Report } from './family/Report'
 import { Requests as FamilyRequests } from './family/Requests'
+import { Board } from './staff/Board'
+import { CaseDetail } from './staff/CaseDetail'
 
 const ELDER: Partial<Record<Screen, () => ReactNode>> = {
   home: Home, schedule: Schedule, health: Health, services: Services, requests: Requests, chat: Chat,
@@ -34,23 +36,36 @@ const FAMILY: Partial<Record<Screen, () => ReactNode>> = {
   'f-dashboard': Dashboard, 'f-requests': FamilyRequests, 'f-profile': Profile, 'f-notifications': Notifications, 'f-report': Report,
 }
 
+const STAFF: Partial<Record<Screen, () => ReactNode>> = {
+  's-board': Board, 's-case': CaseDetail, 's-notifications': Notifications, 's-report': Report, 's-profile': Profile,
+}
+
 export default function App() {
   const { state, dispatch, view, session, logout } = useStore()
   const go = (screen: Screen) => dispatch({ type: 'nav', screen })
   const elder = session.role === 'elder'
+  const staff = session.role === 'staff'
 
   let View: () => ReactNode
   let tabs: TabItem<Screen>[]
   if (elder) {
     View = ELDER[view.screen] ?? Home
     tabs = ELDER_TABS
+  } else if (staff) {
+    View = STAFF[view.screen] ?? Board
+    tabs = [
+      { id: 's-board', label: 'Bảng điều phối', icon: '🗂️', badge: staffBoard(state).counters.verify },
+      { id: 's-notifications', label: 'Thông báo', icon: '🔔', badge: notificationsFor(state, 'staff').filter((n) => !n.read).length },
+      { id: 's-report', label: 'Báo cáo', icon: '📄' },
+      { id: 's-profile', label: 'Hồ sơ & thiết bị', icon: '👵' },
+    ]
   } else {
     View = FAMILY[view.screen] ?? Dashboard
     const toHandle = state.cases.filter((c) => c.status === 'await_family' || c.status === 'to_verify').length
     tabs = [
       { id: 'f-dashboard', label: 'Tổng quan', icon: '🏠' },
       { id: 'f-requests', label: 'Yêu cầu của mẹ', icon: '📋', badge: toHandle },
-      { id: 'f-notifications', label: 'Thông báo', icon: '🔔', badge: familyNotifications(state).filter((n) => !n.read).length },
+      { id: 'f-notifications', label: 'Thông báo', icon: '🔔', badge: notificationsFor(state, 'family').filter((n) => !n.read).length },
       { id: 'f-profile', label: 'Hồ sơ & thiết bị', icon: '👵' },
       { id: 'f-report', label: 'Báo cáo', icon: '📄' },
     ]
@@ -65,7 +80,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand">
           <img className="brand-logo" src="/favicon.svg" alt="" />
-          <span className="brand-name">CAREBOX{!elder && <small> Family</small>}</span>
+          <span className="brand-name">CAREBOX{!elder && <small> {staff ? 'Operations' : 'Family'}</small>}</span>
         </div>
         <div className="topbar-right">
           <span className="who">{session.name}</span>
@@ -73,7 +88,7 @@ export default function App() {
           <button className="btn ghost sm" onClick={logout}>Đăng xuất</button>
         </div>
       </header>
-      <TabBar items={tabs} active={view.screen} onSelect={go} />
+      <TabBar items={tabs} active={view.screen === 's-case' ? 's-board' : view.screen} onSelect={go} />
       <main className="content">
         {sos && (
           <div className="emergency-banner" role="alert">
@@ -81,7 +96,7 @@ export default function App() {
               🚨 Khẩn cấp {sos.id}: {sos.title} —{' '}
               {sos.status === 'to_verify' ? 'chưa có người xác nhận tiếp nhận.' : `${sos.handler} đã tiếp nhận, chưa đóng.`}
             </span>
-            <button onClick={() => go('f-requests')}>Xem</button>
+            <button onClick={() => (staff ? dispatch({ type: 'nav', screen: 's-case', caseId: sos.id }) : go('f-requests'))}>Xem</button>
           </div>
         )}
         <View />

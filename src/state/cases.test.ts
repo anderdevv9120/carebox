@@ -3,7 +3,7 @@ import { seedBare } from './testing'
 import { seed } from './seed'
 import { reduce, type Action } from './reducer'
 import { MIN, addCase, fmtTime } from './helpers'
-import { effectivePriority, familyTodo, familyView, isAbandoned, nextOwner, ownerAtConfirm } from './cases'
+import { can, effectivePriority, familyTodo, familyView, isAbandoned, nextOwner, ownerAtConfirm, staffBoard } from './cases'
 import type { EventCase, RequestCase, ServiceType, State } from './types'
 
 const s0 = () => seedBare(Date.UTC(2026, 9, 18, 5, 0)) // 12:00 Vietnam
@@ -510,5 +510,46 @@ describe('staff asks the family for help', () => {
     expect(reply(closed)).toBe(closed)
     expect(ask(closed, 'Hỏi tiếp')).toBe(closed) // nor can staff open a new ask on a closed case
     expect(familyView(closed).asks).toEqual([])
+  })
+})
+
+describe('staffBoard', () => {
+  const real = () => seed(Date.UTC(2026, 9, 18, 5, 0))
+  const awaitStaff = (id: string, createdAt: number, owner: RequestCase['owner'] = 'staff', priority: RequestCase['priority'] = 'normal'): RequestCase => ({
+    id, kind: 'request', service: 'groceries', title: 'Đi chợ', detail: '', source: 'elder', priority, priorityReason: '', createdAt,
+    history: [], unclear: [], owner, fields: {}, status: 'await_staff', confirmedAt: createdAt,
+  })
+
+  test('staffBoard counters follow the spec definitions', () => {
+    let s = real()
+    expect(staffBoard(s).counters).toEqual({ verify: 2, waiting: 0, doing: 0 }) // EVT-001 and CB-003; CB-001 is need_info
+    s = addCase(s, awaitStaff('CB-010', s.now))
+    expect(staffBoard(s).counters).toEqual({ verify: 3, waiting: 0, doing: 0 })
+    s = run(s, { type: 'staff/verify', id: 'CB-010', note: '' })
+    expect(staffBoard(s).counters).toEqual({ verify: 2, waiting: 1, doing: 0 })
+    s = run(s, { type: 'staff/assign', id: 'CB-010', partner: 'Anh Tuấn' })
+    expect(staffBoard(s).counters).toEqual({ verify: 2, waiting: 0, doing: 1 })
+    s = run(s, { type: 'staff/partnerReport', id: 'CB-010', note: 'Đã giao hàng' })
+    expect(staffBoard(s).counters).toEqual({ verify: 2, waiting: 1, doing: 0 })
+    s = run(s, { type: 'staff/takeEvent', id: 'EVT-001' })
+    expect(staffBoard(s).counters).toEqual({ verify: 1, waiting: 1, doing: 1 })
+    s = run(s, { type: 'staff/complete', id: 'CB-010' })
+    expect(staffBoard(s).counters).toEqual({ verify: 1, waiting: 0, doing: 1 })
+  })
+
+  test('list: open cases only, staff-owned first, then priority, then oldest', () => {
+    let s = real()
+    expect(staffBoard(s).cases.map((c) => c.id)).toEqual(['EVT-001', 'CB-001', 'CB-003']) // CB-002 is done
+    s = addCase(s, awaitStaff('CB-011', s.now - 60 * MIN, 'family', 'emergency'))
+    expect(staffBoard(s).cases.map((c) => c.id)).toEqual(['EVT-001', 'CB-001', 'CB-003', 'CB-011'])
+    expect(staffBoard(s).counters.verify).toBe(2) // family-owned cases are not staff's to verify
+  })
+
+  test('can mirrors transition: true only when the action would change state', () => {
+    const s = real()
+    expect(can(s, { type: 'staff/verify', id: 'CB-003', note: '' })).toBe(true)
+    expect(can(s, { type: 'staff/assign', id: 'CB-003', partner: 'Anh Tuấn' })).toBe(false) // not verified yet
+    expect(can(s, { type: 'staff/takeEvent', id: 'EVT-001' })).toBe(true)
+    expect(can(s, { type: 'staff/resolveEvent', id: 'EVT-001', note: 'x' })).toBe(false) // not taken yet
   })
 })

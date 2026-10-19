@@ -247,3 +247,22 @@ export function transition(s: State, a: CaseAction): State {
   if (c.kind !== 'request') return eventTransition(s, c, a)
   return a.type.startsWith('staff/') ? staffTransition(s, c, a) : requestTransition(s, c, a)
 }
+
+// Would this action change anything? Buttons use it so the guards live in `transition` only.
+export const can = (s: State, a: CaseAction) => transition(s, a) !== s
+
+// Staff's operations board. Counters cover staff-owned open cases; the list also shows family-owned ones, read-only.
+export function staffBoard(s: State): { counters: { verify: number; waiting: number; doing: number }; cases: Case[] } {
+  const open = s.cases.filter((c) => !isFinal(c))
+  const mine = open.filter((c) => c.owner === 'staff')
+  const awaiting = (c: Case) => c.kind === 'request' && c.status === 'await_staff'
+  const reported = (c: Case) => c.kind === 'request' && c.status === 'in_progress' && !!c.partnerReport
+  const counters = {
+    verify: mine.filter((c) => (c.kind === 'event' && c.status === 'to_verify') || (awaiting(c) && !(c as RequestCase).verifiedBy)).length,
+    waiting: mine.filter((c) => (awaiting(c) && !!(c as RequestCase).verifiedBy) || reported(c)).length,
+    doing: mine.filter((c) => (c.kind === 'request' && c.status === 'in_progress' && !c.partnerReport) || (c.kind === 'event' && c.status === 'handling')).length,
+  }
+  const rank = (c: Case) => RANK[effectivePriority(c, s.now).priority]
+  const cases = [...open].sort((a, b) => Number(b.owner === 'staff') - Number(a.owner === 'staff') || rank(a) - rank(b) || a.createdAt - b.createdAt)
+  return { counters, cases }
+}

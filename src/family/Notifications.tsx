@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../state/store'
-import { familyNotifications, fmtTime } from '../state/helpers'
+import { fmtTime, notificationsFor } from '../state/helpers'
 import { SourceTag } from '../ui/Badges'
 import type { NotifCategory } from '../state/types'
 
@@ -13,13 +13,14 @@ const TABS: { id: NotifCategory | 'all'; label: string }[] = [
 const ICON: Record<NotifCategory, string> = { request: '🛒', health: '💓', other: '🔔' }
 
 export function Notifications() {
-  const { state, dispatch } = useStore()
+  const { state, dispatch, session } = useStore()
+  const audience = session.role === 'staff' ? 'staff' : 'family'
   const [tab, setTab] = useState<NotifCategory | 'all'>('all')
-  const [unreadAtOpen] = useState(() => new Set(familyNotifications(state).filter((n) => !n.read).map((n) => n.id)))
+  const [unreadAtOpen] = useState(() => new Set(notificationsFor(state, audience).filter((n) => !n.read).map((n) => n.id)))
   useEffect(() => {
-    dispatch({ type: 'notif/readAll', to: 'family' })
-  }, [dispatch, state.notifications.length])
-  const list = familyNotifications(state)
+    dispatch({ type: 'notif/readAll', to: audience })
+  }, [dispatch, audience, state.notifications.length])
+  const list = notificationsFor(state, audience)
     .filter((n) => tab === 'all' || n.category === tab)
     .sort((a, b) => b.at - a.at)
   return (

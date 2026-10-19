@@ -226,6 +226,10 @@ section.card > p { margin-top: 6px; }
 .sos-card { border: 2px solid var(--alert); background: #fff6f6; }
 .todo-card { width: 100%; border: 2px solid var(--attn); display: flex; align-items: center; gap: 12px; text-align: left; }
 .time-input { flex: 0 1 140px; }
+.tiles.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tiles.three .tile { min-height: 84px; padding: 10px 6px; font-size: 13px; text-align: center; }
+.case-card { display: block; width: 100%; text-align: left; }
+.case-card .txt { display: block; margin-top: 4px; }
 .action-row.wrap { flex-wrap: wrap; }
 .emergency-ack { background: #fff; color: var(--ok); font-weight: 700; border-radius: 14px; padding: 10px 14px; width: 100%; }
 

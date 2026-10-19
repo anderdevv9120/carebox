@@ -84,8 +84,8 @@ export function notifyAlert(s: State, text: string, category: NotifCategory, sou
   return notify(notify(s, 'staff', text, category, source, caseId), 'family', `${text} Đã chuyển nhân viên CAREBOX kiểm tra.`, category, source, caseId)
 }
 
-// The family only see notifications addressed to them.
-export const familyNotifications = (s: State) => s.notifications.filter((n) => n.to === 'family')
+// Each audience only sees notifications addressed to it.
+export const notificationsFor = (s: State, to: Audience) => s.notifications.filter((n) => n.to === to)
 
 // The family member who takes over requests and alerts.
 export const familyName = (s: State) => s.family[0].name

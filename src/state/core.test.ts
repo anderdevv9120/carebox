@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { seed } from './seed'
 import { reduce } from './reducer'
-import { MIN, familyNotifications, nextCaseId } from './helpers'
+import { MIN, nextCaseId, notificationsFor } from './helpers'
 import { isAbandoned } from './cases'
 import type { RequestCase } from './types'
 
@@ -63,11 +63,11 @@ describe('notifications', () => {
     expect(reduce(out, { type: 'notif/readAll', to: 'family' })).toBe(out)
   })
 
-  test('familyNotifications hides staff-only copy, so the family unread count reaches 0 after readAll', () => {
+  test('notificationsFor hides staff-only copy, so the family unread count reaches 0 after readAll', () => {
     const s = reduce(s0(), { type: 'device/push', deviceId: 'bp', mode: 'high' })
     const mixed = { ...s, notifications: [{ ...s.notifications[0], id: 'nf', to: 'family' as const, read: false }, { ...s.notifications[0], id: 'ns', to: 'staff' as const, read: false }] }
-    expect(familyNotifications(mixed).map((n) => n.id)).toEqual(['nf'])
-    expect(familyNotifications(mixed).filter((n) => !n.read)).toHaveLength(1)
-    expect(familyNotifications(reduce(mixed, { type: 'notif/readAll', to: 'family' })).filter((n) => !n.read)).toHaveLength(0)
+    expect(notificationsFor(mixed, 'family').map((n) => n.id)).toEqual(['nf'])
+    expect(notificationsFor(mixed, 'family').filter((n) => !n.read)).toHaveLength(1)
+    expect(notificationsFor(reduce(mixed, { type: 'notif/readAll', to: 'family' }), 'family').filter((n) => !n.read)).toHaveLength(0)
   })
 })

@@ -14,7 +14,7 @@ const POLL_MS = 3000
 
 export function StoreProvider({ session, onLogout, children }: { session: Session; onLogout: () => void; children: ReactNode }) {
   const [state, setState] = useState<State | null>(null)
-  const [view, setView] = useState<View>({ screen: session.role === 'elder' ? 'home' : 'f-dashboard' })
+  const [view, setView] = useState<View>({ screen: session.role === 'elder' ? 'home' : session.role === 'staff' ? 's-board' : 'f-dashboard' })
   const [chatBusy, setChatBusy] = useState(false)
   const busyRef = useRef(false)
   const emergencyId = useRef<string | undefined>(undefined)

@@ -4,6 +4,7 @@ import { login, type Session } from './api'
 const ACCOUNTS = [
   { user: 'ba.lan', icon: '👵', name: 'Bà Nguyễn Thị Lan', role: 'Người cao tuổi' },
   { user: 'con.gai', icon: '👩', name: 'Chị Minh (con gái)', role: 'Gia đình' },
+  { user: 'nhan.vien', icon: '🧑‍💼', name: 'Anh Nam', role: 'Nhân viên điều phối' },
 ]
 
 export function Login({ onLogin }: { onLogin: (s: Session) => void }) {
