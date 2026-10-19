@@ -58,7 +58,7 @@ describe('doc §8 scenarios', () => {
   })
 
   test('2 · "Nhắc bác uống thuốc huyết áp lúc 9h" → staff-owned add_reminder, reminders unchanged', () => {
-    const s = run(s0(), clear, say('Nhắc bác uống thuốc huyết áp lúc 9h'), say('Uống thuốc huyết áp'), say('9h'), say('Đúng rồi'))
+    const s = run(s0(), clear, say('Nhắc bác uống thuốc huyết áp lúc 9h'), say('Đúng rồi'))
     expect(requests(s)).toHaveLength(1)
     expect(requests(s)[0]).toMatchObject({ service: 'add_reminder', status: 'await_staff', owner: 'staff' })
     expect(s.reminders).toEqual(s0().reminders)

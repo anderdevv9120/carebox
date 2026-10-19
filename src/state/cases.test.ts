@@ -127,10 +127,10 @@ describe('routing at confirm', () => {
   })
 
   test('confirm sends a medicine reminder to staff, a plain reminder to the daughter', () => {
-    const med = say(s0(), 'Nhắc bác uống thuốc', 'Uống thuốc huyết áp', '9 giờ', 'Đúng rồi')
+    const med = say(s0(), 'Nhắc bác uống thuốc', '9 giờ', 'Đúng rồi')
     expect(req(med, 'CB-003')).toMatchObject({ status: 'await_staff', owner: 'staff' })
     expect(lastAi(med)).toBe('Cháu đã gửi nhân viên CAREBOX kiểm tra lịch nhắc thuốc. Lịch chỉ được thêm sau khi được duyệt, yêu cầu chưa hoàn tất ạ.')
-    const water = say(s0(), 'Nhắc bác uống nước', 'Uống nước', '9 giờ', 'Đúng rồi')
+    const water = say(s0(), 'Nhắc bác uống nước', '9 giờ', 'Đúng rồi')
     expect(req(water, 'CB-003')).toMatchObject({ status: 'await_family', owner: 'family' })
     expect(lastAi(water)).toContain('Chị Minh duyệt lịch nhắc')
   })

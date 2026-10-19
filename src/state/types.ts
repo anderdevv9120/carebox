@@ -92,7 +92,7 @@ export interface Notification {
 export interface ChatMessage { id: string; from: 'elder' | 'ai'; text: string; at: number }
 export interface ChatState {
   messages: ChatMessage[]
-  pending: null | { caseId: string; stage: 'collect' | 'readback'; field?: string }
+  pending: null | { caseId: string; stage: 'collect' | 'readback'; field?: string; first?: boolean }
   misses: number
   recentMisses: string[]
 }

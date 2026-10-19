@@ -27,6 +27,31 @@ describe('classify', () => {
   })
 })
 
+describe('reminder content from the first sentence', () => {
+  test('chip "Nhắc lịch uống nước" skips the content question', () => {
+    const s = say(s0(), 'Nhắc lịch uống nước')
+    expect(newRequest(s).fields).toEqual({ noi_dung: 'Uống nước' })
+    expect(lastAi(s)).toBe('Bác muốn CAREBOX nhắc uống nước, đúng không ạ? Cháu nhắc bác vào lúc nào ạ?')
+  })
+
+  test('content and "lúc" time go straight to the read-back', () => {
+    const s = say(s0(), 'Nhắc bác uống thuốc huyết áp lúc 9h')
+    expect(newRequest(s)).toMatchObject({ status: 'await_confirm', fields: { noi_dung: 'Uống thuốc huyết áp', thoi_gian: '9h' } })
+    expect(lastAi(s)).toBe('Cháu nhắc lại: Thêm lịch nhắc — Nội dung nhắc: Uống thuốc huyết áp; Thời gian nhắc: 9h. Bác xác nhận giúp cháu, đúng không ạ?')
+  })
+
+  test.each(['Nhắc bác với', 'Đặt lịch nhắc giúp bác'])('"%s" has no content → asks what to remind', (text) => {
+    const s = say(s0(), text)
+    expect(newRequest(s).fields).toEqual({})
+    expect(lastAi(s)).toBe('Bác muốn CAREBOX hỗ trợ thêm lịch nhắc, đúng không ạ? Bác muốn cháu nhắc việc gì ạ?')
+  })
+
+  test('bare "Không" to the first question still refuses', () => {
+    const s = say(s0(), 'Nhắc lịch uống nước', 'Không')
+    expect(newRequest(s)).toMatchObject({ status: 'refused', fields: { noi_dung: 'Uống nước' } })
+  })
+})
+
 describe('handleUtterance', () => {
   test('ignores blank input', () => {
     const s = s0()

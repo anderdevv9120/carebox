@@ -96,17 +96,32 @@ const nextField = (c: RequestCase) =>
   SERVICE_FIELDS[c.service].find((f) => c.fields[f.key] === undefined && !c.unclear.includes(f.label))
 const clearChat = (s: State, patch: Partial<State['chat']> = {}): State => ({ ...s, chat: { ...s.chat, pending: null, ...patch } })
 
-function startRequest(s: State, service: ServiceType, detail: string): State {
+// "Nhắc lịch uống nước" / "Nhắc bác uống thuốc lúc 9h": the words after "nhắc" are the content, after "lúc" the time.
+// ponytail: accented text only; unaccented typing falls back to asking every field.
+const REMIND_AFTER = /(?:đặt lịch nhắc|nhắc lịch|nhắc nhở|nhắc)(?:\s+(?:giúp|hộ|cho|bác|tôi|mẹ|bà|ông|với)(?=\s|$))*\s*(.*)$/iu
+
+function reminderFields(text: string): Record<string, string> {
+  const [what = '', when] = (text.normalize('NFC').match(REMIND_AFTER)?.[1] ?? '').replace(/[.!?…]+$/u, '').split(/\s+(?:vào\s+)?lúc\s+/iu)
+  if (!/\p{L}{2}/u.test(what)) return {}
+  const content = what.trim()
+  return { noi_dung: content[0].toUpperCase() + content.slice(1), ...(when?.trim() ? { thoi_gian: when.trim() } : {}) }
+}
+const prefill = (service: ServiceType, text: string) => (service === 'add_reminder' ? reminderFields(text) : {})
+
+function startRequest(s: State, service: ServiceType, detail: string, fields: Record<string, string> = {}): State {
   let [out, id] = nextCaseId(s, 'request')
   const r: RequestCase = {
     id, kind: 'request', service, title: SERVICE[service], detail, source: 'elder', priority: 'normal',
-    priorityReason: 'Yêu cầu dịch vụ thông thường', createdAt: s.now, fields: {}, status: 'need_info', unclear: [], owner: 'staff',
+    priorityReason: 'Yêu cầu dịch vụ thông thường', createdAt: s.now, fields, status: 'need_info', unclear: [], owner: 'staff',
     history: [{ at: s.now, by: 'ai', text: 'AI ghi nhận yêu cầu, đang hỏi thông tin còn thiếu.' }],
   }
   out = addCase(out, r)
-  const first = SERVICE_FIELDS[service][0]
-  out = { ...out, chat: { ...out.chat, pending: { caseId: id, stage: 'collect', field: first.key }, misses: 0, recentMisses: [] } }
-  return sayAi(out, `Bác muốn CAREBOX hỗ trợ ${SERVICE[service].toLowerCase()}, đúng không ạ? ${first.question}`)
+  out = { ...out, chat: { ...out.chat, misses: 0, recentMisses: [] } }
+  const first = nextField(r)
+  if (!first) return askNextOrReadBack(out, r)
+  out = { ...out, chat: { ...out.chat, pending: { caseId: id, stage: 'collect', field: first.key, first: true } } }
+  const what = fields.noi_dung ? `nhắc ${fields.noi_dung[0].toLowerCase()}${fields.noi_dung.slice(1)}` : `hỗ trợ ${SERVICE[service].toLowerCase()}`
+  return sayAi(out, `Bác muốn CAREBOX ${what}, đúng không ạ? ${first.question}`)
 }
 
 function askNextOrReadBack(s: State, c: RequestCase): State {
@@ -120,7 +135,8 @@ function askNextOrReadBack(s: State, c: RequestCase): State {
 
 function collect(s: State, c: RequestCase, field: string, text: string): State {
   if (isRefusal(text)) return refuse(s, c)
-  if (Object.keys(c.fields).length === 0 && c.unclear.length === 0 && FIRST_REFUSAL.test(normalize(text))) return refuse(s, c)
+  const firstQuestion = s.chat.pending?.first || (Object.keys(c.fields).length === 0 && c.unclear.length === 0)
+  if (firstQuestion && FIRST_REFUSAL.test(normalize(text))) return refuse(s, c)
   const spec = SERVICE_FIELDS[c.service].find((f) => f.key === field)!
   const w = normalize(text)
   let patch: Partial<RequestCase>
@@ -209,7 +225,7 @@ export function handoff(s: State): State {
 
 // alreadyRecorded: the elder's own words are already in the chat (the AI path), so keep them as the detail instead of a button line.
 export function startService(s: State, service: ServiceType, alreadyRecorded = false, text = ''): State {
-  if (alreadyRecorded) return startRequest(clearChat(s), service, text.trim())
+  if (alreadyRecorded) return startRequest(clearChat(s), service, text.trim(), prefill(service, text))
   return startRequest(sayElder(clearChat(s), `Tôi cần ${SERVICE[service].toLowerCase()}`), service, `Bác chọn dịch vụ ${SERVICE[service]}.`)
 }
 
@@ -261,6 +277,6 @@ export function handleUtterance(s: State, text: string, alreadyRecorded = false)
     case 'info':
       return answerInfo(out, text)
     default:
-      return startRequest(out, service!, text.trim())
+      return startRequest(out, service!, text.trim(), prefill(service!, text))
   }
 }

@@ -64,7 +64,7 @@ Chuỗi văn bản trong dấu “…” hoặc `…` là nội dung UI/thông b
 | C5 | Dịch vụ → “Trò chuyện”. | Mở chat, **không** tạo yêu cầu nào. |
 | C6 | Dịch vụ → “Mua thuốc”. | Mở chat. Bà “nói” “Tôi cần mua thuốc”. AI hỏi: “Bác muốn CAREBOX hỗ trợ mua thuốc, đúng không ạ? Bác cần lấy loại thuốc nào ạ?”. Chip gợi ý: “Không biết”, “Thôi”. |
 | C7 | Yêu cầu: chuyển tab “Đang xử lý” / “Đã xong” / “Tất cả”. | Lọc đúng: yêu cầu mở / Hoàn tất + Đã từ chối / tất cả. Mỗi thẻ có “Phụ trách tiếp theo” và dòng thời gian. |
-| C9 | Chat: (reset) nút **Xóa hội thoại** bị mờ. Gõ “Bác muốn đi chợ” → “Rau, trứng” → bấm **Xóa hội thoại**. | Hộp xác nhận “Xóa toàn bộ hội thoại? Các yêu cầu đã tạo vẫn được giữ.”. Hủy → không đổi. OK → chat chỉ còn lời chào “Bác cần CAREBOX hỗ trợ gì ạ? …”, chip trở về gợi ý mặc định. Yêu cầu đi chợ vẫn “Chờ bổ sung thông tin” với “Danh sách cần mua: Rau, trứng”, có nút **Tiếp tục yêu cầu**. |
+| C9 | Chat: (reset) nút **Xóa hội thoại** bị mờ. Gõ “Bác muốn đi chợ” → “Rau, trứng” → bấm **Xóa hội thoại**. | **Không** hỏi xác nhận. Chat chỉ còn lời chào “Bác cần CAREBOX hỗ trợ gì ạ? …”, chip trở về gợi ý mặc định. Yêu cầu đi chợ vẫn “Chờ bổ sung thông tin” với “Danh sách cần mua: Rau, trứng”, có nút **Tiếp tục yêu cầu**. |
 | C8 | Sức khỏe: xem các thẻ chỉ số và biểu đồ (Huyết áp/Nhịp tim/Đường huyết). | Mỗi thẻ có giá trị, đơn vị, badge trạng thái, “Đo lúc HH:MM”. Huyết áp sau reset là 165/100, badge “Cần chú ý”. Có dòng “Ngưỡng giả lập — không phải chỉ định y tế. Không kết luận sức khỏe tổng thể.” |
 
 ---
@@ -153,14 +153,23 @@ Chuỗi văn bản trong dấu “…” hoặc `…` là nội dung UI/thông b
 
 | # | Vai trò | Thao tác | Kết quả mong đợi |
 |---|---|---|---|
-| 1 | 👵 | Chat: “Nhắc bác uống thuốc huyết áp lúc 9h” → “Uống thuốc huyết áp” → “9 giờ tối” → “Đúng rồi”. | AI: “Cháu đã gửi nhân viên CAREBOX kiểm tra lịch nhắc thuốc. Lịch chỉ được thêm sau khi được duyệt, yêu cầu chưa hoàn tất ạ.”. CB-004 “Chờ điều phối”. |
+| 1 | 👵 | Chat: “Nhắc bác uống thuốc huyết áp lúc 9h”. | AI **không** hỏi “nhắc việc gì” hay giờ, đọc lại ngay: “Cháu nhắc lại: Thêm lịch nhắc — Nội dung nhắc: Uống thuốc huyết áp; Thời gian nhắc: 9h. Bác xác nhận giúp cháu, đúng không ạ?”. |
+| 1b | 👵 | “Đúng rồi”. | AI: “Cháu đã gửi nhân viên CAREBOX kiểm tra lịch nhắc thuốc. Lịch chỉ được thêm sau khi được duyệt, yêu cầu chưa hoàn tất ạ.”. CB-004 “Chờ điều phối”. |
 | 2 | 👩 | Thông báo + Yêu cầu của mẹ. | Thông báo “Thêm lịch nhắc: đã chuyển nhân viên CAREBOX điều phối.”. CB-004 chỉ xem, **không** có nút Duyệt. |
 | 3 | 🧑‍💼 | Bảng + chi tiết CB-004. | Thông báo “Thêm lịch nhắc: chờ điều phối”. Cần xác minh +1. Ai làm tiếp: “Nhân viên CAREBOX (duyệt / liên hệ)”. Có ô giờ + **Duyệt lịch nhắc**. **Không** có Phân công. |
 | 4 | 🧑‍💼 | Chọn 21:00, bấm **Duyệt lịch nhắc**. | “Hoàn tất”. Lịch sử “Anh Nam duyệt lịch nhắc lúc 21:00.”. |
 | 5 | 👵 | Lịch trình. | Lịch mới “21:00 Uống thuốc huyết áp” với biểu tượng 💊 (loại thuốc), ghi chú “Anh Nam duyệt từ yêu cầu CB-004”. |
 | 6 | 👩 | Báo cáo. | CB-004: “Đã hoàn tất theo xác nhận của nhân viên điều phối.”, “Người xác nhận: Anh Nam (nhân viên điều phối)”. |
 
-**Phân loại lịch nhắc** (làm như D6, đổi câu nhắc; điền cùng nội dung vào câu hỏi “nhắc việc gì”). Sau “Đúng rồi”, kiểm tra ai phụ trách:
+**Nội dung nhắc lấy từ câu đầu:**
+
+| Bà nói | Kết quả mong đợi |
+|---|---|
+| Chip “Nhắc lịch uống nước” | AI: “Bác muốn CAREBOX nhắc uống nước, đúng không ạ? Cháu nhắc bác vào lúc nào ạ?”. **Không** hỏi “nhắc việc gì”. |
+| “Nhắc lịch uống nước” → “Không” | Từ chối như E16. |
+| “Nhắc bác với” / “Đặt lịch nhắc giúp bác” | Chưa rõ nhắc gì: AI hỏi “Bác muốn CAREBOX hỗ trợ thêm lịch nhắc, đúng không ạ? Bác muốn cháu nhắc việc gì ạ?”. |
+
+**Phân loại lịch nhắc** (gõ câu nhắc trong chat → trả lời giờ → “Đúng rồi”). Kiểm tra ai phụ trách:
 
 | Câu nhắc | Phụ trách đúng |
 |---|---|
@@ -305,7 +314,7 @@ Sau reset khoảng 3 phút, lịch “Uống thuốc theo đơn” đến giờ.
 | 1 | 👵 | (reset) Yêu cầu → thẻ CB-001. | Có 2 nút cách nhau: **Tiếp tục yêu cầu** và **Hủy yêu cầu**. CB-002 (Hoàn tất) và CB-003 (Chờ điều phối) **không** có nút Tiếp tục yêu cầu. |
 | 2 | 👵 | Bấm **Tiếp tục yêu cầu**. | Mở chat. Bà “nói” “Tiếp tục yêu cầu hỗ trợ lấy thuốc”. AI hỏi “Bác muốn lấy thuốc ở đâu ạ?”. |
 | 3 | 👵 | Trả lời “Hiệu thuốc đầu ngõ” → “Chiều nay”. | AI nhắc lại nội dung và hỏi xác nhận. CB-001 “Chờ xác nhận”. |
-| 4 | 👵 | Không trả lời; bấm **Xóa hội thoại** → OK, rồi vào Yêu cầu → CB-001 → **Tiếp tục yêu cầu**. | AI nhắc lại nội dung lần nữa, **không** hỏi lại các trường đã có. |
+| 4 | 👵 | Không trả lời; bấm **Xóa hội thoại**, rồi vào Yêu cầu → CB-001 → **Tiếp tục yêu cầu**. | AI nhắc lại nội dung lần nữa, **không** hỏi lại các trường đã có. |
 | 5 | 👵 | Trả lời “Đúng rồi”. | CB-001 “Chờ điều phối”. 🧑‍💼 nhận thông báo “Hỗ trợ lấy thuốc: chờ điều phối”; bộ đếm Cần xác minh +1. 👩 nhận thông báo đã chuyển nhân viên. |
 
 ---
