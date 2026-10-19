@@ -60,9 +60,13 @@ export function Chat() {
 
   return (
     <div className="chat chat-screen">
-      <div className="row between">
+      <div className="row between wrap">
         <h1 className="screen-title"><img className="chat-bot" src="/carebot.svg" alt="" /> Trợ lý CAREBOX</h1>
-        <button className="btn ghost sm" disabled={chatBusy} onClick={() => dispatch({ type: 'chat/handoff' })}>Gặp nhân viên</button>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn ghost sm" disabled={chatBusy || messages.length <= 1}
+            onClick={() => window.confirm('Xóa toàn bộ hội thoại? Các yêu cầu đã tạo vẫn được giữ.') && dispatch({ type: 'chat/clear' })}>Xóa hội thoại</button>
+          <button className="btn ghost sm" disabled={chatBusy} onClick={() => dispatch({ type: 'chat/handoff' })}>Gặp nhân viên</button>
+        </div>
       </div>
       <div className="messages">
         {messages.map((m) => (

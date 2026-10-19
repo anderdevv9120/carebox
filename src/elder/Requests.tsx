@@ -13,7 +13,7 @@ const TABS = [
   { id: 'all', label: 'Tất cả', keep: () => true },
 ] as const
 
-export function RequestCard({ c, s, onCancel }: { c: RequestCase; s: State; onCancel?: () => void }) {
+export function RequestCard({ c, s, onCancel, onResume }: { c: RequestCase; s: State; onCancel?: () => void; onResume?: () => void }) {
   return (
     <div className="card">
       <div className="row">
@@ -38,7 +38,11 @@ export function RequestCard({ c, s, onCancel }: { c: RequestCase; s: State; onCa
       <ul className="timeline">
         {c.history.map((h, i) => <li key={i}><b>{fmtWhen(h.at, s.now)}</b> {h.text}</li>)}
       </ul>
-      {onCancel && !isFinal(c) && <button className="btn ghost sm" onClick={onCancel}>Hủy yêu cầu</button>}
+      <div className="row wrap" style={{ gap: 8 }}>
+        {onResume && (c.status === 'need_info' || c.status === 'await_confirm') &&
+          <button className="btn sm" onClick={onResume}>Tiếp tục yêu cầu</button>}
+        {onCancel && !isFinal(c) && <button className="btn ghost sm" onClick={onCancel}>Hủy yêu cầu</button>}
+      </div>
     </div>
   )
 }
@@ -56,7 +60,11 @@ export function Requests() {
       </div>
       {list.map((c) => (
         <RequestCard key={c.id} c={c} s={state}
-          onCancel={() => dispatch({ type: 'request/cancel', id: c.id })} />
+          onCancel={() => dispatch({ type: 'request/cancel', id: c.id })}
+          onResume={() => {
+            dispatch({ type: 'chat/resume', id: c.id })
+            dispatch({ type: 'nav', screen: 'chat' })
+          }} />
       ))}
       {!list.length && <p className="empty">Chưa có yêu cầu nào</p>}
     </div>

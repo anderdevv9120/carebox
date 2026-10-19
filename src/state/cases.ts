@@ -37,6 +37,7 @@ export type CaseAction =
   | { type: 'family/reply'; id: string; text: string }
   | { type: 'case/ack'; id: string; by: Owner } // `by` is set by the server from the caller's role
   | { type: 'emergency/call115' }
+  | { type: 'emergency/callFamily' }
 
 const FINAL = ['done', 'refused', 'resolved']
 export const isFinal = (c: Case) => FINAL.includes(c.status)
@@ -244,6 +245,10 @@ export function transition(s: State, a: CaseAction): State {
   if (a.type === 'emergency/call115') {
     if (!s.emergency || s.emergency.calling) return s
     return updateCase({ ...s, emergency: { ...s.emergency, calling: true } }, s.emergency.caseId, {}, { by: 'elder', text: 'Mô phỏng: đang gọi 115.' })
+  }
+  if (a.type === 'emergency/callFamily') {
+    if (!s.emergency || s.emergency.callingFamily) return s
+    return updateCase({ ...s, emergency: { ...s.emergency, callingFamily: true } }, s.emergency.caseId, {}, { by: 'elder', text: `Mô phỏng: đang gọi ${familyName(s)}.` })
   }
   const c = s.cases.find((x) => x.id === a.id)
   if (!c) return s

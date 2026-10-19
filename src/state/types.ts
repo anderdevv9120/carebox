@@ -111,6 +111,6 @@ export interface State {
   cases: Case[]
   notifications: Notification[]
   chat: ChatState
-  emergency: null | { caseId: string; calling: boolean }
+  emergency: null | { caseId: string; calling: boolean; callingFamily?: boolean }
   seq: { cb: number; evt: number; n: number }
 }

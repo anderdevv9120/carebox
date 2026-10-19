@@ -213,6 +213,14 @@ export function startService(s: State, service: ServiceType, alreadyRecorded = f
   return startRequest(sayElder(clearChat(s), `Tôi cần ${SERVICE[service].toLowerCase()}`), service, `Bác chọn dịch vụ ${SERVICE[service]}.`)
 }
 
+// Picks a half-finished request back up when its chat question was dropped (chat/clear, an emergency, the seed).
+export function resumeRequest(s: State, id: string): State {
+  const c = s.cases.find((x) => x.id === id)
+  if (c?.kind !== 'request' || !['need_info', 'await_confirm'].includes(c.status)) return s
+  const out = sayElder(clearChat(s, { misses: 0, recentMisses: [] }), `Tiếp tục yêu cầu ${c.title.toLowerCase()}`)
+  return askNextOrReadBack(out, c)
+}
+
 export function raiseElderEmergency(s: State, text: string): State {
   const out = raiseEmergency(clearChat(s), 'Người dùng báo dấu hiệu khẩn cấp', text.trim(), 'elder')
   return sayAi(out, `Cháu đang hướng dẫn gọi 115 và đã báo ${familyName(out)}.`)

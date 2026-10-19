@@ -192,7 +192,14 @@ describe('auth', () => {
     expect((await post('/api/action', family, { type: 'staff/complete', id: 'CB-001' })).status).toBe(403)
     expect((await post('/api/action', staff, { type: 'chat/say', text: 'Tôi là bà Lan' })).status).toBe(403)
     expect((await post('/api/action', staff, { type: 'family/reply', id: 'CB-001', text: 'x' })).status).toBe(403)
+    expect((await post('/api/action', staff, { type: 'chat/resume', id: 'CB-001' })).status).toBe(403)
     expect((await getState(elder)).rev).toBe(before.rev)
+  })
+
+  test('elder chat/resume reopens the seeded CB-001 at its next missing field', async () => {
+    const r = await post('/api/action', elder, { type: 'chat/resume', id: 'CB-001' })
+    expect(r.status).toBe(200)
+    expect((await r.json()).chat.pending).toMatchObject({ caseId: 'CB-001', stage: 'collect', field: 'dia_diem' })
   })
 
   test('elder cannot send family/decline; family cannot send chat/say → 403, state unchanged', async () => {

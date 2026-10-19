@@ -168,7 +168,7 @@ h1, h2, h3, p { margin: 0; }
 .bubble-msg { background: #fff; border-radius: 16px 16px 16px 4px; padding: 10px 12px; font-size: 16px; line-height: 1.4; box-shadow: 0 2px 8px rgba(140, 90, 20, 0.08); }
 .msg.elder .bubble-msg { background: var(--primary); color: #fff; border-radius: 16px 16px 4px 16px; }
 .msg-time { display: block; font-size: 10px; opacity: 0.6; margin-top: 4px; }
-.chips { display: flex; gap: 6px; overflow-x: auto; padding: 6px 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 0; }
 .chips button { flex-shrink: 0; border: 1px solid var(--primary); background: #fff; color: var(--primary-deep); border-radius: 999px; padding: 8px 12px; font-size: 14px; font-weight: 600; }
 .composer { display: flex; gap: 6px; align-items: center; }
 .mic-sm { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--primary-soft); font-size: 20px; flex-shrink: 0; }
@@ -327,8 +327,6 @@ button:not(:disabled):active { transform: scale(.985); }
 .bubble-msg { background: #fffefb; border: 1px solid #f1e1c8; box-shadow: 0 4px 12px #a0782710; }
 .msg.elder .bubble-msg { background: #ffe7a8; color: #4e350d; border-color: #f3cc72; }
 .chips button { background: #fff9e9; border-color: #f1d6a2; color: #94641b; }
-.chips { scrollbar-width: none; }
-.chips::-webkit-scrollbar { display: none; }
 .chips button:disabled { opacity: .55; }
 .composer { background: #fffefa; padding: 8px; border: 1px solid #f1e1c8; border-radius: 20px; box-shadow: 0 4px 14px #b88a3112; }
 .composer .input { background: transparent; border: 0; padding: 7px; min-width: 0; }

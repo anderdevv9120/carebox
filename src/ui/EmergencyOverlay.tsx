@@ -16,9 +16,13 @@ export function EmergencyOverlay() {
       ) : (
         <button className="btn big-red" onClick={() => dispatch({ type: 'emergency/call115' })}>📞 Gọi 115</button>
       )}
-      <button className="btn ghost-white" title="Mô phỏng, không gọi thật">
-        Gọi {daughter.name} ({daughter.relation.toLowerCase()})
-      </button>
+      {state.emergency.callingFamily ? (
+        <div className="calling">📞 Đang gọi {daughter.name} (mô phỏng)…</div>
+      ) : (
+        <button className="btn ghost-white" title="Mô phỏng, không gọi thật" onClick={() => dispatch({ type: 'emergency/callFamily' })}>
+          Gọi {daughter.name} ({daughter.relation.toLowerCase()})
+        </button>
+      )}
       {c?.kind === 'event' && c.status === 'handling'
         ? <p className="emergency-ack">✅ {c.handler} đã nhận được và đang xử lý.</p>
         : <p className="emergency-note">Đã thông báo {daughter.name} và nhân viên CAREBOX. Thông báo tự động chưa có nghĩa là đã có người tiếp nhận.</p>}

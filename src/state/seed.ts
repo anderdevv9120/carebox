@@ -10,6 +10,8 @@ function week(now: number, values: Reading['value'][]): Reading[] {
 }
 
 // Times are relative to the reset moment so the demo reads as recent at any hour.
+export const GREETING = 'Bác cần CAREBOX hỗ trợ gì ạ? Bác có thể nói yêu cầu, hỏi lịch hoặc nhờ liên hệ người thân.'
+
 export function seed(now: number): State {
   const t = (hhmm: string) => atVN(now, hhmm)
   const schedule: Reminder[] = [
@@ -96,8 +98,7 @@ export function seed(now: number): State {
         text: 'Đi khám bệnh: nhân viên CAREBOX đã xác nhận hoàn tất.' },
     ],
     chat: {
-      messages: [{ id: 'n3', from: 'ai', at: now,
-        text: 'Bác cần CAREBOX hỗ trợ gì ạ? Bác có thể nói yêu cầu, hỏi lịch hoặc nhờ liên hệ người thân.' }],
+      messages: [{ id: 'n3', from: 'ai', at: now, text: GREETING }],
       pending: null,
       misses: 0,
       recentMisses: [],

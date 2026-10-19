@@ -46,6 +46,22 @@ describe('handleUtterance', () => {
     expect(out.chat.pending).toBeNull()
   })
 
+  test('chat/clear wipes the conversation to the greeting; the half-filled request stays', () => {
+    const s = reduce(say(s0(), 'Bác muốn đi chợ', 'Rau, trứng'), { type: 'chat/clear' })
+    expect(s.chat).toMatchObject({ pending: null, misses: 0, recentMisses: [] })
+    expect(s.chat.messages).toEqual([expect.objectContaining({ from: 'ai', text: s0().chat.messages[0].text })])
+    expect(newRequest(s)).toMatchObject({ status: 'need_info', fields: { danh_sach: 'Rau, trứng' } })
+  })
+
+  test('chat/resume picks a dropped request back up; no-op once final', () => {
+    let s = reduce(s0(), { type: 'chat/resume', id: 'CB-001' }) // seed: thuoc filled, no pending question
+    expect(s.chat.pending).toMatchObject({ caseId: 'CB-001', stage: 'collect', field: 'dia_diem' })
+    expect(lastAi(s)).toBe('Bác muốn lấy thuốc ở đâu ạ?')
+    s = say(s, 'Hiệu thuốc đầu ngõ', 'Chiều nay', 'Đúng rồi')
+    expect(s.cases.find((c) => c.id === 'CB-001')!.status).toBe('await_staff')
+    expect(reduce(s, { type: 'chat/resume', id: 'CB-001' })).toBe(s)
+  })
+
   test('medicine flow', () => {
     let s = say(s0(), 'Ngày mai tôi cần lấy thuốc ở hiệu thuốc')
     const r = newRequest(s)

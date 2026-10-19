@@ -374,6 +374,14 @@ describe('emergency', () => {
     expect(calling.emergency!.calling).toBe(true)
     expect(reduce(calling, { type: 'emergency/call115' })).toBe(calling)
   })
+
+  test('callFamily sets callingFamily once and logs the call', () => {
+    const e = reduce(s0(), { type: 'device/fall' })
+    const calling = reduce(e, { type: 'emergency/callFamily' })
+    expect(calling.emergency!.callingFamily).toBe(true)
+    expect(get(calling, 'EVT-001').history.at(-1)!.text).toBe('Mô phỏng: đang gọi Chị Minh.')
+    expect(reduce(calling, { type: 'emergency/callFamily' })).toBe(calling)
+  })
 })
 
 describe('derived', () => {

@@ -14,7 +14,7 @@ type Type = Action['type']
 export const ROLE_ACTIONS: Record<Role, Type[]> = {
   elder: [
     'reset', 'reminder/respond', 'device/push', 'device/disconnect', 'device/reconnect', 'device/fall',
-    'chat/say', 'chat/startService', 'chat/handoff', 'chat/clear', 'request/cancel', 'emergency/call115',
+    'chat/say', 'chat/startService', 'chat/handoff', 'chat/clear', 'chat/resume', 'request/cancel', 'emergency/call115', 'emergency/callFamily',
   ],
   family: [
     'reset', 'notif/readAll', 'family/decline', 'family/approveReminder',
@@ -42,6 +42,7 @@ const FIELDS: Record<Type, Record<string, Check>> = {
   'chat/startService': { service: Object.keys(SERVICE) },
   'chat/handoff': {},
   'chat/clear': {},
+  'chat/resume': { id: 'id' },
   'notif/readAll': {},
   'request/cancel': { id: 'id' },
   'family/decline': { id: 'id', reason: 'text' },
@@ -60,6 +61,7 @@ const FIELDS: Record<Type, Record<string, Check>> = {
   'staff/askFamily': { id: 'id', question: 'text' },
   'family/reply': { id: 'id', text: 'text' },
   'emergency/call115': {},
+  'emergency/callFamily': {},
 }
 
 const ok = (v: unknown, c: Check) =>
