@@ -4,7 +4,7 @@ import { seedBare } from './testing'
 import { reduce } from './reducer'
 import { MIN, atVN, fmtDayMonth, fmtTime, vnDay } from './helpers'
 import { rollover, tick } from './clock'
-import type { RequestCase } from './types'
+import type { RequestCase, State } from './types'
 
 const NOW = Date.UTC(2026, 9, 18, 8, 0) // 15:00 in Vietnam
 const DAY = 24 * 60 * MIN
@@ -106,6 +106,34 @@ describe('tick', () => {
     const t = tick(s, NOW + DAY)
     expect(t.changed).toBe(true)
     expect(t.state.day).toBe('2026-10-19')
+  })
+})
+
+describe('family fallback', () => {
+  const waiting = (confirmedAt?: number) => {
+    const s = seedBare(NOW)
+    const c: RequestCase = {
+      id: 'CB-010', kind: 'request', service: 'contact_family', title: 'Liên hệ người thân', detail: '', source: 'elder', priority: 'normal',
+      priorityReason: '', createdAt: NOW - 40 * MIN, history: [], unclear: [], owner: 'family', fields: {}, status: 'await_family', confirmedAt,
+    }
+    return { ...s, cases: [...s.cases, c] }
+  }
+  const staffNotes = (s: State) => s.notifications.filter((n) => n.caseId === 'CB-010' && n.to === 'staff')
+
+  test('moves an untouched family request to staff after 30 min, once', () => {
+    const out = tick(waiting(NOW - 31 * MIN), NOW).state
+    const c = out.cases.find((x) => x.id === 'CB-010') as RequestCase
+    expect(c).toMatchObject({ status: 'await_staff', owner: 'staff' })
+    expect(c.history.at(-1)).toMatchObject({ by: 'ai', text: 'Gia đình chưa phản hồi sau 30 phút, chuyển nhân viên CAREBOX.' })
+    expect(staffNotes(out)).toHaveLength(1)
+    expect(staffNotes(tick(out, NOW).state)).toHaveLength(1)
+  })
+
+  test('ignores 29 min, exactly 30 min and a request with no confirmedAt', () => {
+    for (const confirmedAt of [NOW - 29 * MIN, NOW - 30 * MIN, undefined]) {
+      const s = waiting(confirmedAt)
+      expect(tick(s, NOW).state.cases).toBe(s.cases)
+    }
   })
 })
 

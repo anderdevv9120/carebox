@@ -1,6 +1,6 @@
 import { addCase, createEvent, familyName, fmtTime, fmtValue, has, nextCaseId, normalize, notify, sayAi, sayElder, updateCase } from './helpers.js'
 import { REMINDER_STATUS, REQUEST_STATUS, SERVICE } from './labels.js'
-import { isFinal, nextOwner, raiseEmergency, transition } from './cases.js'
+import { isFinal, nextOwner, ownerAtConfirm, raiseEmergency, transition } from './cases.js'
 import { deviceStatus } from './devices.js'
 import { reminderStatus } from './reminders.js'
 import type { DeviceKind, RequestCase, ServiceType, State } from './types.js'
@@ -130,13 +130,21 @@ function refuse(s: State, c: RequestCase): State {
 
 function confirm(s: State, c: RequestCase): State {
   const name = familyName(s)
-  let out = updateCase(s, c.id, { status: 'await_family' }, { by: 'elder', text: `Bác xác nhận nội dung; chuyển ${name}.` })
-  out = notify(out, 'family', `${c.title}: chờ ${name} nhận việc`, 'request', 'ai', c.id)
-  const msg = c.service === 'add_reminder'
-    ? `Cháu đã gửi ${name} duyệt lịch nhắc. Lịch chỉ được thêm sau khi ${name} xác nhận, yêu cầu chưa hoàn tất ạ.`
-    : c.service === 'contact_family'
-      ? `Cháu đã chuyển lời nhắn cho ${name}. Yêu cầu chưa hoàn tất; bác xem tiến độ ở mục Yêu cầu ạ.`
-      : `Cháu đã gửi yêu cầu cho ${name}. Yêu cầu chưa hoàn tất; bác xem tiến độ ở mục Yêu cầu ạ.`
+  const owner = ownerAtConfirm(c)
+  const staff = owner === 'staff'
+  let out = updateCase(s, c.id, { status: staff ? 'await_staff' : 'await_family', owner, confirmedAt: s.now },
+    { by: 'elder', text: `Bác xác nhận nội dung; chuyển ${staff ? 'nhân viên CAREBOX' : name}.` })
+  if (staff) {
+    out = notify(out, 'staff', `${c.title}: chờ điều phối`, 'request', 'ai', c.id)
+    out = notify(out, 'family', `${c.title}: đã chuyển nhân viên CAREBOX điều phối.`, 'request', 'ai', c.id)
+  } else out = notify(out, 'family', `${c.title}: chờ ${name} nhận việc`, 'request', 'ai', c.id)
+  const msg = staff
+    ? c.service === 'add_reminder'
+      ? 'Cháu đã gửi nhân viên CAREBOX kiểm tra lịch nhắc thuốc. Lịch chỉ được thêm sau khi được duyệt, yêu cầu chưa hoàn tất ạ.'
+      : 'Cháu đã gửi yêu cầu cho nhân viên CAREBOX điều phối. Yêu cầu chưa hoàn tất; bác xem tiến độ ở mục Yêu cầu ạ.'
+    : c.service === 'add_reminder'
+      ? `Cháu đã gửi ${name} duyệt lịch nhắc. Lịch chỉ được thêm sau khi ${name} xác nhận, yêu cầu chưa hoàn tất ạ.`
+      : `Cháu đã chuyển lời nhắn cho ${name}. Yêu cầu chưa hoàn tất; bác xem tiến độ ở mục Yêu cầu ạ.`
   return sayAi(clearChat(out), msg)
 }
 

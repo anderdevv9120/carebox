@@ -21,14 +21,14 @@ describe('doc §8 scenarios', () => {
   test('1 · groceries request is recorded, never done', () => {
     const s = run(s0(), ...groceries)
     expect(requests(s)).toHaveLength(1)
-    expect(requests(s)[0]).toMatchObject({ service: 'groceries', status: 'await_family' })
+    expect(requests(s)[0]).toMatchObject({ service: 'groceries', status: 'await_staff' })
     expect(s.cases.filter((c) => c.status === 'done').map((c) => c.id)).toEqual(['CB-002'])
   })
 
   test('1 · still works when a chat was already pending', () => {
     const pending = reduce(s0(), { type: 'chat/startService', service: 'medicine' })
     const s = run(pending, ...groceries)
-    expect(s.cases.find((c) => c.kind === 'request' && c.service === 'groceries')?.status).toBe('await_family')
+    expect(s.cases.find((c) => c.kind === 'request' && c.service === 'groceries')?.status).toBe('await_staff')
   })
 
   test('2 · medicine reminder is due and unchanged', () => {

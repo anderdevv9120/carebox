@@ -2,6 +2,7 @@ import { MIN, atVN, createEvent, familyName, has, normalize, notify, staffName, 
 import type { Case, EventCase, Owner, Priority, ReminderKind, RequestCase, ServiceType, Source, State } from './types.js'
 
 export const ABANDONED_AFTER = 30 // minutes, "giả định thử nghiệm"
+export const FAMILY_FALLBACK_AFTER = 30 // minutes a family-owned request may wait before staff take it
 // Services a care partner carries out; staff verify, assign and close them.
 export const SERVICE_JOBS: ServiceType[] = ['medicine', 'groceries', 'clinic', 'daily_help']
 
@@ -69,9 +70,25 @@ export function nextOwner(c: Case, s: State): string {
     case 'need_info': return 'Người cao tuổi (bổ sung thông tin)'
     case 'await_confirm': return 'Người cao tuổi (xác nhận)'
     case 'await_family': return `${name} (nhận việc)`
-    case 'in_progress': return `${name} (đang xử lý)`
+    case 'await_staff':
+      if (ownerAtConfirm(c) === 'family') return `Nhân viên CAREBOX hoặc ${name}`
+      if (c.service === 'add_reminder' || c.service === 'contact_family') return 'Nhân viên CAREBOX (duyệt / liên hệ)'
+      return c.verifiedBy ? 'Nhân viên CAREBOX (phân công)' : 'Nhân viên CAREBOX (xác minh)'
+    case 'in_progress': return c.partnerReport ? 'Nhân viên CAREBOX (xác nhận kết quả)' : `${c.assignee} (đang thực hiện)`
     default: return '—'
   }
+}
+
+// A family-owned request nobody took within 30 minutes of the elder's confirmation goes to staff, once.
+export function sweepFamilyFallback(s: State): State {
+  let out = s
+  for (const c of s.cases) {
+    if (c.kind !== 'request' || c.owner !== 'family' || c.status !== 'await_family') continue
+    if (c.confirmedAt === undefined || s.now - c.confirmedAt <= FAMILY_FALLBACK_AFTER * MIN) continue
+    out = updateCase(out, c.id, { owner: 'staff', status: 'await_staff' }, { by: 'ai', text: 'Gia đình chưa phản hồi sau 30 phút, chuyển nhân viên CAREBOX.' })
+    out = notify(out, 'staff', `${c.title}: ${familyName(s)} chưa nhận việc sau 30 phút, chờ nhân viên xử lý.`, 'request', 'ai', c.id)
+  }
+  return out
 }
 
 export function raiseEmergency(s: State, title: string, detail: string, source: Source): State {
@@ -98,10 +115,13 @@ function requestTransition(s: State, c: RequestCase, a: CaseAction): State {
   const done = (extra: Partial<RequestCase>, text: string, base = s) =>
     updateCase(base, c.id, { status: 'done', completedAt: s.now, doneBy: name, ...extra }, fam(text))
   switch (a.type) {
-    case 'request/cancel':
+    case 'request/cancel': {
       if (isFinal(c)) return s
-      return notify(updateCase(s, c.id, { status: 'refused', closedReason: 'Người cao tuổi từ chối' }, { by: 'elder', text: 'Người cao tuổi hủy/từ chối yêu cầu.' }),
-        'family', `${c.title}: bác đã từ chối dịch vụ. Không đặt lại nếu bác không yêu cầu.`, 'request', 'elder', c.id)
+      let out = updateCase(s, c.id, { status: 'refused', closedReason: 'Người cao tuổi từ chối' }, { by: 'elder', text: 'Người cao tuổi hủy/từ chối yêu cầu.' })
+      if (c.assignee) out = updateCase(out, c.id, {}, { by: 'ai', text: `Đã báo hủy cho Care Partner ${c.assignee}.` })
+      out = notify(out, 'family', `${c.title}: bác đã từ chối dịch vụ. Không đặt lại nếu bác không yêu cầu.`, 'request', 'elder', c.id)
+      return c.owner === 'staff' ? notify(out, 'staff', `${c.title}: bác đã hủy yêu cầu.`, 'request', 'elder', c.id) : out
+    }
     case 'family/decline': {
       const reason = a.reason.trim()
       if (!open || !reason) return s

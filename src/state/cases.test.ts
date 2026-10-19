@@ -61,9 +61,59 @@ describe('request workflow', () => {
     expect(req(s, 'CB-001').history.at(-1)!.by).toBe('elder')
   })
 
+  test('cancel after assign logs Care Partner cancellation and notifies staff', () => {
+    const start = run(withRequest('medicine', 'await_staff'),
+      { type: 'staff/verify', id: 'CB-010', note: '' }, { type: 'staff/assign', id: 'CB-010', partner: 'Anh Tuấn' })
+    const s = reduce(start, { type: 'request/cancel', id: 'CB-010' })
+    const c = req(s, 'CB-010')
+    expect(c.status).toBe('refused')
+    expect(c.history.map((h) => h.text)).toContain('Đã báo hủy cho Care Partner Anh Tuấn.')
+    const fresh = s.notifications.slice(start.notifications.length)
+    expect(fresh.map((n) => n.to).sort()).toEqual(['family', 'staff'])
+    expect(fresh.every((n) => n.caseId === 'CB-010')).toBe(true)
+  })
+
+  test('cancel without assignee logs no Care Partner line; family-owned notifies the daughter only', () => {
+    const s = reduce(withRequest('medicine', 'await_staff'), { type: 'request/cancel', id: 'CB-010' })
+    expect(req(s, 'CB-010').history.some((h) => h.text.includes('Care Partner'))).toBe(false)
+    const fam = withRequest('contact_family', 'await_family', 'family')
+    const out = reduce(fam, { type: 'request/cancel', id: 'CB-010' })
+    expect(out.notifications.slice(fam.notifications.length).map((n) => n.to)).toEqual(['family'])
+  })
+
   test('cancel on done is a no-op', () => {
     const s = s0()
     expect(reduce(s, { type: 'request/cancel', id: 'CB-002' })).toBe(s)
+  })
+})
+
+describe('routing at confirm', () => {
+  const say = (s: State, ...texts: string[]) => texts.reduce((acc, text) => reduce(acc, { type: 'chat/say', text }), s)
+  const lastAi = (s: State) => s.chat.messages.filter((m) => m.from === 'ai').at(-1)!.text
+  const notes = (s: State, to: 'family' | 'staff') => s.notifications.filter((n) => n.caseId === 'CB-003' && n.to === to)
+
+  test('confirm routes groceries to staff and notifies both', () => {
+    const s = say(s0(), 'Bác muốn đi chợ', 'Rau, trứng', 'Sáng mai', 'Đúng rồi')
+    expect(req(s, 'CB-003')).toMatchObject({ status: 'await_staff', owner: 'staff', confirmedAt: s.now })
+    expect(notes(s, 'staff').map((n) => n.text)).toEqual(['Đi chợ: chờ điều phối'])
+    expect(notes(s, 'family').map((n) => n.text)).toEqual(['Đi chợ: đã chuyển nhân viên CAREBOX điều phối.'])
+    expect(lastAi(s)).toBe('Cháu đã gửi yêu cầu cho nhân viên CAREBOX điều phối. Yêu cầu chưa hoàn tất; bác xem tiến độ ở mục Yêu cầu ạ.')
+  })
+
+  test('confirm keeps contact_family with family', () => {
+    const s = say(s0(), 'Gọi cho con gái giúp bác', 'Con gái', 'Nhớ gọi cho mẹ', 'Đúng rồi')
+    expect(req(s, 'CB-003')).toMatchObject({ status: 'await_family', owner: 'family', confirmedAt: s.now })
+    expect(notes(s, 'staff')).toHaveLength(0)
+    expect(notes(s, 'family').map((n) => n.text)).toEqual(['Liên hệ người thân: chờ Chị Minh nhận việc'])
+  })
+
+  test('confirm sends a medicine reminder to staff, a plain reminder to the daughter', () => {
+    const med = say(s0(), 'Nhắc bác uống thuốc', 'Uống thuốc huyết áp', '9 giờ', 'Đúng rồi')
+    expect(req(med, 'CB-003')).toMatchObject({ status: 'await_staff', owner: 'staff' })
+    expect(lastAi(med)).toBe('Cháu đã gửi nhân viên CAREBOX kiểm tra lịch nhắc thuốc. Lịch chỉ được thêm sau khi được duyệt, yêu cầu chưa hoàn tất ạ.')
+    const water = say(s0(), 'Nhắc bác uống nước', 'Uống nước', '9 giờ', 'Đúng rồi')
+    expect(req(water, 'CB-003')).toMatchObject({ status: 'await_family', owner: 'family' })
+    expect(lastAi(water)).toContain('Chị Minh duyệt lịch nhắc')
   })
 })
 
@@ -251,12 +301,27 @@ describe('derived', () => {
     expect(effectivePriority(get(accepted, 'CB-010'), accepted.now + 31 * MIN).priority).toBe('normal')
   })
 
-  test('nextOwner names the daughter: await_family → "Chị Minh (nhận việc)", to_verify → "Chị Minh (xem và tiếp nhận)"', () => {
-    const s = withRequest()
-    expect(nextOwner(get(s, 'CB-010'), s)).toBe('Chị Minh (nhận việc)')
+  test('nextOwner table', () => {
+    const own = (service: ServiceType, status: RequestCase['status'], patch: Partial<RequestCase> = {}, noiDung?: string) => {
+      const s = withRequest(service, status, 'staff', noiDung)
+      return nextOwner({ ...req(s, 'CB-010'), ...patch }, s)
+    }
+    expect(own('medicine', 'need_info')).toBe('Người cao tuổi (bổ sung thông tin)')
+    expect(own('medicine', 'await_confirm')).toBe('Người cao tuổi (xác nhận)')
+    expect(own('contact_family', 'await_family', { owner: 'family' })).toBe('Chị Minh (nhận việc)')
+    expect(own('contact_family', 'await_staff')).toBe('Nhân viên CAREBOX hoặc Chị Minh')
+    expect(own('add_reminder', 'await_staff')).toBe('Nhân viên CAREBOX hoặc Chị Minh') // water reminder that fell back
+    expect(own('add_reminder', 'await_staff', {}, 'Uống thuốc huyết áp')).toBe('Nhân viên CAREBOX (duyệt / liên hệ)')
+    expect(own('medicine', 'await_staff')).toBe('Nhân viên CAREBOX (xác minh)')
+    expect(own('medicine', 'await_staff', { verifiedBy: 'Anh Nam' })).toBe('Nhân viên CAREBOX (phân công)')
+    expect(own('medicine', 'in_progress', { assignee: 'Anh Tuấn' })).toBe('Anh Tuấn (đang thực hiện)')
+    expect(own('medicine', 'in_progress', { assignee: 'Anh Tuấn', partnerReport: 'Đã mua' })).toBe('Nhân viên CAREBOX (xác nhận kết quả)')
+    expect(own('medicine', 'done')).toBe('—')
     const e = run(s0(), { type: 'device/push', deviceId: 'bp', mode: 'high' })
     expect(nextOwner(get(e, 'EVT-001'), e)).toBe('Chị Minh (xem và tiếp nhận)')
-    expect(nextOwner(get(s, 'CB-002'), s)).toBe('—')
+    const taken = reduce(e, { type: 'family/takeEvent', id: 'EVT-001' })
+    expect(nextOwner(get(taken, 'EVT-001'), taken)).toBe('Chị Minh')
+    expect(nextOwner(get(s0(), 'CB-002'), s0())).toBe('—')
   })
 })
 
