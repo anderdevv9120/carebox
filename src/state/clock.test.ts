@@ -40,7 +40,7 @@ describe('seed', () => {
   })
 
   test('seed adds one one-off reminder ~3 min after reset', () => {
-    const extra = seed(NOW).reminders.filter((r) => !r.daily)
+    const extra = seed(NOW).reminders.filter((r) => r.id === 'r-demo')
     expect(extra).toHaveLength(1)
     expect(extra[0].dueAt - NOW).toBe(3 * MIN)
     expect(extra[0].kind).toBe('medicine')
@@ -92,9 +92,11 @@ describe('rollover', () => {
     const out = rollover(s, next)
     expect(out.day).toBe('2026-10-19')
     expect(out.reminders).toHaveLength(5)
-    expect(out.reminders.every((r) => r.daily && vnDay(r.dueAt) === '2026-10-19')).toBe(true)
-    expect(out.reminders.map((r) => fmtTime(r.dueAt))).toEqual(s.reminders.filter((r) => r.daily).map((r) => fmtTime(r.dueAt)))
-    for (const r of out.reminders) {
+    const daily = out.reminders.filter((r) => r.daily)
+    expect(daily).toHaveLength(4)
+    expect(daily.every((r) => vnDay(r.dueAt) === '2026-10-19')).toBe(true)
+    expect(daily.map((r) => fmtTime(r.dueAt))).toEqual(s.reminders.filter((r) => r.daily).map((r) => fmtTime(r.dueAt)))
+    for (const r of daily) {
       expect(r.response).toBeUndefined()
       expect(r.respondedAt).toBeUndefined()
       expect(r.snoozedUntil).toBeUndefined()

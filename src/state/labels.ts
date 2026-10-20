@@ -1,4 +1,6 @@
-import type { DeviceStatus, EventStatus, Priority, ReminderStatus, RequestStatus, ServiceType, Source } from './types.js'
+import type { DeviceStatus, EventStatus, Priority, ReminderKind, ReminderStatus, RequestStatus, ServiceType, Source } from './types.js'
+
+export const REMINDER_KIND: Record<ReminderKind, string> = { medicine: 'Uống thuốc', meal: 'Bữa ăn', clinic: 'Lịch khám', activity: 'Sinh hoạt' }
 
 // Copy is verbatim from doc.pdf where the doc names the state.
 export const REQUEST_STATUS: Record<RequestStatus, string> = {
@@ -58,6 +60,9 @@ export const DEVICE_STATUS: Record<DeviceStatus, string> = {
 }
 
 export const REMINDER_STATUS: Record<ReminderStatus, string> = {
+  pending: 'Chờ gia đình xác nhận đơn thuốc',
+  cancelled: 'Đã hủy lần này',
+  inactive: 'Ngoài lịch hôm nay',
   upcoming: 'Sắp tới',
   due: 'Đến giờ',
   snoozed: 'Nhắc lại sau',

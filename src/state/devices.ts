@@ -1,4 +1,4 @@
-import { MIN, createEvent, notifyAlert } from './helpers.js'
+import { MIN, createEvent, fmtValue, notifyAlert } from './helpers.js'
 import { raiseEmergency } from './cases.js'
 import type { Device, DeviceKind, DeviceStatus, EventCase, Reading, State } from './types.js'
 
@@ -31,7 +31,7 @@ export function evaluate(kind: Metric, value: Reading['value']): 'normal' | 'att
 export function deviceStatus(d: Device, now: number): DeviceStatus {
   if (!d.connected) return 'missing'
   if (d.id === 'fall') return 'normal'
-  const last = d.readings.at(-1)
+  const last = lastDeviceReading(d)
   if (!last || now - last.at > STALE_AFTER * MIN) return 'missing'
   return evaluate(d.id, last.value)
 }
@@ -42,26 +42,41 @@ const patchDevice = (s: State, id: DeviceKind, p: (d: Device) => Partial<Device>
 })
 
 export function pushReading(s: State, id: Metric, mode: 'normal' | 'high' | 'suspicious'): State {
-  const value = SIM_VALUES[mode][id]
-  let out = patchDevice(s, id, (d) => ({ connected: true, readings: [...d.readings, { at: s.now, value }] }))
+  return recordReading(s, id, SIM_VALUES[mode][id], 'device')
+}
+
+const lastDeviceReading = (d: Device) => d.readings.findLast((r) => r.source !== 'elder')
+
+export function validManualReading(id: Metric, value: unknown): value is number | [number, number] {
+  const valid = (v: unknown, max: number) => typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= max
+  return id === 'bp' ? Array.isArray(value) && value.length === 2 && valid(value[0], PLAUSIBLE.bp.sys[1]) && valid(value[1], PLAUSIBLE.bp.dia[1]) && value[0] > value[1] : valid(value, PLAUSIBLE[id][1])
+}
+
+export function manualReading(s: State, id: Metric, value: number | [number, number]): State {
+  if (!validManualReading(id, value)) throw new Error('Chỉ số ngoài khoảng cho phép nhập. Huyết áp cần tâm thu lớn hơn tâm trương; SpO₂ không vượt quá 100%.')
+  return recordReading(s, id, value, 'elder')
+}
+
+function recordReading(s: State, id: Metric, value: Reading['value'], source: 'elder' | 'device'): State {
+  let out = patchDevice(s, id, (d) => ({ connected: source === 'device' ? true : d.connected, readings: [...d.readings, source === 'elder' ? { at: s.now, value, source } : { at: s.now, value }] }))
   const result = evaluate(id, value)
   if (result === 'normal') return out
   const name = s.devices.find((d) => d.id === id)!.name
   let evId: string
   if (result === 'attention') {
     ;[out, evId] = createEvent(out, {
-      title: 'Dữ liệu thiết bị vượt ngưỡng',
-      detail: 'Dữ liệu giả lập vượt ngưỡng đã cấu hình. Chưa có kết luận y tế và chưa xác nhận nguyên nhân.',
-      priority: 'priority', priorityReason: `${name}: vượt ngưỡng giả lập`, source: 'device', deviceId: id,
+      title: source === 'elder' ? 'Chỉ số nhập tay vượt ngưỡng' : 'Dữ liệu thiết bị vượt ngưỡng',
+      detail: source === 'elder' ? `Người cao tuổi nhập ${fmtValue(value)}. Chỉ số vượt ngưỡng giả lập; cần kiểm tra lại, chưa có kết luận y tế.` : 'Dữ liệu giả lập vượt ngưỡng đã cấu hình. Chưa có kết luận y tế và chưa xác nhận nguyên nhân.',
+      priority: 'priority', priorityReason: `${name}: vượt ngưỡng giả lập`, source, deviceId: id,
     })
-    return notifyAlert(out, `${name}: dữ liệu vượt ngưỡng đã cấu hình, chưa có kết luận y tế.`, 'health', 'device', evId)
+    return notifyAlert(out, `${name}: ${source === 'elder' ? 'chỉ số nhập tay' : 'dữ liệu'} vượt ngưỡng đã cấu hình, chưa có kết luận y tế.`, 'health', source, evId)
   }
   ;[out, evId] = createEvent(out, {
     title: 'Dữ liệu đáng nghi',
-    detail: 'Dữ liệu có thể sai do đo hoặc truyền dẫn. Cần kiểm tra nguồn, đo lại nếu phù hợp.',
-    priority: 'uncertain', priorityReason: `${name}: giá trị ngoài khoảng hợp lý`, source: 'device', deviceId: id,
+    detail: source === 'elder' ? `Người cao tuổi nhập ${fmtValue(value)}. Giá trị ngoài khoảng hợp lý; cần kiểm tra và nhập lại.` : 'Dữ liệu có thể sai do đo hoặc truyền dẫn. Cần kiểm tra nguồn, đo lại nếu phù hợp.',
+    priority: 'uncertain', priorityReason: `${name}: giá trị ngoài khoảng hợp lý`, source, deviceId: id,
   })
-  return notifyAlert(out, `${name}: dữ liệu đáng nghi, cần kiểm tra nguồn.`, 'health', 'device', evId)
+  return notifyAlert(out, `${name}: ${source === 'elder' ? 'chỉ số nhập tay' : 'dữ liệu'} đáng nghi, cần kiểm tra nguồn.`, 'health', source, evId)
 }
 
 const MISSING_TITLE = /^(Thiết bị mất kết nối|Thiếu dữ liệu)/
@@ -73,7 +88,7 @@ export const hasOpenMissing = (s: State, id: DeviceKind) => missingEvents(s, id)
 // Staff closed the same gap (the last log entry is the closing one) after the last reading: only new data re-arms the sweep.
 // A resolved disconnect does not count: the device came back and then went silent.
 const closedSinceLastReading = (s: State, d: Device) =>
-  missingEvents(s, d.id).some((c) => c.status === 'resolved' && c.title.startsWith('Thiếu dữ liệu') && c.history.at(-1)!.at > (d.readings.at(-1)?.at ?? 0))
+  missingEvents(s, d.id).some((c) => c.status === 'resolved' && c.title.startsWith('Thiếu dữ liệu') && c.history.at(-1)!.at > (lastDeviceReading(d)?.at ?? 0))
 
 export function disconnect(s: State, id: DeviceKind): State {
   const d = s.devices.find((x) => x.id === id)

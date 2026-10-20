@@ -211,16 +211,75 @@ describe('auth', () => {
     expect(after.chat.messages).toEqual(before.chat.messages)
   })
 
-  test('every action type belongs to a role; reset, notif/readAll and case/ack are the only shared ones', () => {
+  test('shared actions are explicitly allowed; elders share only reset and reading their notifications', () => {
     const all = Object.values(ROLE_ACTIONS).flat()
     const shared = [...new Set(all.filter((t, i) => all.indexOf(t) !== i))].sort()
-    expect(shared).toEqual(['case/ack', 'notif/readAll', 'reset'])
+    expect(shared).toEqual(['case/ack', 'notif/readAll', 'reminder/cancel', 'reminder/save', 'reset'])
     for (const t of shared) expect(ROLE_ACTIONS.staff).toContain(t)
-    expect(ROLE_ACTIONS.elder.filter((t) => t !== 'reset' && all.filter((x) => x === t).length > 1)).toEqual([])
+    expect(ROLE_ACTIONS.elder.filter((t) => !['reset', 'notif/readAll'].includes(t) && all.filter((x) => x === t).length > 1)).toEqual([])
   })
 })
 
 describe('validation', () => {
+  test('prescription approval requires the displayed revision and rejects an intervening staff edit', async () => {
+    const day = (await getState(family)).day
+    const data = { type: 'reminder/save', id: '', kind: 'medicine', title: 'Thuốc buổi sáng', note: '', times: '08:00', startDate: day, endDate: day, repeat: 'daily', medicine: 'Thuốc demo 5mg', dose: '1 viên', instructions: 'Sau ăn', location: '' }
+    const created: State = await (await post('/api/action', staff, data)).json()
+    const r = created.reminders.at(-1)!
+    const changed: State = await (await post('/api/action', staff, { ...data, id: r.id, dose: '3 viên' })).json()
+    const revision = changed.reminders.at(-1)!.revision
+    for (const stale of [undefined, null, -1, 0.5, '1', r.revision ?? 0]) {
+      expect((await post('/api/action', family, { type: 'reminder/approve', id: r.id, revision: stale })).status).toBe(400)
+    }
+    expect((await getState(family)).reminders.at(-1)).toMatchObject({ approval: 'pending', dose: '3 viên' })
+    const approved: State = await (await post('/api/action', family, { type: 'reminder/approve', id: r.id, revision })).json()
+    expect(approved.reminders.at(-1)).toMatchObject({ approval: 'confirmed', dose: '3 viên' })
+  })
+
+  test('non-medication daily schedules keep an open end date through the API', async () => {
+    const day = (await getState(family)).day
+    const data = { type: 'reminder/save', id: 'r2', kind: 'meal', title: 'Ăn sáng cùng gia đình', note: '', times: '08:00', startDate: day, endDate: '', repeat: 'daily', medicine: '', dose: '', instructions: '', location: '' }
+    const response = await post('/api/action', family, data)
+    expect(response.status).toBe(200)
+    const saved: State = await response.json()
+    expect(saved.reminders.find((r) => r.id === 'r2')).toMatchObject({ daily: true, title: data.title })
+    expect(saved.reminders.find((r) => r.id === 'r2')?.endDate).toBeUndefined()
+    expect((await post('/api/action', family, { ...data, repeat: 'once' })).status).toBe(400)
+    expect((await post('/api/action', family, { ...data, kind: 'medicine', medicine: 'Thuốc demo', dose: '1 viên', instructions: 'Sau ăn' })).status).toBe(400)
+  })
+
+  test('schedule actors are injected; only family confirms staff medication and elders cannot manage schedules', async () => {
+    const day = (await getState(family)).day
+    const data = { type: 'reminder/save', id: '', kind: 'medicine', title: 'Thuốc buổi sáng', note: '', times: '08:00', startDate: day, endDate: day, repeat: 'daily', medicine: 'Thuốc demo 5mg', dose: '1 viên', instructions: 'Sau ăn', location: '', by: 'family', approval: 'confirmed' }
+    expect((await post('/api/action', elder, data)).status).toBe(403)
+    const response = await post('/api/action', staff, data)
+    expect(response.status).toBe(200)
+    const created: State = await response.json()
+    const r = created.reminders.at(-1)!
+    expect(r).toMatchObject({ createdBy: 'staff', approval: 'pending' })
+    expect((await post('/api/action', staff, { type: 'reminder/approve', id: r.id })).status).toBe(403)
+    expect((await post('/api/action', staff, { type: 'staff/approveReminder', id: 'CB-001', time: '09:00' })).status).toBe(403)
+    expect((await post('/api/action', elder, { type: 'reminder/cancel', id: r.id, date: day })).status).toBe(403)
+    const approved: State = await (await post('/api/action', family, { type: 'reminder/approve', id: r.id, revision: r.revision ?? 0 })).json()
+    expect(approved.reminders.at(-1)!.approval).toBe('confirmed')
+    expect((await post('/api/action', family, { ...data, times: '25:00' })).status).toBe(400)
+    expect((await post('/api/action', family, { ...data, startDate: '2026-02-30' })).status).toBe(400)
+  })
+
+  test('manual readings validate shape and source, alert both roles, and do not reconnect hardware', async () => {
+    await post('/api/action', elder, { type: 'device/disconnect', deviceId: 'bp' })
+    const response = await post('/api/action', elder, { type: 'device/manual', deviceId: 'bp', value: [168, 102], source: 'device' })
+    expect(response.status).toBe(200)
+    const s: State = await response.json()
+    expect(s.devices.find((d) => d.id === 'bp')).toMatchObject({ connected: false })
+    expect(s.devices.find((d) => d.id === 'bp')!.readings.at(-1)).toMatchObject({ value: [168, 102], source: 'elder' })
+    const event = s.cases.at(-1)!
+    expect(event).toMatchObject({ source: 'elder', priority: 'priority', deviceId: 'bp' })
+    expect(s.notifications.filter((n) => n.caseId === event.id).map((n) => n.to).sort()).toEqual(['family', 'staff'])
+    for (const [deviceId, value] of [['bp', 120], ['bp', [80, 120]], ['hr', [120, 80]], ['spo2', '97'], ['spo2', 101], ['glucose', -1], ['hr', null]])
+      expect((await post('/api/action', elder, { type: 'device/manual', deviceId, value })).status).toBe(400)
+  })
+
   test('malformed actions → 400 and rev unchanged', async () => {
     const before = await getState(elder)
     const tokenFor = (b: { type?: unknown }) => (typeof b.type === 'string' && b.type.startsWith('family/') ? family : elder)

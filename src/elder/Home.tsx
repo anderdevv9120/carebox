@@ -1,11 +1,11 @@
 import { useStore } from '../state/store'
 import { fmtDate, fmtTime } from '../state/helpers'
-import { reminderStatus } from '../state/reminders'
+import { reminderStatus, remindersOnDay } from '../state/reminders'
 import { ReminderActions, needsResponse, REMINDER_ICON } from './Schedule'
 import type { ReminderKind, Screen, State } from '../state/types'
 
 function nextOf(s: State, kind: ReminderKind) {
-  return [...s.reminders]
+  return remindersOnDay(s)
     .filter((r) => r.kind === kind && ['upcoming', 'due', 'snoozed'].includes(reminderStatus(r, s.now)))
     .sort((a, b) => a.dueAt - b.dueAt)[0]
 }
@@ -14,7 +14,7 @@ export function Home() {
   const { state, dispatch } = useStore()
   const go = (screen: Screen) => dispatch({ type: 'nav', screen })
   const firstName = state.elder.name.split(' ').at(-1)
-  const due = state.reminders.filter((r) => needsResponse(r, state.now))
+  const due = remindersOnDay(state).filter((r) => needsResponse(r, state.now))
   const med = nextOf(state, 'medicine')
   const clinic = nextOf(state, 'clinic')
   return (
@@ -45,10 +45,10 @@ export function Home() {
         </div>
       ))}
       <div className="tiles home-tiles">
-        <button className="tile" onClick={() => go('schedule')}>
+        <button className="tile" onClick={() => go('medicine')}>
           <span>💊</span>Uống thuốc<b>{med ? fmtTime(med.dueAt) : '—'}</b>
         </button>
-        <button className="tile" onClick={() => go('schedule')}>
+        <button className="tile" onClick={() => go('clinic')}>
           <span>🏥</span>Lịch khám<b>{clinic ? fmtTime(clinic.dueAt) : '—'}</b>
         </button>
         <button className="tile" onClick={() => go('services')}>

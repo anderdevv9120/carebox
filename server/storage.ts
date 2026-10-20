@@ -2,6 +2,7 @@ import { Redis } from '@upstash/redis'
 import { randomUUID } from 'node:crypto'
 import { readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { setTimeout } from 'node:timers/promises'
 import type { State } from '../src/state/types.js'
 
 const KEY = 'carebox:state'
@@ -35,7 +36,17 @@ export async function saveState(s: State): Promise<void> {
   const tmp = `${localFile}.${randomUUID()}.tmp`
   try {
     await writeFile(tmp, JSON.stringify(s))
-    await rename(tmp, localFile)
+    // Windows readers or sync tools may briefly lock the destination against replacement.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await rename(tmp, localFile)
+        break
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code
+        if (attempt >= 3 || (code !== 'EPERM' && code !== 'EBUSY')) throw err
+        await setTimeout(50 * (attempt + 1))
+      }
+    }
   } finally {
     await rm(tmp, { force: true })
   }

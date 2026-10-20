@@ -1,5 +1,6 @@
-import { MIN, atVN, createEvent, familyName, has, normalize, notify, staffName, updateCase } from './helpers.js'
-import type { Case, EventCase, Owner, Priority, ReminderKind, RequestCase, ServiceType, Source, State } from './types.js'
+import { MIN, atVN, createEvent, familyName, has, normalize, notify, staffName, updateCase, vnDay } from './helpers.js'
+import type { Case, EventCase, Owner, Priority, Reminder, RequestCase, ServiceType, Source, State } from './types.js'
+import { notifySchedule } from './reminders.js'
 
 export const ABANDONED_AFTER = 30 // minutes, "giả định thử nghiệm"
 export const FAMILY_FALLBACK_AFTER = 30 // minutes a family-owned request may wait before staff take it
@@ -29,7 +30,7 @@ export type CaseAction =
   | { type: 'staff/partnerReport'; id: string; note: string }
   | { type: 'staff/complete'; id: string }
   | { type: 'staff/decline'; id: string; reason: string }
-  | { type: 'staff/approveReminder'; id: string; time: string }
+  | { type: 'staff/approveReminder'; id: string; time: string } // Legacy action is rejected; staff use the structured schedule form.
   | { type: 'staff/contacted'; id: string }
   | { type: 'staff/takeEvent'; id: string }
   | { type: 'staff/resolveEvent'; id: string; note: string }
@@ -124,11 +125,12 @@ export function raiseEmergency(s: State, title: string, detail: string, source: 
   return notify(sent, 'family', text, 'health', source, id)
 }
 
-function addReminder(s: State, c: RequestCase, time: string, approver: string, kind: ReminderKind): State {
+function addReminder(s: State, c: RequestCase, time: string, approver: string): State {
   // a time already gone today starts tomorrow, so it is not flagged "Chưa có xác nhận" at once
   const today = atVN(s.now, time)
-  const reminder = { id: `r-${c.id}`, dueAt: today > s.now ? today : atVN(s.now, time, 1), title: c.fields.noi_dung || c.title, note: `${approver} duyệt từ yêu cầu ${c.id}`, kind, daily: true }
-  return { ...s, reminders: [...s.reminders, reminder] }
+  const dueAt = today > s.now ? today : atVN(s.now, time, 1)
+  const reminder: Reminder = { id: `r-${c.id}`, dueAt, title: c.fields.noi_dung || c.title, note: `${approver} nhập từ yêu cầu ${c.id}`, kind: 'activity', daily: true, startDate: vnDay(dueAt), createdBy: 'family', approval: 'confirmed' }
+  return notifySchedule({ ...s, reminders: [...s.reminders, reminder] }, 'family', `Đã thêm lịch: ${reminder.title} · ${time} · từ ${reminder.startDate}.`)
 }
 
 function requestTransition(s: State, c: RequestCase, a: CaseAction): State {
@@ -153,7 +155,7 @@ function requestTransition(s: State, c: RequestCase, a: CaseAction): State {
     }
     case 'family/approveReminder': {
       if (c.service !== 'add_reminder' || !open || !TIME.test(a.time)) return s
-      return done({}, `${name} duyệt lịch nhắc lúc ${a.time}.`, addReminder(s, c, a.time, name, 'activity'))
+      return done({}, `${name} duyệt lịch nhắc lúc ${a.time}.`, addReminder(s, c, a.time, name))
     }
     case 'family/contacted':
       if (c.service !== 'contact_family' || !open) return s
@@ -189,10 +191,6 @@ function staffTransition(s: State, c: RequestCase, a: CaseAction): State {
       if (!reason || !STAFF_DECLINABLE.includes(c.status) || c.owner !== 'staff') return s
       return notify(updateCase(s, c.id, { status: 'refused', closedReason: reason }, log(`${name} từ chối: ${reason}`)),
         'family', `${c.title}: nhân viên CAREBOX không thực hiện được. Lý do: ${reason}`, 'request', 'staff', c.id)
-    }
-    case 'staff/approveReminder': {
-      if (c.service !== 'add_reminder' || c.status !== 'await_staff' || !TIME.test(a.time)) return s
-      return done(`${name} duyệt lịch nhắc lúc ${a.time}.`, addReminder(s, c, a.time, name, isMedicineReminder(c) ? 'medicine' : 'activity'))
     }
     case 'staff/contacted':
       if (c.service !== 'contact_family' || c.status !== 'await_staff') return s

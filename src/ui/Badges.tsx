@@ -1,6 +1,6 @@
 import { DEVICE_STATUS, EVENT_STATUS, PRIORITY, REMINDER_STATUS, REQUEST_STATUS, SOURCE } from '../state/labels'
 import { effectivePriority } from '../state/cases'
-import { deviceStatus } from '../state/devices'
+import { deviceStatus, evaluate } from '../state/devices'
 import { reminderStatus } from '../state/reminders'
 import type { Case, Device, DeviceStatus, Priority, Reminder, ReminderStatus, Source } from '../state/types'
 
@@ -26,6 +26,7 @@ export function SourceTag({ source }: { source: Source }) {
 }
 
 const REMINDER_CLASS: Record<ReminderStatus, string> = {
+  pending: 'b-unsure', cancelled: 'b-neutral', inactive: 'b-neutral',
   upcoming: 'b-neutral', due: 'b-attn', snoozed: 'b-prog', received: 'b-ok', cant_do: 'b-alert', no_confirm: 'b-unsure',
 }
 
@@ -40,5 +41,10 @@ export function DeviceBadge({ d, now }: { d: Device; now: number }) {
   // the fall sensor has no threshold, so "Bình thường theo ngưỡng" would be a false claim
   if (d.id === 'fall' && d.connected) return <span className="badge b-ok">Đang kết nối</span>
   const st = deviceStatus(d, now)
-  return <span className={`badge ${DEVICE_CLASS[st]}`}>{st === 'missing' ? '⚠ ' : ''}{DEVICE_STATUS[st]}</span>
+  const last = d.readings.at(-1)
+  const manual = d.id !== 'fall' && last?.source === 'elder' ? evaluate(d.id, last.value) : undefined
+  return <>
+    {manual && <span className={`badge ${DEVICE_CLASS[manual]}`}>{DEVICE_STATUS[manual]} · Nhập tay</span>}
+    <span className={`badge ${DEVICE_CLASS[st]}`}>{st === 'missing' ? '⚠ ' : ''}{manual ? 'Thiết bị: ' : ''}{DEVICE_STATUS[st]}</span>
+  </>
 }

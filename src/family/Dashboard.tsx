@@ -2,7 +2,7 @@ import { useStore } from '../state/store'
 import { fmtTime, fmtWhen } from '../state/helpers'
 import { familyTodo, isFinal, nextOwner } from '../state/cases'
 import { deviceStatus } from '../state/devices'
-import { reminderStatus } from '../state/reminders'
+import { reminderStatus, remindersOnDay } from '../state/reminders'
 import { PriorityBadge, SourceTag, StatusBadge } from '../ui/Badges'
 import type { RequestCase, Screen, State } from '../state/types'
 
@@ -20,7 +20,7 @@ export function Dashboard() {
   const connected = state.devices.filter((d) => d.connected).length
   const attention = state.devices.filter((d) => deviceStatus(d, state.now) === 'attention').length
   const missing = state.devices.filter((d) => deviceStatus(d, state.now) === 'missing').length
-  const todayLeft = state.reminders.filter((r) => ['upcoming', 'due', 'snoozed'].includes(reminderStatus(r, state.now))).length
+  const todayLeft = remindersOnDay(state).filter((r) => ['upcoming', 'due', 'snoozed'].includes(reminderStatus(r, state.now))).length
   const openRequests = state.cases.filter((c): c is RequestCase => c.kind === 'request' && !isFinal(c))
   const openEvents = state.cases.filter((c) => c.kind === 'event' && !isFinal(c))
   const toHandle = familyTodo(state)
@@ -56,7 +56,7 @@ export function Dashboard() {
           {attention > 0 && <em className="badge b-attn">{attention} cần chú ý</em>}
           {missing > 0 && <em className="badge b-unsure">{missing} thiếu dữ liệu</em>}
         </button>
-        <button className="tile" onClick={() => go('f-report')}>
+        <button className="tile" onClick={() => go('f-schedule')}>
           <span>🗓️</span>Lịch trình<b>{todayLeft} việc còn lại hôm nay</b>
         </button>
         <button className="tile" onClick={() => go('f-requests')}>

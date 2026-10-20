@@ -96,6 +96,13 @@ h1, h2, h3, p { margin: 0; }
 .btn.sm { padding: 6px 12px; min-height: 34px; font-size: 13px; border-radius: 10px; }
 .btn:disabled { opacity: 0.5; cursor: default; }
 .input { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: #fff; }
+.form-stack { display: grid; gap: 14px; margin-top: 14px; }
+.form-stack label, .schedule-date { display: grid; gap: 6px; font-weight: 600; }
+.form-stack h2 { font-size: 20px; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+.schedule-date { max-width: 340px; margin: 12px 0; }
+.schedule-controls { margin-top: 12px; }
+.medication-details { margin: 4px 0; line-height: 1.6; }
 .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
 .tabs button { border: 0; border-radius: 999px; padding: 6px 14px; background: #fff; font-weight: 600; font-size: 13px; }
 .tabs button.active { background: var(--primary); color: #fff; }

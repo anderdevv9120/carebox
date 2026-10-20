@@ -5,6 +5,8 @@ import { SERVICE } from '../src/state/labels.js'
 import { classify, handleUtterance, raiseElderEmergency, startService } from '../src/state/assistant.js'
 import { sayAi, sayElder } from '../src/state/helpers.js'
 import type { Role, State } from '../src/state/types.js'
+import { validManualReading } from '../src/state/devices.js'
+import { ReminderError, validDate, validateSchedule } from '../src/state/reminders.js'
 import { ACCOUNTS, PASSWORD, isAccount, signToken, verifyToken } from './auth.js'
 import { loadState, saveState } from './storage.js'
 import { generateReply } from './ai.js'
@@ -13,27 +15,31 @@ type Type = Action['type']
 
 export const ROLE_ACTIONS: Record<Role, Type[]> = {
   elder: [
-    'reset', 'reminder/respond', 'device/push', 'device/disconnect', 'device/reconnect', 'device/fall',
+    'reset', 'notif/readAll', 'reminder/respond', 'device/manual', 'device/push', 'device/disconnect', 'device/reconnect', 'device/fall',
     'chat/say', 'chat/startService', 'chat/handoff', 'chat/clear', 'chat/resume', 'request/cancel', 'emergency/call115', 'emergency/callFamily',
   ],
   family: [
-    'reset', 'notif/readAll', 'family/decline', 'family/approveReminder',
+    'reset', 'notif/readAll', 'reminder/save', 'reminder/cancel', 'reminder/approve', 'family/decline', 'family/approveReminder',
     'family/contacted', 'case/ack', 'family/reply',
   ],
   staff: [
-    'reset', 'notif/readAll', 'staff/verify', 'staff/assign', 'staff/partnerReport', 'staff/complete', 'staff/decline',
-    'staff/approveReminder', 'staff/contacted', 'staff/takeEvent', 'staff/resolveEvent', 'case/ack', 'staff/askFamily',
+    'reset', 'notif/readAll', 'reminder/save', 'reminder/cancel', 'staff/verify', 'staff/assign', 'staff/partnerReport', 'staff/complete', 'staff/decline',
+    'staff/contacted', 'staff/takeEvent', 'staff/resolveEvent', 'case/ack', 'staff/askFamily',
   ],
 }
 
 // 'id' = non-empty string, 'text' = string; both at most MAX_TEXT. An array lists the allowed literals.
-type Check = 'id' | 'text' | readonly string[]
+type Check = 'id' | 'text' | 'reading' | 'timestamp' | 'revision' | 'optional-id' | readonly string[]
 const MAX_TEXT = 500
 const METRICS = ['bp', 'hr', 'glucose', 'spo2'] as const
 const DEVICES = [...METRICS, 'fall'] as const
 const FIELDS: Record<Type, Record<string, Check>> = {
   'reset': {},
-  'reminder/respond': { id: 'id', response: ['received', 'snooze', 'cant_do'] },
+  'reminder/respond': { id: 'id', dueAt: 'timestamp', response: ['received', 'snooze', 'cant_do'] },
+  'reminder/save': { id: 'text', requestId: 'optional-id', kind: ['medicine', 'meal', 'clinic', 'activity'], title: 'id', note: 'text', times: 'id', startDate: 'id', endDate: 'text', repeat: ['daily', 'once'], medicine: 'text', dose: 'text', instructions: 'text', location: 'text' },
+  'reminder/approve': { id: 'id', revision: 'revision' },
+  'reminder/cancel': { id: 'id', date: 'id' },
+  'device/manual': { deviceId: METRICS, value: 'reading' },
   'device/push': { deviceId: METRICS, mode: ['normal', 'high', 'suspicious'] },
   'device/disconnect': { deviceId: DEVICES },
   'device/reconnect': { deviceId: DEVICES },
@@ -64,9 +70,14 @@ const FIELDS: Record<Type, Record<string, Check>> = {
   'emergency/callFamily': {},
 }
 
-const ok = (v: unknown, c: Check) =>
-  typeof c !== 'string' ? c.includes(v as string)
-    : typeof v === 'string' && v.length <= MAX_TEXT && (c === 'text' || v.length > 0)
+function ok(v: unknown, c: Check): boolean {
+  if (typeof c !== 'string') return c.includes(v as string)
+  if (c === 'revision') return typeof v === 'number' && Number.isSafeInteger(v) && v >= 0
+  if (c === 'timestamp') return typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 8.64e15
+  if (c === 'reading') return typeof v === 'number' && Number.isFinite(v) || Array.isArray(v) && v.length === 2 && v.every((x) => typeof x === 'number' && Number.isFinite(x))
+  if (c === 'optional-id') return v === undefined || ok(v, 'id')
+  return typeof v === 'string' && v.length <= MAX_TEXT && (c === 'text' || v.length > 0)
+}
 
 // Returns the action rebuilt from known fields only, or the HTTP status that rejects it.
 function parseAction(body: unknown, role: Role): Action | 400 | 403 {
@@ -78,8 +89,12 @@ function parseAction(body: unknown, role: Role): Action | 400 | 403 {
   const spec = Object.entries(FIELDS[type])
   if (!spec.every(([k, c]) => ok(b[k], c))) return 400
   // the audience, and who acknowledges, is the caller's role, never the client's choice
-  const injected = type === 'notif/readAll' ? { to: role } : type === 'case/ack' ? { by: role } : {}
-  return { type, ...Object.fromEntries(spec.map(([k]) => [k, b[k]])), ...injected } as Action
+  const injected = type === 'notif/readAll' ? { to: role } : ['case/ack', 'reminder/save', 'reminder/cancel'].includes(type) ? { by: role } : {}
+  const action = { type, ...Object.fromEntries(spec.map(([k]) => [k, b[k]])), ...injected } as Action
+  if (action.type === 'reminder/save' && (validateSchedule(action) || action.id && action.times.split(',').length !== 1)) return 400
+  if (action.type === 'reminder/cancel' && !validDate(action.date)) return 400
+  if (action.type === 'device/manual' && !validManualReading(action.deviceId, action.value)) return 400
+  return action
 }
 
 // ponytail: shallow shape check, not a schema; bump `version` when the State shape changes.
@@ -161,7 +176,12 @@ export async function handle(req: Request): Promise<Response> {
   if (path === '/api/action' && req.method === 'POST') {
     const action = parseAction(await readJson(req), who.role)
     if (typeof action === 'number') return json(action, { error: action === 403 ? 'Tài khoản này không được thực hiện thao tác này' : 'Thao tác không hợp lệ' })
-    return apply(action)
+    try {
+      return await apply(action)
+    } catch (err) {
+      if (err instanceof ReminderError) return json(400, { error: err.message })
+      throw err
+    }
   }
   return json(405, { error: 'Method not allowed' })
 }

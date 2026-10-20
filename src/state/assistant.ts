@@ -2,7 +2,7 @@ import { addCase, createEvent, familyName, fmtTime, fmtValue, has, nextCaseId, n
 import { REMINDER_STATUS, REQUEST_STATUS, SERVICE } from './labels.js'
 import { isFinal, nextOwner, ownerAtConfirm, raiseEmergency, transition } from './cases.js'
 import { deviceStatus } from './devices.js'
-import { reminderStatus } from './reminders.js'
+import { reminderStatus, remindersOnDay } from './reminders.js'
 import type { DeviceKind, RequestCase, ServiceType, State } from './types.js'
 
 export type Intent = 'emergency' | 'medical_decision' | 'problem' | 'reminder' | 'contact' | 'service' | 'info' | 'unknown'
@@ -199,10 +199,10 @@ function answerInfo(s: State, text: string): State {
     const disclaimer = 'Cháu không đánh giá được tình trạng sức khỏe; bác có thể hỏi bác sĩ ạ.'
     if (!last) return sayAi(s, `Chưa có dữ liệu từ ${d.name} (nguồn: thiết bị giả lập). ${disclaimer}`)
     const prefix = deviceStatus(d, s.now) === 'missing' ? `Hiện thiếu dữ liệu mới từ ${d.name}. ` : ''
-    return sayAi(s, `${prefix}Lần đo gần nhất của ${d.name}: ${fmtValue(last.value)} ${d.unit} lúc ${fmtTime(last.at)} (nguồn: thiết bị giả lập). ${disclaimer}`)
+    return sayAi(s, `${prefix}Lần đo gần nhất của ${d.name}: ${fmtValue(last.value)} ${d.unit} lúc ${fmtTime(last.at)} (nguồn: ${last.source === 'elder' ? 'người cao tuổi nhập tay' : 'thiết bị giả lập'}). ${disclaimer}`)
   }
   if (has(w, ['lich'])) {
-    const lines = [...s.reminders].sort((a, b) => a.dueAt - b.dueAt)
+    const lines = remindersOnDay(s)
       .map((r) => `${fmtTime(r.dueAt)} ${r.title} (${REMINDER_STATUS[reminderStatus(r, s.now)]})`)
     return sayAi(s, `Lịch hôm nay của bác: ${lines.join('; ')}.`)
   }

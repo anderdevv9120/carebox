@@ -56,7 +56,7 @@ function AssignAction({ id }: { id: string }) {
 }
 
 function Actions({ c }: { c: Case }) {
-  const { state } = useStore()
+  const { state, dispatch } = useStore()
   const id = c.id
   return (
     <div className="actions">
@@ -67,7 +67,7 @@ function Actions({ c }: { c: Case }) {
       <AssignAction id={id} />
       <InputAction label="Ghi nhận báo cáo" placeholder="Care Partner báo lại điều gì?" build={(note) => ({ type: 'staff/partnerReport', id, note })} />
       <ActionButton label="Xác nhận hoàn tất" action={{ type: 'staff/complete', id }} />
-      <InputAction label="Duyệt lịch nhắc" type="time" probe="09:00" build={(time) => ({ type: 'staff/approveReminder', id, time })} />
+      {c.kind === 'request' && c.service === 'add_reminder' && c.status === 'await_staff' && <button className="btn" onClick={() => dispatch({ type: 'nav', screen: 's-schedule', caseId: id })}>Nhập lịch trình từ yêu cầu</button>}
       <ActionButton label="Đã liên hệ" action={{ type: 'staff/contacted', id }} />
       <InputAction label="Nhờ gia đình hỗ trợ" placeholder={`Câu hỏi gửi ${familyName(state)}`} build={(question) => ({ type: 'staff/askFamily', id, question })} />
       <InputAction label="Từ chối" placeholder="Lý do từ chối (gia đình sẽ thấy)" danger build={(reason) => ({ type: 'staff/decline', id, reason })} />
