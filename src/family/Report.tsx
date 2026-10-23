@@ -2,6 +2,7 @@ import { useStore } from '../state/store'
 import { fmtDate, fmtTime, staffName, vnDay } from '../state/helpers'
 import { isFinal, nextOwner } from '../state/cases'
 import { REMINDER_ICON } from '../elder/Schedule'
+import { remindersOnDay } from '../state/reminders'
 import { DeviceBadge, PriorityBadge, ReminderBadge, SourceTag, StatusBadge } from '../ui/Badges'
 import type { RequestCase } from '../state/types'
 
@@ -37,7 +38,7 @@ export function Report() {
 
       <section className="card">
         <b>Lịch hôm nay</b>
-        {[...state.reminders].sort((a, b) => a.dueAt - b.dueAt).map((r) => (
+        {remindersOnDay(state).map((r) => (
           <div key={r.id} className="row between small line">
             <span>{REMINDER_ICON[r.kind]} {fmtTime(r.dueAt)} {r.title}</span>
             <ReminderBadge r={r} now={state.now} />

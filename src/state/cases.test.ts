@@ -46,6 +46,10 @@ describe('request workflow', () => {
     expect(added).toMatchObject({ id: 'r-CB-010', daily: true, title: 'Nhắc uống nước', kind: 'activity' })
     expect(fmtTime(added.dueAt)).toBe('18:30')
     expect(s.reminders).toHaveLength(s0r.reminders.length + 1)
+    expect(s.notifications.slice(s0r.notifications.length).map((n) => [n.to, n.source])).toEqual([
+      ['elder', 'family'], ['staff', 'family'],
+    ])
+    expect(reduce(s, { type: 'family/approveReminder', id: 'CB-010', time: '18:30' })).toBe(s)
   })
 
   test('contacted completes contact_family from await_family', () => {
@@ -212,12 +216,11 @@ describe('staff request workflow', () => {
     expect(reduce(finished, decline)).toBe(finished)
   })
 
-  test('medicine reminder: staff approves with kind medicine', () => {
-    const s = withRequest('add_reminder', 'await_staff', 'staff', 'Uống thuốc huyết áp')
-    expect(reduce(s, { type: 'staff/approveReminder', id: 'CB-010', time: 'abc' })).toBe(s)
-    const out = reduce(s, { type: 'staff/approveReminder', id: 'CB-010', time: '09:00' })
-    expect(req(out, 'CB-010').status).toBe('done')
-    expect(out.reminders.at(-1)).toMatchObject({ id: 'r-CB-010', kind: 'medicine', daily: true })
+  test('staff cannot activate free-text reminder requests without the structured schedule form', () => {
+    for (const title of ['Uống thuốc huyết áp', 'Nhắc bác uống Amlodipin 5mg', 'Nhắc uống nước']) {
+      const s = withRequest('add_reminder', 'await_staff', 'staff', title)
+      expect(reduce(s, { type: 'staff/approveReminder', id: 'CB-010', time: '09:00' })).toBe(s)
+    }
   })
 
   test('staff/contacted completes contact_family from await_staff', () => {
@@ -327,7 +330,7 @@ describe('event workflow', () => {
   test('cant_do on a medicine reminder → staff-owned priority event, both audiences told', () => {
     const before = s0()
     const r = before.reminders.find((x) => x.kind === 'medicine' && !x.response)!
-    const out = reduce(before, { type: 'reminder/respond', id: r.id, response: 'cant_do' })
+    const out = reduce(before, { type: 'reminder/respond', id: r.id, dueAt: r.dueAt, response: 'cant_do' })
     expect(get(out, 'EVT-001')).toMatchObject({ owner: 'staff', priority: 'priority', status: 'to_verify', reminderId: r.id })
     const fresh = out.notifications.slice(before.notifications.length)
     expect(fresh.map((n) => n.to).sort()).toEqual(['family', 'staff'])

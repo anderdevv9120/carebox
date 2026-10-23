@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { seedBare } from './testing'
 import { reduce } from './reducer'
 import { MIN } from './helpers'
-import { STALE_AFTER, deviceStatus, evaluate, hasOpenMissing, sweepDevices } from './devices'
+import { STALE_AFTER, deviceStatus, evaluate, hasOpenMissing, sweepDevices, validManualReading } from './devices'
 import { tick } from './clock'
 import type { EventCase, State } from './types'
 
@@ -38,6 +38,24 @@ describe('deviceStatus', () => {
 })
 
 describe('device actions', () => {
+  test('manual readings cannot hide stale hardware and preserve their own source and threshold alerts', () => {
+    const s = s0()
+    const stale = { ...s, now: s.now + (STALE_AFTER + 1) * MIN }
+    const out = reduce(stale, { type: 'device/manual', deviceId: 'hr', value: 74 })
+    expect(dev(out, 'hr').readings.at(-1)).toMatchObject({ value: 74, source: 'elder' })
+    expect(deviceStatus(dev(out, 'hr'), out.now)).toBe('missing')
+    const alert = sweepDevices(out).cases.find((c) => c.kind === 'event' && c.deviceId === 'hr')
+    expect(alert).toMatchObject({ source: 'device', priority: 'uncertain' })
+  })
+
+  test('manual numeric limits match each metric rather than accepting arbitrary percentages and values', () => {
+    for (const [id, value] of [['spo2', 1000], ['spo2', 101], ['hr', 1000], ['glucose', 1000], ['bp', [1000, 90]] ] as const)
+      expect(validManualReading(id, value)).toBe(false)
+    expect(validManualReading('spo2', 89)).toBe(true)
+    expect(validManualReading('bp', [165, 100])).toBe(true)
+    expect(validManualReading('glucose', 5.6)).toBe(true)
+  })
+
   test('push high creates a to_verify event with the exact detail copy and no diagnosis words', () => {
     const out = reduce(s0(), { type: 'device/push', deviceId: 'bp', mode: 'high' })
     const ev = events(out)

@@ -12,9 +12,18 @@ Responsive three-role web app of the CAREBOX care flow (`doc.pdf`, `design.jpg`)
 | `con.gai` | Chị Minh (con gái) — gia đình | `carebox` |
 | `nhan.vien` | Anh Nam — nhân viên điều phối (staff) | `carebox` |
 
-Staff flow: the elder's service requests (medicine, groceries, clinic, daily help, medicine reminders), device alerts, unclear requests and emergencies go to Anh Nam's **Bảng điều phối**. He verifies each request. For medicine, groceries, clinic and daily help he also assigns a seeded Care Partner (Anh Tuấn, Chị Hoa), records the Care Partner's report and confirms completion; none is Hoàn tất without both. Medicine reminders have no Care Partner: staff approve them. Staff close alerts; the family can only acknowledge an emergency ("Tôi đã tiếp nhận"). The family sees these cases read-only and answers staff questions; it keeps its own contact and non-medicine reminder requests, and staff take a family-owned request over if it waits 30 minutes. Dose or medicine changes are refused by the AI and sent to staff.
+Staff flow: the elder's service requests (medicine, groceries, clinic, daily help, medicine reminders), device alerts, unclear requests and emergencies go to Anh Nam's **Bảng điều phối**. He verifies each request. For medicine, groceries, clinic and daily help he also assigns a seeded Care Partner (Anh Tuấn, Chị Hoa), records the Care Partner's report and confirms completion; none is Hoàn tất without both. Medicine reminders have no Care Partner: staff-entered medication waits for family confirmation. Staff close alerts; the family can only acknowledge an emergency ("Tôi đã tiếp nhận"). The family sees these cases read-only and answers staff questions; it keeps its own contact and non-medicine reminder requests, and staff take a family-owned request over if it waits 30 minutes. Dose or medicine changes are refused by the AI and sent to staff.
 
 State version 3: stored v2 data is re-seeded once after deploy.
+
+## Schedules and health entry
+
+- **Gia đình / Nhân viên → Lịch trình:** add and edit medication, meals, appointments and activities. Medication collects name/strength, dose, instructions, daily times, and inclusive start/end dates; appointments collect their location. Each dose time can be edited separately. Family saves confirm medication immediately; staff saves and edits wait for family confirmation, including the older reminder-request flow. Unconfirmed medication does not appear in the elder's active schedule or raise overdue alerts.
+- **Hủy lần…:** cancel only the selected time on the selected date. Other dates and dose times remain. All other roles receive notifications when a schedule is added, edited, confirmed or canceled; elders open them from the top-bar bell.
+- **Bà Lan → Uống thuốc / Lịch khám:** show every confirmed, uncanceled occurrence today, including acknowledged reminders. Clinic appointments offer **Hỗ trợ gọi xe**, a simulated booking screen that never calls a real transport service.
+- **Bà Lan → Sức khỏe → Nhập chỉ số sức khỏe:** enter blood pressure, pulse, glucose or SpO₂. Readings use the existing demo thresholds, charts and alerts to family/staff, and are labeled as elder-entered. Manual entry does not reconnect a disconnected device. Existing simulator, disconnect and fall buttons remain.
+
+Existing v3 state remains compatible. The reset button loads the updated sample medication and clinic data; it also clears existing demo data and chat, so use it only when that is intended.
 
 ## Run locally
 

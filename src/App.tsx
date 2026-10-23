@@ -7,6 +7,8 @@ import { notificationsFor } from './state/helpers'
 import type { EventCase, Screen } from './state/types'
 import { Home } from './elder/Home'
 import { Schedule } from './elder/Schedule'
+import { Ride } from './elder/Ride'
+import { ScheduleManager } from './ui/ScheduleManager'
 import { Health } from './elder/Health'
 import { Services } from './elder/Services'
 import { Requests } from './elder/Requests'
@@ -20,7 +22,7 @@ import { Board } from './staff/Board'
 import { CaseDetail } from './staff/CaseDetail'
 
 const ELDER: Partial<Record<Screen, () => ReactNode>> = {
-  home: Home, schedule: Schedule, health: Health, services: Services, requests: Requests, chat: Chat,
+  home: Home, schedule: Schedule, medicine: Schedule, clinic: Schedule, ride: Ride, notifications: Notifications, health: Health, services: Services, requests: Requests, chat: Chat,
 }
 const ELDER_TABS: TabItem<Screen>[] = [
   { id: 'home', label: 'Trang chủ', icon: '🏠' },
@@ -33,11 +35,11 @@ const ELDER_TABS: TabItem<Screen>[] = [
 ]
 
 const FAMILY: Partial<Record<Screen, () => ReactNode>> = {
-  'f-dashboard': Dashboard, 'f-requests': FamilyRequests, 'f-profile': Profile, 'f-notifications': Notifications, 'f-report': Report,
+  'f-dashboard': Dashboard, 'f-schedule': ScheduleManager, 'f-requests': FamilyRequests, 'f-profile': Profile, 'f-notifications': Notifications, 'f-report': Report,
 }
 
 const STAFF: Partial<Record<Screen, () => ReactNode>> = {
-  's-board': Board, 's-case': CaseDetail, 's-notifications': Notifications, 's-report': Report, 's-profile': Profile,
+  's-board': Board, 's-schedule': ScheduleManager, 's-case': CaseDetail, 's-notifications': Notifications, 's-report': Report, 's-profile': Profile,
 }
 
 export default function App() {
@@ -45,6 +47,8 @@ export default function App() {
   const go = (screen: Screen) => dispatch({ type: 'nav', screen })
   const elder = session.role === 'elder'
   const staff = session.role === 'staff'
+  const pendingMedication = state.reminders.filter((r) => r.approval === 'pending').length
+  const elderUnread = notificationsFor(state, 'elder').filter((n) => !n.read).length
 
   let View: () => ReactNode
   let tabs: TabItem<Screen>[]
@@ -55,6 +59,7 @@ export default function App() {
     View = STAFF[view.screen] ?? Board
     tabs = [
       { id: 's-board', label: 'Bảng điều phối', icon: '🗂️', badge: staffBoard(state).counters.verify },
+      { id: 's-schedule', label: 'Lịch trình', icon: '🗓️', badge: pendingMedication },
       { id: 's-notifications', label: 'Thông báo', icon: '🔔', badge: notificationsFor(state, 'staff').filter((n) => !n.read).length },
       { id: 's-report', label: 'Báo cáo', icon: '📄' },
       { id: 's-profile', label: 'Hồ sơ & thiết bị', icon: '👵' },
@@ -63,6 +68,7 @@ export default function App() {
     View = FAMILY[view.screen] ?? Dashboard
     tabs = [
       { id: 'f-dashboard', label: 'Tổng quan', icon: '🏠' },
+      { id: 'f-schedule', label: 'Lịch trình', icon: '🗓️', badge: pendingMedication },
       { id: 'f-requests', label: 'Yêu cầu của mẹ', icon: '📋', badge: familyTodo(state) },
       { id: 'f-notifications', label: 'Thông báo', icon: '🔔', badge: notificationsFor(state, 'family').filter((n) => !n.read).length },
       { id: 'f-profile', label: 'Hồ sơ & thiết bị', icon: '👵' },
@@ -83,11 +89,12 @@ export default function App() {
         </div>
         <div className="topbar-right">
           <span className="who">{session.name}</span>
+          {elder && <button className="btn ghost sm" aria-label={`Thông báo, ${elderUnread} chưa đọc`} onClick={() => go('notifications')}>🔔{elderUnread > 0 && ` ${elderUnread}`}</button>}
           <button className="icon-btn" onClick={reset} title="Đặt lại dữ liệu" aria-label="Đặt lại dữ liệu">↺</button>
           <button className="btn ghost sm" onClick={logout}>Đăng xuất</button>
         </div>
       </header>
-      <TabBar items={tabs} active={view.screen === 's-case' ? 's-board' : view.screen} onSelect={go} />
+      <TabBar items={tabs} active={view.screen === 's-case' ? 's-board' : ['medicine', 'clinic', 'ride'].includes(view.screen) ? 'schedule' : view.screen} onSelect={go} />
       <main className="content">
         {sos && (
           <div className="emergency-banner" role="alert">

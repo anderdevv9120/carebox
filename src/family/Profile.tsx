@@ -41,6 +41,7 @@ export function Profile() {
                 <div className="muted small">
                   {last ? `Lần đo cuối ${fmtTime(last.at)}: ${fmtValue(last.value)} ${d.unit}` : 'Chưa có tín hiệu'}
                 </div>
+                {last && <div className="muted small">Nguồn: {last.source === 'elder' ? 'Người cao tuổi nhập tay' : 'Thiết bị giả lập'}</div>}
               </div>
               <DeviceBadge d={d} now={state.now} />
             </div>

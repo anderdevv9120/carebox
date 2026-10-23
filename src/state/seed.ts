@@ -15,16 +15,16 @@ export const GREETING = 'Bác cần CAREBOX hỗ trợ gì ạ? Bác có thể n
 export function seed(now: number): State {
   const t = (hhmm: string) => atVN(now, hhmm)
   const schedule: Reminder[] = [
-    { id: 'r1', dueAt: t('07:30'), title: 'Uống thuốc huyết áp', note: 'Theo đơn bác sĩ đã được gia đình cung cấp', kind: 'medicine', daily: true },
+    { id: 'r1', dueAt: t('07:30'), title: 'Uống thuốc huyết áp', note: 'Dữ liệu demo do gia đình nhập, theo đơn đã xác nhận', kind: 'medicine', daily: true, medicine: 'Amlodipin 5mg', dose: '1 viên', instructions: 'Uống sau ăn sáng', createdBy: 'family', approval: 'confirmed', startDate: vnDay(now), endDate: vnDay(now + 30 * DAY) },
     { id: 'r2', dueAt: t('08:00'), title: 'Ăn sáng', note: '', kind: 'meal', daily: true },
-    { id: 'r3', dueAt: t('09:00'), title: 'Đi khám định kỳ', note: 'Bệnh viện E, Cầu Giấy', kind: 'clinic', daily: true },
-    { id: 'r4', dueAt: t('12:00'), title: 'Uống thuốc bổ', note: 'Theo đơn bác sĩ đã được gia đình cung cấp', kind: 'medicine', daily: true },
+    { id: 'r3', dueAt: t('09:00'), title: 'Đi khám định kỳ', note: 'Dữ liệu demo do nhân viên CAREBOX nhập', kind: 'clinic', location: 'Bệnh viện E, Cầu Giấy', createdBy: 'staff', approval: 'confirmed', startDate: vnDay(now), endDate: vnDay(now) },
+    { id: 'r4', dueAt: t('12:00'), title: 'Uống thuốc bổ', note: 'Dữ liệu demo do gia đình nhập, theo đơn đã xác nhận', kind: 'medicine', daily: true, medicine: 'Vitamin D3 1000 IU', dose: '1 viên', instructions: 'Uống sau ăn trưa', createdBy: 'family', approval: 'confirmed', startDate: vnDay(now), endDate: vnDay(now + 30 * DAY) },
     { id: 'r5', dueAt: t('16:00'), title: 'Đi dạo', note: 'Công viên Nghĩa Đô', kind: 'activity', daily: true },
   ]
   // Past times count as answered so a reset never bursts into "Chưa có xác nhận" alerts.
   const reminders: Reminder[] = [
     ...schedule.map((r) => (r.dueAt < now ? { ...r, response: 'received' as const, respondedAt: r.dueAt } : r)),
-    { id: 'r-demo', dueAt: now + 3 * MIN, title: 'Uống thuốc theo đơn', note: 'Theo lịch nhắc đã cài đặt', kind: 'medicine' },
+    { id: 'r-demo', dueAt: now + 3 * MIN, title: 'Uống thuốc theo đơn', note: 'Dữ liệu demo do gia đình nhập', kind: 'medicine', medicine: 'Thuốc theo đơn demo', dose: '1 viên', instructions: 'Theo hướng dẫn trên đơn', createdBy: 'family', approval: 'confirmed' },
   ]
   const devices: Device[] = [
     { id: 'bp', name: 'Máy đo huyết áp', unit: 'mmHg', connected: true,

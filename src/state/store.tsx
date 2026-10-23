@@ -4,8 +4,8 @@ import type { Action } from './reducer'
 import type { Screen, State } from './types'
 
 // Per-device UI state; never sent to the server.
-export interface View { screen: Screen; caseId?: string; dismissedEmergency?: string }
-export type ClientAction = Action | { type: 'nav'; screen: Screen; caseId?: string } | { type: 'emergency/dismiss' }
+export interface View { screen: Screen; caseId?: string; reminderId?: string; dismissedEmergency?: string }
+export type ClientAction = Action | { type: 'nav'; screen: Screen; caseId?: string; reminderId?: string } | { type: 'emergency/dismiss' }
 
 interface Store { state: State; dispatch: (a: ClientAction) => void | Promise<boolean>; view: View; session: Session; logout: () => void; chatBusy: boolean }
 const Ctx = createContext<Store | null>(null)
@@ -46,7 +46,7 @@ export function StoreProvider({ session, onLogout, children }: { session: Sessio
   }, [run, session.token])
 
   const dispatch = useCallback((a: ClientAction) => {
-    if (a.type === 'nav') return setView((v) => ({ ...v, screen: a.screen, caseId: a.caseId }))
+    if (a.type === 'nav') return setView((v) => ({ ...v, screen: a.screen, caseId: a.caseId, reminderId: a.reminderId }))
     if (a.type === 'emergency/dismiss') return setView((v) => ({ ...v, dismissedEmergency: emergencyId.current }))
     if (a.type === 'chat/say') {
       if (busyRef.current) return
@@ -57,7 +57,7 @@ export function StoreProvider({ session, onLogout, children }: { session: Sessio
         setChatBusy(false)
       })
     }
-    void run(postAction(session.token, a), true)
+    return run(postAction(session.token, a), true)
   }, [run, session.token])
 
   if (!state) return <div className="loading">Đang tải…</div>

@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useStore } from '../state/store'
 import { fmtDayMonth, fmtTime, fmtValue, vnDay } from '../state/helpers'
-import { deviceStatus, THRESHOLDS } from '../state/devices'
+import { deviceStatus, PLAUSIBLE, THRESHOLDS, validManualReading } from '../state/devices'
 import { DeviceBadge, SourceTag } from '../ui/Badges'
 import { LineChart } from '../ui/LineChart'
-import type { Device } from '../state/types'
+import type { Device, DeviceKind } from '../state/types'
 
 const ICON: Record<string, string> = { bp: '❤️', hr: '💓', glucose: '🩸', spo2: '🫁', fall: '🛡️' }
 const LABEL: Record<string, string> = { bp: 'Huyết áp', hr: 'Nhịp tim', glucose: 'Đường huyết', spo2: 'SpO₂' }
@@ -17,18 +17,55 @@ const CHARTS = [
 export function DeviceCard({ d, now }: { d: Device; now: number }) {
   const last = d.readings.at(-1)
   const missing = deviceStatus(d, now) === 'missing'
+  const manual = last?.source === 'elder'
   return (
     <div className="card metric">
       <div className="row between">
         <span className="metric-name">{ICON[d.id]} {LABEL[d.id]}</span>
       </div>
       <div className="metric-value">
-        {last && !missing ? fmtValue(last.value) : '—'} <small>{!missing && d.unit}</small>
+        {last && (!missing || manual) ? fmtValue(last.value) : '—'} <small>{(!missing || manual) && d.unit}</small>
       </div>
       <DeviceBadge d={d} now={now} />
-      <div className="muted small">{last ? (missing ? `Lần cuối: ${fmtTime(last.at)}` : `Đo lúc ${fmtTime(last.at)}`) : 'Chưa có dữ liệu'}</div>
+      {last && <SourceTag source={manual ? 'elder' : 'device'} />}
+      <div className="muted small">{last ? (manual ? `Nhập lúc ${fmtTime(last.at)}` : missing ? `Lần cuối: ${fmtTime(last.at)}` : `Đo lúc ${fmtTime(last.at)}`) : 'Chưa có dữ liệu'}</div>
     </div>
   )
+}
+
+function ManualReading() {
+  const { dispatch } = useStore()
+  const [metric, setMetric] = useState<Exclude<DeviceKind, 'fall'>>('bp')
+  const [value, setValue] = useState('')
+  const [diastolic, setDiastolic] = useState('')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    if (saving) return
+    const reading = metric === 'bp' ? [Number(value), Number(diastolic)] : Number(value)
+    if (!validManualReading(metric, reading)) { setError('Bác kiểm tra lại số liệu nhé. Huyết áp tâm thu cần lớn hơn tâm trương.'); return }
+    setError('')
+    setMessage('')
+    setSaving(true)
+    const saved = await dispatch({ type: 'device/manual', deviceId: metric, value: reading })
+    setSaving(false)
+    if (saved) { setMessage(`Đã lưu ${LABEL[metric]}: ${fmtValue(reading)}. Gia đình và nhân viên sẽ được cảnh báo nếu chỉ số vượt ngưỡng.`); setValue(''); setDiastolic('') }
+  }
+  return <form className="card form-stack" onSubmit={submit} aria-label="Nhập chỉ số sức khỏe">
+    <h2>✍️ Nhập chỉ số sức khỏe</h2>
+    <label>Chỉ số<select className="input" value={metric} onChange={(e) => { setMetric(e.target.value as typeof metric); setValue(''); setDiastolic(''); setError(''); setMessage('') }}>
+      {Object.entries(LABEL).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+    </select></label>
+    <div className="form-grid">
+      <label>{metric === 'bp' ? 'Tâm thu (mmHg)' : `${LABEL[metric]} (${metric === 'hr' ? 'bpm' : metric === 'glucose' ? 'mmol/L' : '%'})`}<input className="input" type="number" inputMode="decimal" required min="0.01" max={metric === 'bp' ? PLAUSIBLE.bp.sys[1] : PLAUSIBLE[metric][1]} step="any" value={value} onChange={(e) => setValue(e.target.value)} /></label>
+      {metric === 'bp' && <label>Tâm trương (mmHg)<input className="input" type="number" inputMode="decimal" required min="0.01" max={PLAUSIBLE.bp.dia[1]} step="any" value={diastolic} onChange={(e) => setDiastolic(e.target.value)} /></label>}
+    </div>
+    {error && <p className="danger-text small" role="alert">{error}</p>}
+    {message && <p className="small" role="status">{message}</p>}
+    <button className="btn wide" type="submit" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu chỉ số'}</button>
+  </form>
 }
 
 // Demo-only device controls; each button sends the same action a real device feed would cause.
@@ -73,6 +110,7 @@ export function Health() {
       <div className="grid2">
         {metrics.map((d) => <DeviceCard key={d.id} d={d} now={state.now} />)}
       </div>
+      <ManualReading />
       <div className="card row">
         <span className="icon-circle">{ICON.fall}</span>
         <div className="grow">
@@ -91,7 +129,7 @@ export function Health() {
           ))}
         </div>
         <LineChart points={series} band={[...spec.band] as [number, number]} />
-        <div className="row between"><SourceTag source="device" /><span className="muted small">{chart === 'bp' ? 'Tâm thu (mmHg)' : ''}</span></div>
+        <div className="row between wrap"><span className="small muted">Dữ liệu thiết bị và chỉ số bác nhập tay</span><span className="muted small">{chart === 'bp' ? 'Tâm thu (mmHg)' : ''}</span></div>
       </div>
       <p className="muted small center">Ngưỡng giả lập — không phải chỉ định y tế. Không kết luận sức khỏe tổng thể.</p>
       <SimDevices />

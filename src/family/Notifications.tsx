@@ -14,7 +14,7 @@ const ICON: Record<NotifCategory, string> = { request: '🛒', health: '💓', o
 
 export function Notifications() {
   const { state, dispatch, session } = useStore()
-  const audience = session.role === 'staff' ? 'staff' : 'family'
+  const audience = session.role
   const [tab, setTab] = useState<NotifCategory | 'all'>('all')
   const [unreadAtOpen] = useState(() => new Set(notificationsFor(state, audience).filter((n) => !n.read).map((n) => n.id)))
   useEffect(() => {
@@ -24,7 +24,7 @@ export function Notifications() {
     .filter((n) => tab === 'all' || n.category === tab)
     .sort((a, b) => b.at - a.at)
   return (
-    <div className="family-page notifications-screen">
+    <div className={`${audience === 'elder' ? 'elder' : 'family-page'} notifications-screen`}>
       <h1 className="screen-title">🔔 Thông báo</h1>
       <div className="tabs">
         {TABS.map((t) => <button key={t.id} className={t.id === tab ? 'active' : ''} onClick={() => setTab(t.id)}>{t.label}</button>)}
@@ -42,6 +42,7 @@ export function Notifications() {
         </div>
       ))}
       {!list.length && <p className="empty">Chưa có thông báo</p>}
+      <button className="btn ghost wide" onClick={() => dispatch({ type: 'nav', screen: audience === 'elder' ? 'schedule' : audience === 'family' ? 'f-schedule' : 's-schedule' })}>Xem lịch trình</button>
       <p className="muted small center">“Đã gửi thông báo” không có nghĩa là đã có người đọc hoặc đã xử lý.</p>
     </div>
   )

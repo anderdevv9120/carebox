@@ -1,17 +1,17 @@
 export type Role = 'elder' | 'family' | 'staff'
 export type Screen =
-  | 'home' | 'schedule' | 'health' | 'services' | 'requests' | 'chat'
-  | 'f-dashboard' | 'f-requests' | 'f-notifications' | 'f-profile' | 'f-report'
-  | 's-board' | 's-case' | 's-notifications' | 's-report' | 's-profile'
+  | 'home' | 'schedule' | 'medicine' | 'clinic' | 'ride' | 'notifications' | 'health' | 'services' | 'requests' | 'chat'
+  | 'f-dashboard' | 'f-schedule' | 'f-requests' | 'f-notifications' | 'f-profile' | 'f-report'
+  | 's-board' | 's-schedule' | 's-case' | 's-notifications' | 's-report' | 's-profile'
 export type Priority = 'normal' | 'priority' | 'emergency' | 'uncertain'
 export type Source = 'device' | 'elder' | 'family' | 'ai' | 'staff'
 export type Owner = 'staff' | 'family'
-export type Audience = 'family' | 'staff'
+export type Audience = Role
 export type ServiceType = 'medicine' | 'groceries' | 'clinic' | 'daily_help' | 'contact_family' | 'add_reminder'
 export type RequestStatus = 'need_info' | 'await_confirm' | 'await_family' | 'await_staff' | 'in_progress' | 'done' | 'refused'
 export type EventStatus = 'to_verify' | 'handling' | 'resolved'
 export type DeviceStatus = 'normal' | 'attention' | 'missing' | 'suspicious'
-export type ReminderStatus = 'upcoming' | 'due' | 'snoozed' | 'received' | 'cant_do' | 'no_confirm'
+export type ReminderStatus = 'upcoming' | 'due' | 'snoozed' | 'received' | 'cant_do' | 'no_confirm' | 'pending' | 'cancelled' | 'inactive'
 
 export interface LogEntry { at: number; by: Source; text: string }
 
@@ -60,6 +60,19 @@ export interface EventCase extends CaseBase {
 export type Case = RequestCase | EventCase
 
 export type ReminderKind = 'medicine' | 'meal' | 'clinic' | 'activity'
+export interface ReminderInput {
+  kind: ReminderKind
+  title: string
+  note: string
+  times: string
+  startDate: string
+  endDate: string
+  repeat: 'daily' | 'once'
+  medicine: string
+  dose: string
+  instructions: string
+  location: string
+}
 export interface Reminder {
   id: string
   dueAt: number
@@ -71,10 +84,22 @@ export interface Reminder {
   snoozedUntil?: number
   escalated?: boolean
   daily?: boolean
+  startDate?: string
+  endDate?: string
+  medicine?: string
+  dose?: string
+  instructions?: string
+  location?: string
+  createdBy?: Owner
+  updatedBy?: Owner
+  approval?: 'pending' | 'confirmed'
+  revision?: number
+  activatedAt?: number
+  cancelledDates?: string[]
 }
 
 export type DeviceKind = 'bp' | 'hr' | 'glucose' | 'spo2' | 'fall'
-export interface Reading { at: number; value: number | [number, number] | 'fall' }
+export interface Reading { at: number; value: number | [number, number] | 'fall'; source?: 'elder' | 'device' }
 export interface Device { id: DeviceKind; name: string; unit: string; connected: boolean; readings: Reading[] }
 
 export type NotifCategory = 'request' | 'health' | 'other'

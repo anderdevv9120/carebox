@@ -25,14 +25,14 @@ describe('reminderStatus', () => {
 describe('respond', () => {
   test('snooze sets snoozedUntil = now + 10 min', () => {
     const s = atR1()
-    const out = reduce(s, { type: 'reminder/respond', id: 'r1', response: 'snooze' })
+    const out = reduce(s, { type: 'reminder/respond', id: 'r1', dueAt: r1(s).dueAt, response: 'snooze' })
     expect(r1(out).snoozedUntil).toBe(s.now + 10 * MIN)
     expect(r1(out).response).toBeUndefined()
   })
 
   test('cant_do on a medicine reminder creates a priority event with reminderId and notifies staff and family', () => {
     const s = atR1()
-    const out = reduce(s, { type: 'reminder/respond', id: 'r1', response: 'cant_do' })
+    const out = reduce(s, { type: 'reminder/respond', id: 'r1', dueAt: r1(s).dueAt, response: 'cant_do' })
     const ev = events(out)
     expect(ev).toHaveLength(1)
     expect(ev[0]).toMatchObject({ priority: 'priority', reminderId: 'r1', status: 'to_verify' })
@@ -43,7 +43,7 @@ describe('respond', () => {
 
   test('received records response and respondedAt', () => {
     const s = atR1()
-    const out = reduce(s, { type: 'reminder/respond', id: 'r1', response: 'received' })
+    const out = reduce(s, { type: 'reminder/respond', id: 'r1', dueAt: r1(s).dueAt, response: 'received' })
     expect(r1(out)).toMatchObject({ response: 'received', respondedAt: s.now })
   })
 })
