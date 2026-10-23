@@ -16,7 +16,8 @@ Chuỗi văn bản trong dấu “…” hoặc `…` là nội dung UI/thông b
 | Chế độ AI | Mọi phần đều test **có** mô hình AI: đặt `GEMINI_API_KEY` trong `.env.local`, restart dev server, gửi thử “Chào cháu” để chắc AI trả lời. Câu khớp từ khóa (dịch vụ, khẩn cấp, đổi thuốc, báo vấn đề, lịch, chỉ số, yêu cầu), câu trả lời khi đang ở giữa luồng hỏi, và các nút bấm vẫn chạy luật cố định, nên kết quả đúng như bảng. Chỉ câu **không** khớp từ khóa mới đi qua mô hình; câu trả lời đó có thể khác giữa các lần. |
 | Reset | Bấm **↺** trên thanh trên cùng trước mỗi kịch bản. ↺ reset dữ liệu cho **cả 3 tài khoản**, không hỏi xác nhận. |
 | Đồng bộ | Các màn hình khác cập nhật trong khoảng **~3 giây**. Polling dừng khi tab bị ẩn. |
-| Mã tự sinh | Ngay sau reset, yêu cầu mới đầu tiên là **CB-004**, sự kiện/cảnh báo mới đầu tiên là **EVT-002**. Các test bên dưới dùng mã này với giả định vừa reset. |
+| Mã tự sinh | Ngay sau reset, yêu cầu mới đầu tiên là **CB-001**, sự kiện/cảnh báo mới đầu tiên là **EVT-002**. Các test bên dưới dùng mã này với giả định vừa reset. |
+| Dữ liệu yêu cầu | Sau reset **không** có yêu cầu nào (không có dữ liệu giả). Kịch bản cần một yêu cầu có sẵn sẽ tự tạo nó ở bước 0 “Chuẩn bị”. |
 
 **Ký hiệu vai trò:** 👵 Bà Lan · 👩 Chị Minh · 🧑‍💼 Anh Nam.
 
@@ -24,10 +25,10 @@ Chuỗi văn bản trong dấu “…” hoặc `…` là nội dung UI/thông b
 
 | Vai trò | Phải thấy |
 |---|---|
-| 🧑‍💼 | Bảng điều phối: **Cần xác minh 2**, **Chờ xử lý 0**, **Đang thực hiện 0**. Tab “Bảng điều phối” có badge 2. Danh sách theo thứ tự: EVT-001 “Dữ liệu thiết bị vượt ngưỡng” (Cần chú ý), CB-001 “Hỗ trợ lấy thuốc” (Chờ bổ sung thông tin), CB-003 “Đi chợ giúp bác” (Chờ điều phối). Tab Thông báo không có badge. |
-| 👩 | Tổng quan: không có thẻ “Cần chị xử lý”. Tile Thiết bị “5/5 đang kết nối” + “1 cần chú ý”. Mục “Cảnh báo cần chú ý” có EVT-001. Tab “Thông báo” badge 1. “Yêu cầu của mẹ”: mục “CAREBOX nhờ hỗ trợ” và “Việc của chị” trống; mục “Đang được CAREBOX xử lý” có EVT-001, CB-001, CB-003. |
-| 👵 | Trang chủ “Chào bà Lan! 👋”. Mục Yêu cầu (tab “Tất cả”): CB-003 Chờ điều phối, CB-001 Chờ bổ sung thông tin, CB-002 Hoàn tất. Sau khoảng 3 phút, Trang chủ hiện thẻ “Đến giờ” cho “Uống thuốc theo đơn”. |
-| Cả 3 | Báo cáo (👩/🧑‍💼): mục “Báo cáo dịch vụ” có CB-002 “Đi khám bệnh”, Care Partner Anh Tuấn, người xác nhận Anh Nam. |
+| 🧑‍💼 | Bảng điều phối: **Cần xác minh 1**, **Chờ xử lý 0**, **Đang thực hiện 0**. Tab “Bảng điều phối” có badge 1. Danh sách chỉ có EVT-001 “Dữ liệu thiết bị vượt ngưỡng” (Cần chú ý). Tab Thông báo không có badge. |
+| 👩 | Tổng quan: không có thẻ “Cần chị xử lý”. Tile Thiết bị “5/5 đang kết nối” + “1 cần chú ý”. Mục “Cảnh báo cần chú ý” có EVT-001. Tab “Thông báo” không có badge, màn hình ghi “Chưa có thông báo”. “Yêu cầu của mẹ”: mục “CAREBOX nhờ hỗ trợ” và “Việc của chị” trống; mục “Đang được CAREBOX xử lý” chỉ có EVT-001. |
+| 👵 | Trang chủ “Chào bà Lan! 👋”. Mục Yêu cầu (mọi tab): “Chưa có yêu cầu nào”. Sau khoảng 3 phút, Trang chủ hiện thẻ “Đến giờ” cho “Uống thuốc theo đơn”. |
+| Cả 3 | Báo cáo (👩/🧑‍💼): mục “Báo cáo dịch vụ” ghi “Chưa có dịch vụ được xác nhận hoàn tất.”. |
 
 ---
 
@@ -63,7 +64,7 @@ Chuỗi văn bản trong dấu “…” hoặc `…` là nội dung UI/thông b
 | C4 | Dịch vụ: gõ “chợ” vào ô tìm. | Chỉ còn dòng “Đi chợ”. Gõ chữ không khớp → “Không tìm thấy dịch vụ”. |
 | C5 | Dịch vụ → “Trò chuyện”. | Mở chat, **không** tạo yêu cầu nào. |
 | C6 | Dịch vụ → “Mua thuốc”. | Mở chat. Bà “nói” “Tôi cần mua thuốc”. AI hỏi: “Bác muốn CAREBOX hỗ trợ mua thuốc, đúng không ạ? Bác cần lấy loại thuốc nào ạ?”. Chip gợi ý: “Không biết”, “Thôi”. |
-| C7 | Yêu cầu: chuyển tab “Đang xử lý” / “Đã xong” / “Tất cả”. | Lọc đúng: yêu cầu mở / Hoàn tất + Đã từ chối / tất cả. Mỗi thẻ có “Phụ trách tiếp theo” và dòng thời gian. |
+| C7 | Tạo vài yêu cầu (ví dụ D1 tới Hoàn tất + một yêu cầu dở dang như D19 bước 0). Yêu cầu: chuyển tab “Đang xử lý” / “Đã xong” / “Tất cả”. | Lọc đúng: yêu cầu mở / Hoàn tất + Đã từ chối / tất cả. Mỗi thẻ có “Phụ trách tiếp theo” và dòng thời gian. |
 | C9 | Chat: (reset) nút **Xóa hội thoại** bị mờ. Gõ “Bác muốn đi chợ” → “Rau, trứng” → bấm **Xóa hội thoại**. | **Không** hỏi xác nhận. Chat chỉ còn lời chào “Bác cần CAREBOX hỗ trợ gì ạ? …”, chip trở về gợi ý mặc định. Yêu cầu đi chợ vẫn “Chờ bổ sung thông tin” với “Danh sách cần mua: Rau, trứng”, có nút **Tiếp tục yêu cầu**. |
 | C8 | Sức khỏe: xem các thẻ chỉ số và biểu đồ (Huyết áp/Nhịp tim/Đường huyết). | Mỗi thẻ có giá trị, đơn vị, badge trạng thái, “Đo lúc HH:MM”. Huyết áp sau reset là 165/100, badge “Cần chú ý”. Có dòng “Ngưỡng giả lập — không phải chỉ định y tế. Không kết luận sức khỏe tổng thể.” |
 
@@ -76,22 +77,22 @@ Chuỗi văn bản trong dấu “…” hoặc `…` là nội dung UI/thông b
 | # | Vai trò | Thao tác | Kết quả mong đợi |
 |---|---|---|---|
 | 1 | 👵 | Chat: gõ “Bác muốn đi chợ”. | AI: “Bác muốn CAREBOX hỗ trợ đi chợ, đúng không ạ? Bác cần mua những gì, số lượng bao nhiêu ạ?”. |
-| 2 | 🧑‍💼 | Xem Bảng điều phối. | Có thẻ CB-004 “Đi chợ”, “Chờ bổ sung thông tin”, Bước tiếp theo “Người cao tuổi (bổ sung thông tin)”. Bộ đếm **không** đổi. |
-| 3 | 👩 | Xem Yêu cầu của mẹ. | CB-004 nằm ở “Đang được CAREBOX xử lý”, chỉ xem, không có nút. Chưa có thông báo mới. |
+| 2 | 🧑‍💼 | Xem Bảng điều phối. | Có thẻ CB-001 “Đi chợ”, “Chờ bổ sung thông tin”, Bước tiếp theo “Người cao tuổi (bổ sung thông tin)”. Bộ đếm **không** đổi. |
+| 3 | 👩 | Xem Yêu cầu của mẹ. | CB-001 nằm ở “Đang được CAREBOX xử lý”, chỉ xem, không có nút. Chưa có thông báo mới. |
 | 4 | 👵 | Trả lời “Rau muống, 10 quả trứng”. | AI: “Bác muốn nhận đồ lúc nào ạ?”. |
 | 5 | 👵 | Trả lời “9 giờ sáng mai”. | AI đọc lại: “Cháu nhắc lại: Đi chợ — Danh sách cần mua: Rau muống, 10 quả trứng; Thời gian mong muốn: 9 giờ sáng mai. Bác xác nhận giúp cháu, đúng không ạ?”. Chip: “Đúng rồi”, “Không”. Trạng thái: “Chờ xác nhận”. |
-| 6 | 👵 | Bấm chip “Đúng rồi”. | AI: “Cháu đã gửi yêu cầu cho nhân viên CAREBOX điều phối. Yêu cầu chưa hoàn tất; bác xem tiến độ ở mục Yêu cầu ạ.”. Mục Yêu cầu: CB-004 “Chờ điều phối”, Phụ trách “Nhân viên CAREBOX (xác minh)”. |
-| 7 | 🧑‍💼 | Xem bảng + Thông báo. | **Cần xác minh 3**, badge tab = 3. Thông báo: “Đi chợ: chờ điều phối”. |
-| 8 | 👩 | Xem Thông báo + Yêu cầu của mẹ. | Thông báo: “Đi chợ: đã chuyển nhân viên CAREBOX điều phối.”. CB-004 vẫn chỉ xem. Badge “Yêu cầu của mẹ” **không** tăng. |
-| 9 | 🧑‍💼 | Mở CB-004. | Chi tiết có: mã, người liên quan + nguồn “Người cao tuổi báo”, nội dung + 2 trường, thời điểm ghi nhận, lý do ưu tiên, “Thông tin đã xác minh: Chưa xác minh”, “Chưa rõ / còn thiếu: Không có”, “Ai làm tiếp”, trạng thái. Nút: **Xác minh**, **Nhờ gia đình hỗ trợ**, **Từ chối**. **Chưa có** “Phân công”. |
-| 10 | 🧑‍💼 | Nhập ghi chú “Đã gọi bác xác nhận”, bấm **Xác minh**. | Lịch sử: “Anh Nam xác minh yêu cầu: Đã gọi bác xác nhận”. “Thông tin đã xác minh: Anh Nam · HH:MM dd/mm · Đã gọi bác xác nhận” + danh sách trường. Trạng thái vẫn “Chờ điều phối”. Ai làm tiếp: “Nhân viên CAREBOX (phân công)”. Nút Xác minh biến mất; hiện ô chọn Care Partner + **Phân công**. Bộ đếm: Cần xác minh 2, **Chờ xử lý 1**. |
+| 6 | 👵 | Bấm chip “Đúng rồi”. | AI: “Cháu đã gửi yêu cầu cho nhân viên CAREBOX điều phối. Yêu cầu chưa hoàn tất; bác xem tiến độ ở mục Yêu cầu ạ.”. Mục Yêu cầu: CB-001 “Chờ điều phối”, Phụ trách “Nhân viên CAREBOX (xác minh)”. |
+| 7 | 🧑‍💼 | Xem bảng + Thông báo. | **Cần xác minh 2**, badge tab = 2. Thông báo: “Đi chợ: chờ điều phối”. |
+| 8 | 👩 | Xem Thông báo + Yêu cầu của mẹ. | Thông báo: “Đi chợ: đã chuyển nhân viên CAREBOX điều phối.”. CB-001 vẫn chỉ xem. Badge “Yêu cầu của mẹ” **không** tăng. |
+| 9 | 🧑‍💼 | Mở CB-001. | Chi tiết có: mã, người liên quan + nguồn “Người cao tuổi báo”, nội dung + 2 trường, thời điểm ghi nhận, lý do ưu tiên, “Thông tin đã xác minh: Chưa xác minh”, “Chưa rõ / còn thiếu: Không có”, “Ai làm tiếp”, trạng thái. Nút: **Xác minh**, **Nhờ gia đình hỗ trợ**, **Từ chối**. **Chưa có** “Phân công”. |
+| 10 | 🧑‍💼 | Nhập ghi chú “Đã gọi bác xác nhận”, bấm **Xác minh**. | Lịch sử: “Anh Nam xác minh yêu cầu: Đã gọi bác xác nhận”. “Thông tin đã xác minh: Anh Nam · HH:MM dd/mm · Đã gọi bác xác nhận” + danh sách trường. Trạng thái vẫn “Chờ điều phối”. Ai làm tiếp: “Nhân viên CAREBOX (phân công)”. Nút Xác minh biến mất; hiện ô chọn Care Partner + **Phân công**. Bộ đếm: Cần xác minh 1, **Chờ xử lý 1**. |
 | 11 | 🧑‍💼 | Chọn “Chị Hoa”, bấm **Phân công**. | Trạng thái “Đang xử lý”. Lịch sử “Anh Nam giao cho Chị Hoa.”. Bộ đếm: Chờ xử lý 0, **Đang thực hiện 1**. Chưa có nút “Xác nhận hoàn tất”. |
-| 12 | 👵 | Xem mục Yêu cầu. | CB-004 “Đang xử lý”, Phụ trách “Chị Hoa (đang thực hiện)”. |
+| 12 | 👵 | Xem mục Yêu cầu. | CB-001 “Đang xử lý”, Phụ trách “Chị Hoa (đang thực hiện)”. |
 | 13 | 🧑‍💼 | Bấm **Ghi nhận báo cáo** khi ô trống. | Nút bị khóa. |
 | 14 | 🧑‍💼 | Nhập “Đã mua đủ, giao tận nhà”, bấm **Ghi nhận báo cáo**. | Badge “Chờ nhân viên xác nhận”. Trạng thái vẫn “Đang xử lý”. Kết quả: “Care Partner báo: Đã mua đủ, giao tận nhà”. Ai làm tiếp: “Nhân viên CAREBOX (xác nhận kết quả)”. Bộ đếm: Đang thực hiện 0, Chờ xử lý 1. Hiện nút **Xác nhận hoàn tất**. |
-| 15 | 🧑‍💼 | Bấm **Xác nhận hoàn tất**. | “Hoàn tất”. CB-004 rời Bảng điều phối. Lịch sử “Anh Nam xác nhận hoàn tất.”. |
-| 16 | 👩 | Thông báo + Báo cáo. | Thông báo “Đi chợ: nhân viên CAREBOX đã xác nhận hoàn tất.”. Báo cáo dịch vụ, CB-004: “Kết quả thực hiện: Đã hoàn tất theo báo cáo của Care Partner Chị Hoa.”, “Người xác nhận: Anh Nam (nhân viên điều phối)”, có **cả** “Thời điểm hoàn tất” và “Thời điểm xác nhận”. |
-| 17 | 👵 | Yêu cầu → tab “Đã xong”. | CB-004 “Hoàn tất”, có dòng “Care Partner báo: Đã mua đủ, giao tận nhà”, không còn nút Hủy. |
+| 15 | 🧑‍💼 | Bấm **Xác nhận hoàn tất**. | “Hoàn tất”. CB-001 rời Bảng điều phối. Lịch sử “Anh Nam xác nhận hoàn tất.”. |
+| 16 | 👩 | Thông báo + Báo cáo. | Thông báo “Đi chợ: nhân viên CAREBOX đã xác nhận hoàn tất.”. Báo cáo dịch vụ, CB-001: “Kết quả thực hiện: Đã hoàn tất theo báo cáo của Care Partner Chị Hoa.”, “Người xác nhận: Anh Nam (nhân viên điều phối)”, có **cả** “Thời điểm hoàn tất” và “Thời điểm xác nhận”. |
+| 17 | 👵 | Yêu cầu → tab “Đã xong”. | CB-001 “Hoàn tất”, có dòng “Care Partner báo: Đã mua đủ, giao tận nhà”, không còn nút Hủy. |
 
 **Không được xảy ra:** yêu cầu dịch vụ đến “Hoàn tất” khi chưa có báo cáo Care Partner **và** xác nhận của nhân viên. 👩 không có nút nào trên yêu cầu dịch vụ.
 
@@ -99,30 +100,33 @@ Chuỗi văn bản trong dấu “…” hoặc `…` là nội dung UI/thông b
 
 | # | Vai trò | Thao tác | Kết quả mong đợi |
 |---|---|---|---|
-| 1 | 🧑‍💼 | Mở CB-003 → **Xác minh** (bỏ trống ghi chú) → chọn “Anh Tuấn” → **Phân công**. | CB-003 “Đang xử lý”. Lịch sử “Anh Nam xác minh yêu cầu.” và “Anh Nam giao cho Anh Tuấn.”. |
-| 2 | 👵 | Yêu cầu → thẻ CB-003 → **Hủy yêu cầu**. | CB-003 “Đã từ chối”, “Lý do từ chối: Người cao tuổi từ chối”. Lịch sử thêm “Người cao tuổi hủy/từ chối yêu cầu.” và “Đã báo hủy cho Care Partner Anh Tuấn.”. |
-| 3 | 🧑‍💼 | Thông báo + bảng. | Thông báo “Đi chợ giúp bác: bác đã hủy yêu cầu.”. CB-003 rời bảng. |
-| 4 | 👩 | Thông báo. | “Đi chợ giúp bác: bác đã từ chối dịch vụ. Không đặt lại nếu bác không yêu cầu.” |
+| 0 | 👵 | Chuẩn bị: (reset) chat “Bác muốn đi chợ” → “Rau cải, 10 quả trứng” → “Sáng mai” → “Đúng rồi”. | CB-001 “Đi chợ”, “Chờ điều phối”. |
+| 1 | 🧑‍💼 | Mở CB-001 → **Xác minh** (bỏ trống ghi chú) → chọn “Anh Tuấn” → **Phân công**. | CB-001 “Đang xử lý”. Lịch sử “Anh Nam xác minh yêu cầu.” và “Anh Nam giao cho Anh Tuấn.”. |
+| 2 | 👵 | Yêu cầu → thẻ CB-001 → **Hủy yêu cầu**. | CB-001 “Đã từ chối”, “Lý do từ chối: Người cao tuổi từ chối”. Lịch sử thêm “Người cao tuổi hủy/từ chối yêu cầu.” và “Đã báo hủy cho Care Partner Anh Tuấn.”. |
+| 3 | 🧑‍💼 | Thông báo + bảng. | Thông báo “Đi chợ: bác đã hủy yêu cầu.”. CB-001 rời bảng. |
+| 4 | 👩 | Thông báo. | “Đi chợ: bác đã từ chối dịch vụ. Không đặt lại nếu bác không yêu cầu.” |
 | 5 | Cả 3 | Kiểm tra danh sách. | **Không** có yêu cầu mới nào được tự tạo/đặt lại. |
 
 ### D3. Nhân viên từ chối yêu cầu
 
 | # | Vai trò | Thao tác | Kết quả mong đợi |
 |---|---|---|---|
-| 1 | 🧑‍💼 | Mở CB-003. Ô “Lý do từ chối” để trống. | Nút **Từ chối** bị khóa. |
-| 2 | 🧑‍💼 | Nhập “Không có Care Partner khu vực này”, bấm **Từ chối**. | CB-003 “Đã từ chối”, rời bảng. Lịch sử “Anh Nam từ chối: Không có Care Partner khu vực này”. |
-| 3 | 👩 | Thông báo. | “Đi chợ giúp bác: nhân viên CAREBOX không thực hiện được. Lý do: Không có Care Partner khu vực này” |
-| 4 | 👵 | Yêu cầu. | CB-003 “Đã từ chối”, “Lý do từ chối: Không có Care Partner khu vực này”. |
-| 5 | 🧑‍💼 | Mở CB-001 (đang “Chờ bổ sung thông tin”). | Chỉ có **Nhờ gia đình hỗ trợ** và **Từ chối**. Không có Xác minh/Phân công. |
+| 0 | 👵 | Chuẩn bị: (reset) chat “Bác muốn đi chợ” → “Rau cải, 10 quả trứng” → “Sáng mai” → “Đúng rồi”. | CB-001 “Đi chợ”, “Chờ điều phối”. |
+| 1 | 🧑‍💼 | Mở CB-001. Ô “Lý do từ chối” để trống. | Nút **Từ chối** bị khóa. |
+| 2 | 🧑‍💼 | Nhập “Không có Care Partner khu vực này”, bấm **Từ chối**. | CB-001 “Đã từ chối”, rời bảng. Lịch sử “Anh Nam từ chối: Không có Care Partner khu vực này”. |
+| 3 | 👩 | Thông báo. | “Đi chợ: nhân viên CAREBOX không thực hiện được. Lý do: Không có Care Partner khu vực này” |
+| 4 | 👵 | Yêu cầu. | CB-001 “Đã từ chối”, “Lý do từ chối: Không có Care Partner khu vực này”. |
+| 5 | 👵 → 🧑‍💼 | 👵 chat “Bác muốn mua thuốc” rồi dừng, không trả lời. 🧑‍💼 mở CB-002 (đang “Chờ bổ sung thông tin”). | Chỉ có **Nhờ gia đình hỗ trợ** và **Từ chối**. Không có Xác minh/Phân công. |
 
 ### D4. Nhân viên nhờ gia đình hỗ trợ (hỏi – trả lời)
 
 | # | Vai trò | Thao tác | Kết quả mong đợi |
 |---|---|---|---|
-| 1 | 🧑‍💼 | Mở CB-003, ô “Câu hỏi gửi Chị Minh” nhập “Mẹ thích trứng gà hay trứng vịt?”, bấm **Nhờ gia đình hỗ trợ**. | Ô hỏi biến mất (mỗi việc chỉ một câu hỏi mở). Thẻ “Nhờ gia đình hỗ trợ”: “Chị Minh được hỏi lúc …: Mẹ thích trứng gà hay trứng vịt?” + “Chưa có trả lời”. Lịch sử “Anh Nam nhờ Chị Minh hỗ trợ: …”. |
-| 2 | 👩 | Thông báo, Tổng quan, Yêu cầu của mẹ. | Thông báo “CAREBOX nhờ hỗ trợ (CB-003): Mẹ thích trứng gà hay trứng vịt?”. Badge “Yêu cầu của mẹ” = 1. Tổng quan có thẻ “Cần chị xử lý” (“1 việc chờ chị trả lời, nhận hoặc xem”). CB-003 nằm ở mục **CAREBOX nhờ hỗ trợ**, có ô “Câu trả lời của chị” + **Gửi trả lời** (khóa khi trống). |
-| 3 | 👩 | Nhập “Trứng gà ta”, bấm **Gửi trả lời**. | CB-003 chuyển xuống “Đang được CAREBOX xử lý”, hiện “CAREBOX hỏi: …” / “Chị trả lời: Trứng gà ta”. Badge về 0, thẻ “Cần chị xử lý” biến mất. |
-| 4 | 🧑‍💼 | Thông báo + chi tiết CB-003. | Thông báo “Chị Minh trả lời (CB-003): Trứng gà ta”. Chi tiết: “Trả lời lúc …: Trứng gà ta”. Lịch sử “Chị Minh trả lời: Trứng gà ta” với nguồn “Gia đình xác nhận”. Ô hỏi xuất hiện lại để hỏi tiếp. |
+| 0 | 👵 | Chuẩn bị: (reset) chat “Bác muốn đi chợ” → “Rau cải, 10 quả trứng” → “Sáng mai” → “Đúng rồi”. | CB-001 “Đi chợ”, “Chờ điều phối”. |
+| 1 | 🧑‍💼 | Mở CB-001, ô “Câu hỏi gửi Chị Minh” nhập “Mẹ thích trứng gà hay trứng vịt?”, bấm **Nhờ gia đình hỗ trợ**. | Ô hỏi biến mất (mỗi việc chỉ một câu hỏi mở). Thẻ “Nhờ gia đình hỗ trợ”: “Chị Minh được hỏi lúc …: Mẹ thích trứng gà hay trứng vịt?” + “Chưa có trả lời”. Lịch sử “Anh Nam nhờ Chị Minh hỗ trợ: …”. |
+| 2 | 👩 | Thông báo, Tổng quan, Yêu cầu của mẹ. | Thông báo “CAREBOX nhờ hỗ trợ (CB-001): Mẹ thích trứng gà hay trứng vịt?”. Badge “Yêu cầu của mẹ” = 1. Tổng quan có thẻ “Cần chị xử lý” (“1 việc chờ chị trả lời, nhận hoặc xem”). CB-001 nằm ở mục **CAREBOX nhờ hỗ trợ**, có ô “Câu trả lời của chị” + **Gửi trả lời** (khóa khi trống). |
+| 3 | 👩 | Nhập “Trứng gà ta”, bấm **Gửi trả lời**. | CB-001 chuyển xuống “Đang được CAREBOX xử lý”, hiện “CAREBOX hỏi: …” / “Chị trả lời: Trứng gà ta”. Badge về 0, thẻ “Cần chị xử lý” biến mất. |
+| 4 | 🧑‍💼 | Thông báo + chi tiết CB-001. | Thông báo “Chị Minh trả lời (CB-001): Trứng gà ta”. Chi tiết: “Trả lời lúc …: Trứng gà ta”. Lịch sử “Chị Minh trả lời: Trứng gà ta” với nguồn “Gia đình xác nhận”. Ô hỏi xuất hiện lại để hỏi tiếp. |
 | 5 | 🧑‍💼 | Lặp lại với cảnh báo EVT-001. | Như trên. Thông báo của 👩 thuộc tab “Sức khỏe”. |
 | 6 | 🧑‍💼 | Mở một việc do gia đình phụ trách (xem D5) hoặc việc đã đóng. | **Không** có nút “Nhờ gia đình hỗ trợ”. |
 
@@ -131,11 +135,11 @@ Chuỗi văn bản trong dấu “…” hoặc `…` là nội dung UI/thông b
 | # | Vai trò | Thao tác | Kết quả mong đợi |
 |---|---|---|---|
 | 1 | 👵 | Chat: “Bác muốn gọi cho con gái”. | AI: “Bác muốn CAREBOX hỗ trợ liên hệ người thân, đúng không ạ? Bác muốn liên hệ với ai ạ?”. |
-| 2 | 👵 | “Chị Minh” → “Tối nay qua ăn cơm với mẹ” → “Đúng rồi”. | Câu hỏi thứ hai: “Bác muốn nhắn gì ạ?”. Sau khi xác nhận, AI nói: “Cháu đã chuyển lời nhắn cho Chị Minh. Yêu cầu chưa hoàn tất; bác xem tiến độ ở mục Yêu cầu ạ.”. CB-004 “Chờ gia đình nhận”, Phụ trách “Chị Minh (nhận việc)”. |
-| 3 | 👩 | Thông báo + Yêu cầu của mẹ. | Thông báo “Liên hệ người thân: chờ Chị Minh nhận việc”. Badge +1. CB-004 ở mục **Việc của chị**, có **Đã liên hệ** và **Từ chối**. |
-| 4 | 🧑‍💼 | Bảng + Thông báo + chi tiết. | CB-004 nằm **sau** các việc của nhân viên, gắn nhãn “Gia đình phụ trách (chỉ xem)”. Bộ đếm không đổi. **Không** có thông báo cho nhân viên. Chi tiết **không** có nút hành động. |
-| 5 | 👩 | Bấm **Đã liên hệ**. | CB-004 “Hoàn tất”. Lịch sử “Chị Minh đã liên hệ.”. |
-| 6 | 👩/🧑‍💼 | Báo cáo. | CB-004: “Kết quả thực hiện: Đã hoàn tất theo xác nhận của gia đình.”, “Người xác nhận: Chị Minh (con gái)”. |
+| 2 | 👵 | “Chị Minh” → “Tối nay qua ăn cơm với mẹ” → “Đúng rồi”. | Câu hỏi thứ hai: “Bác muốn nhắn gì ạ?”. Sau khi xác nhận, AI nói: “Cháu đã chuyển lời nhắn cho Chị Minh. Yêu cầu chưa hoàn tất; bác xem tiến độ ở mục Yêu cầu ạ.”. CB-001 “Chờ gia đình nhận”, Phụ trách “Chị Minh (nhận việc)”. |
+| 3 | 👩 | Thông báo + Yêu cầu của mẹ. | Thông báo “Liên hệ người thân: chờ Chị Minh nhận việc”. Badge +1. CB-001 ở mục **Việc của chị**, có **Đã liên hệ** và **Từ chối**. |
+| 4 | 🧑‍💼 | Bảng + Thông báo + chi tiết. | CB-001 nằm **sau** các việc của nhân viên, gắn nhãn “Gia đình phụ trách (chỉ xem)”. Bộ đếm không đổi. **Không** có thông báo cho nhân viên. Chi tiết **không** có nút hành động. |
+| 5 | 👩 | Bấm **Đã liên hệ**. | CB-001 “Hoàn tất”. Lịch sử “Chị Minh đã liên hệ.”. |
+| 6 | 👩/🧑‍💼 | Báo cáo. | CB-001: “Kết quả thực hiện: Đã hoàn tất theo xác nhận của gia đình.”, “Người xác nhận: Chị Minh (con gái)”. |
 | 7 | (biến thể) | Làm lại bước 1–3, rồi 👩 bấm **Từ chối**, nhập “Tối nay chị bận”, bấm **Xác nhận từ chối**. | “Đã từ chối”. 👵 thấy “Lý do từ chối: Tối nay chị bận”. Nút “Xác nhận từ chối” khóa khi lý do trống; nút “Thôi” đóng ô lý do. |
 
 ### D6. Lịch nhắc **không** phải thuốc — gia đình duyệt
@@ -145,21 +149,21 @@ Chuỗi văn bản trong dấu “…” hoặc `…` là nội dung UI/thông b
 | 1 | 👵 | Lịch trình → **Thêm lịch trình ＋**. | Mở chat. AI: “Bác muốn CAREBOX hỗ trợ thêm lịch nhắc, đúng không ạ? Bác muốn cháu nhắc việc gì ạ?”. |
 | 2 | 👵 | “Đi dạo công viên” → “5 giờ chiều” → “Đúng rồi”. | AI: “Cháu đã gửi Chị Minh duyệt lịch nhắc. Lịch chỉ được thêm sau khi Chị Minh xác nhận, yêu cầu chưa hoàn tất ạ.”. Lịch trình **chưa** có lịch mới. |
 | 3 | 👩 | Yêu cầu của mẹ → Việc của chị. | Có ô giờ + **Duyệt lịch nhắc** (khóa khi chưa chọn giờ) + **Từ chối**. |
-| 4 | 🧑‍💼 | Mở CB-004. | “Gia đình phụ trách”, không có nút Duyệt. |
-| 5 | 👩 | Chọn 17:00, bấm **Duyệt lịch nhắc**. | CB-004 “Hoàn tất”. Lịch sử “Chị Minh duyệt lịch nhắc lúc 17:00.”. |
-| 6 | 👵 | Lịch trình. | Có lịch mới “17:00 Đi dạo công viên” (biểu tượng 🚶), ghi chú “Chị Minh duyệt từ yêu cầu CB-004”. Nếu 17:00 đã qua trong ngày thì lịch bắt đầu từ ngày mai. |
+| 4 | 🧑‍💼 | Mở CB-001. | “Gia đình phụ trách”, không có nút Duyệt. |
+| 5 | 👩 | Chọn 17:00, bấm **Duyệt lịch nhắc**. | CB-001 “Hoàn tất”. Lịch sử “Chị Minh duyệt lịch nhắc lúc 17:00.”. |
+| 6 | 👵 | Lịch trình. | Có lịch mới “17:00 Đi dạo công viên” (biểu tượng 🚶), ghi chú “Chị Minh duyệt từ yêu cầu CB-001”. Nếu 17:00 đã qua trong ngày thì lịch bắt đầu từ ngày mai. |
 
 ### D7. Lịch nhắc **thuốc** — chỉ nhân viên duyệt
 
 | # | Vai trò | Thao tác | Kết quả mong đợi |
 |---|---|---|---|
 | 1 | 👵 | Chat: “Nhắc bác uống thuốc huyết áp lúc 9h”. | AI **không** hỏi “nhắc việc gì” hay giờ, đọc lại ngay: “Cháu nhắc lại: Thêm lịch nhắc — Nội dung nhắc: Uống thuốc huyết áp; Thời gian nhắc: 9h. Bác xác nhận giúp cháu, đúng không ạ?”. |
-| 1b | 👵 | “Đúng rồi”. | AI: “Cháu đã gửi nhân viên CAREBOX kiểm tra lịch nhắc thuốc. Lịch chỉ được thêm sau khi được duyệt, yêu cầu chưa hoàn tất ạ.”. CB-004 “Chờ điều phối”. |
-| 2 | 👩 | Thông báo + Yêu cầu của mẹ. | Thông báo “Thêm lịch nhắc: đã chuyển nhân viên CAREBOX điều phối.”. CB-004 chỉ xem, **không** có nút Duyệt. |
-| 3 | 🧑‍💼 | Bảng + chi tiết CB-004. | Thông báo “Thêm lịch nhắc: chờ điều phối”. Cần xác minh +1. Ai làm tiếp: “Nhân viên CAREBOX (duyệt / liên hệ)”. Có ô giờ + **Duyệt lịch nhắc**. **Không** có Phân công. |
+| 1b | 👵 | “Đúng rồi”. | AI: “Cháu đã gửi nhân viên CAREBOX kiểm tra lịch nhắc thuốc. Lịch chỉ được thêm sau khi được duyệt, yêu cầu chưa hoàn tất ạ.”. CB-001 “Chờ điều phối”. |
+| 2 | 👩 | Thông báo + Yêu cầu của mẹ. | Thông báo “Thêm lịch nhắc: đã chuyển nhân viên CAREBOX điều phối.”. CB-001 chỉ xem, **không** có nút Duyệt. |
+| 3 | 🧑‍💼 | Bảng + chi tiết CB-001. | Thông báo “Thêm lịch nhắc: chờ điều phối”. Cần xác minh +1. Ai làm tiếp: “Nhân viên CAREBOX (duyệt / liên hệ)”. Có ô giờ + **Duyệt lịch nhắc**. **Không** có Phân công. |
 | 4 | 🧑‍💼 | Chọn 21:00, bấm **Duyệt lịch nhắc**. | “Hoàn tất”. Lịch sử “Anh Nam duyệt lịch nhắc lúc 21:00.”. |
-| 5 | 👵 | Lịch trình. | Lịch mới “21:00 Uống thuốc huyết áp” với biểu tượng 💊 (loại thuốc), ghi chú “Anh Nam duyệt từ yêu cầu CB-004”. |
-| 6 | 👩 | Báo cáo. | CB-004: “Đã hoàn tất theo xác nhận của nhân viên điều phối.”, “Người xác nhận: Anh Nam (nhân viên điều phối)”. |
+| 5 | 👵 | Lịch trình. | Lịch mới “21:00 Uống thuốc huyết áp” với biểu tượng 💊 (loại thuốc), ghi chú “Anh Nam duyệt từ yêu cầu CB-001”. |
+| 6 | 👩 | Báo cáo. | CB-001: “Đã hoàn tất theo xác nhận của nhân viên điều phối.”, “Người xác nhận: Anh Nam (nhân viên điều phối)”. |
 
 **Nội dung nhắc lấy từ câu đầu:**
 
@@ -187,10 +191,10 @@ Cần đợi thật **hơn 30 phút**. Giữ ít nhất một tab đang **hiện
 
 | # | Vai trò | Thao tác | Kết quả mong đợi |
 |---|---|---|---|
-| 1 | 👵 | Làm D5 bước 1–2 (liên hệ người thân), **không** để 👩 xử lý. | CB-004 “Chờ gia đình nhận”. |
-| 2 | — | Đợi > 30 phút kể từ lúc bà xác nhận. | CB-004 chuyển “Chờ điều phối”. Lịch sử “Gia đình chưa phản hồi sau 30 phút, chuyển nhân viên CAREBOX.”. Ưu tiên “Cần chú ý”, lý do “Bỏ ngỏ quá 30 phút”. |
+| 1 | 👵 | Làm D5 bước 1–2 (liên hệ người thân), **không** để 👩 xử lý. | CB-001 “Chờ gia đình nhận”. |
+| 2 | — | Đợi > 30 phút kể từ lúc bà xác nhận. | CB-001 chuyển “Chờ điều phối”. Lịch sử “Gia đình chưa phản hồi sau 30 phút, chuyển nhân viên CAREBOX.”. Ưu tiên “Cần chú ý”, lý do “Bỏ ngỏ quá 30 phút”. |
 | 3 | 🧑‍💼 | Thông báo + chi tiết. | Thông báo “Liên hệ người thân: Chị Minh chưa nhận việc sau 30 phút, chờ nhân viên xử lý.”. Nhãn “chỉ xem” biến mất. Có nút **Đã liên hệ**. Ai làm tiếp: “Nhân viên CAREBOX hoặc Chị Minh”. |
-| 4 | 👩 | Yêu cầu của mẹ. | CB-004 vẫn ở “Việc của chị”, vẫn có **Đã liên hệ**, có badge “Bỏ ngỏ”. |
+| 4 | 👩 | Yêu cầu của mẹ. | CB-001 vẫn ở “Việc của chị”, vẫn có **Đã liên hệ**, có badge “Bỏ ngỏ”. |
 | 5 | 🧑‍💼 hoặc 👩 | Một bên bấm **Đã liên hệ**. | “Hoàn tất”. Nút ở bên còn lại biến mất trong ~3 giây. Nếu 🧑‍💼 bấm, Báo cáo ghi “Đã hoàn tất theo xác nhận của nhân viên điều phối.”. |
 
 ### D9. AI không hiểu 2 lần → nhân viên tiếp nhận
@@ -299,23 +303,25 @@ Sau reset khoảng 3 phút, lịch “Uống thuốc theo đơn” đến giờ.
 | D18.3 | (reset) **Không thực hiện được**. | 🧑‍💼: EVT-002 “Không thực hiện được: Uống thuốc theo đơn”, “Cần chú ý”, lý do “Liên quan lịch uống thuốc”. Thông báo (tab Khác) “Bác báo không thực hiện được: Uống thuốc theo đơn.”. 👩 nhận cùng nội dung + hậu tố chuyển nhân viên. |
 | D18.4 | (reset) Không bấm gì, đợi ~33 phút (giữ một tab hiện). | Badge “Chưa có xác nhận”. EVT-002 “Chưa có xác nhận: Uống thuốc theo đơn”, “Chưa chắc chắn”, lý do “Người dùng không xác nhận”. Thông báo “Chưa có xác nhận sau lịch nhắc "Uống thuốc theo đơn". Không kết luận bác đã thực hiện.”. Chỉ tạo **một** lần. |
 
-### D19. Yêu cầu dở dang (CB-001) & “Bỏ ngỏ”
+### D19. Yêu cầu dở dang & “Bỏ ngỏ”
 
 | # | Vai trò | Thao tác | Kết quả mong đợi |
 |---|---|---|---|
+| 0 | 👵 | Chuẩn bị: (reset) chat “Bác muốn mua thuốc” → “Thuốc huyết áp”, rồi bấm **Xóa hội thoại**. | CB-001 “Mua thuốc”, “Chờ bổ sung thông tin”. |
 | 1 | 🧑‍💼 | Mở CB-001. | “Chờ bổ sung thông tin”. “Chưa rõ / còn thiếu: Địa điểm lấy, Thời gian mong muốn”. Chỉ có Nhờ gia đình hỗ trợ / Từ chối. |
-| 2 | — | Đợi ~10 phút sau reset (CB-001 tạo từ 20 phút trước). | CB-001 ưu tiên “Cần chú ý”, lý do “Bỏ ngỏ quá 30 phút”. 👩 thấy badge “Bỏ ngỏ” trên thẻ. Sau ~15 phút, CB-003 cũng vậy. |
+| 2 | — | Đợi > 30 phút kể từ bước 0 (giữ một tab hiện). | CB-001 ưu tiên “Cần chú ý”, lý do “Bỏ ngỏ quá 30 phút”. 👩 thấy badge “Bỏ ngỏ” trên thẻ. Yêu cầu “Chờ điều phối” chưa được phân công (tạo như D2 bước 0) cũng vậy sau 30 phút. |
 | 3 | 👵 | Hủy CB-001. | “Đã từ chối”. 👩 nhận thông báo từ chối. 🧑‍💼 **không** nhận thông báo, vì yêu cầu chưa từng được xác nhận. |
 
-### D20. Bà tiếp tục yêu cầu dở dang (CB-001)
+### D20. Bà tiếp tục yêu cầu dở dang
 
 | # | Vai trò | Thao tác | Kết quả mong đợi |
 |---|---|---|---|
-| 1 | 👵 | (reset) Yêu cầu → thẻ CB-001. | Có 2 nút cách nhau: **Tiếp tục yêu cầu** và **Hủy yêu cầu**. CB-002 (Hoàn tất) và CB-003 (Chờ điều phối) **không** có nút Tiếp tục yêu cầu. |
-| 2 | 👵 | Bấm **Tiếp tục yêu cầu**. | Mở chat. Bà “nói” “Tiếp tục yêu cầu hỗ trợ lấy thuốc”. AI hỏi “Bác muốn lấy thuốc ở đâu ạ?”. |
-| 3 | 👵 | Trả lời “Hiệu thuốc đầu ngõ” → “Chiều nay”. | AI nhắc lại nội dung và hỏi xác nhận. CB-001 “Chờ xác nhận”. |
-| 4 | 👵 | Không trả lời; bấm **Xóa hội thoại**, rồi vào Yêu cầu → CB-001 → **Tiếp tục yêu cầu**. | AI nhắc lại nội dung lần nữa, **không** hỏi lại các trường đã có. |
-| 5 | 👵 | Trả lời “Đúng rồi”. | CB-001 “Chờ điều phối”. 🧑‍💼 nhận thông báo “Hỗ trợ lấy thuốc: chờ điều phối”; bộ đếm Cần xác minh +1. 👩 nhận thông báo đã chuyển nhân viên. |
+| 0 | 👵 | Chuẩn bị: (reset) làm D2 bước 0 (CB-001 “Chờ điều phối”), rồi chat “Bác muốn mua thuốc” → “Thuốc huyết áp” → bấm **Xóa hội thoại**. | CB-002 “Mua thuốc”, “Chờ bổ sung thông tin”. |
+| 1 | 👵 | Yêu cầu → thẻ CB-002. | Có 2 nút cách nhau: **Tiếp tục yêu cầu** và **Hủy yêu cầu**. CB-001 (Chờ điều phối) **không** có nút Tiếp tục yêu cầu. |
+| 2 | 👵 | Bấm **Tiếp tục yêu cầu**. | Mở chat. Bà “nói” “Tiếp tục yêu cầu mua thuốc”. AI hỏi “Bác muốn lấy thuốc ở đâu ạ?”. |
+| 3 | 👵 | Trả lời “Hiệu thuốc đầu ngõ” → “Chiều nay”. | AI nhắc lại nội dung và hỏi xác nhận. CB-002 “Chờ xác nhận”. |
+| 4 | 👵 | Không trả lời; bấm **Xóa hội thoại**, rồi vào Yêu cầu → CB-002 → **Tiếp tục yêu cầu**. | AI nhắc lại nội dung lần nữa, **không** hỏi lại các trường đã có. |
+| 5 | 👵 | Trả lời “Đúng rồi”. | CB-002 “Chờ điều phối”. 🧑‍💼 nhận thông báo “Mua thuốc: chờ điều phối”; bộ đếm Cần xác minh +1. 👩 nhận thông báo đã chuyển nhân viên. |
 
 ---
 
@@ -339,7 +345,8 @@ Mỗi dòng bắt đầu từ chat sạch, không đang ở giữa câu hỏi d�
 | E12 | “Bác thấy mệt” / “Bác bị chóng mặt” | Sự kiện vấn đề (như D14), “Cần chú ý”. |
 | E13 | “Lịch hôm nay” (chip) | “Lịch hôm nay của bác: HH:MM … (trạng thái); …”. |
 | E14 | “Huyết áp của bác bao nhiêu” | “Lần đo gần nhất của Máy đo huyết áp: 165/100 mmHg lúc HH:MM (nguồn: thiết bị giả lập). Cháu không đánh giá được tình trạng sức khỏe; bác có thể hỏi bác sĩ ạ.” |
-| E15 | “Yêu cầu của bác đến đâu rồi” | “Yêu cầu của bác: Hỗ trợ lấy thuốc — Chờ bổ sung thông tin, tiếp theo: Người cao tuổi (bổ sung thông tin); Đi chợ giúp bác — Chờ điều phối, tiếp theo: Nhân viên CAREBOX (xác minh).” |
+| E15 | (reset) “Yêu cầu của bác đến đâu rồi” | “Hiện bác không có yêu cầu nào đang mở ạ.” |
+| E15b | Làm D2 bước 0, rồi hỏi “Yêu cầu của bác đến đâu rồi”. | “Yêu cầu của bác: Đi chợ — Chờ điều phối, tiếp theo: Nhân viên CAREBOX (xác minh).” |
 
 **Trong luồng hỏi thông tin dịch vụ:**
 
@@ -372,8 +379,8 @@ Mỗi dòng bắt đầu từ chat sạch, không đang ở giữa câu hỏi d�
 
 | ID | Các bước | Kết quả mong đợi |
 |---|---|---|
-| G1 | 👩 / 🧑‍💼 → Báo cáo sau reset. | “Tóm tắt yêu cầu” có số tiếp nhận hôm nay / hoàn tất / đang mở. “Lịch hôm nay”, “Cảnh báo cần chú ý”, “Báo cáo dịch vụ” (CB-002), “Kết nối dữ liệu” đủ 5 thiết bị. Hai vai trò thấy cùng nội dung. |
-| G2 | Báo cáo dịch vụ CB-002. | “Đã hoàn tất theo báo cáo của Care Partner Anh Tuấn.”, “Người xác nhận: Anh Nam (nhân viên điều phối)”, “Thời điểm hoàn tất” ≠ “Thời điểm xác nhận”. |
+| G1 | 👩 / 🧑‍💼 → Báo cáo sau reset. | “Tóm tắt yêu cầu” có số tiếp nhận hôm nay / hoàn tất / đang mở. “Lịch hôm nay”, “Cảnh báo cần chú ý”, “Báo cáo dịch vụ” trống (“Chưa có dịch vụ được xác nhận hoàn tất.”), “Kết nối dữ liệu” đủ 5 thiết bị. Hai vai trò thấy cùng nội dung. |
+| G2 | Sau D1, Báo cáo dịch vụ CB-001. | “Đã hoàn tất theo báo cáo của Care Partner Chị Hoa.”, “Người xác nhận: Anh Nam (nhân viên điều phối)”, “Thời điểm hoàn tất” ≠ “Thời điểm xác nhận”. |
 | G3 | Hồ sơ & thiết bị. | Thông tin bà (72 tuổi, 12/03/1954, 0987 654 321), người liên hệ “Con gái – Chị Minh · 0901 234 567”, danh sách thiết bị + badge. Dòng “Chỉ hiển thị dữ liệu bác đã đồng ý chia sẻ với gia đình.” |
 | G4 | 👩 Tổng quan → “Hoạt động gần đây”. | 5 dòng lịch sử mới nhất, có nguồn (Thiết bị / Người cao tuổi báo / Gia đình xác nhận / AI tổng hợp / Nhân viên xác minh). |
 | G5 | 👩 bấm các tile Tổng quan. | Thiết bị → Hồ sơ & thiết bị; Lịch trình, Báo cáo → Báo cáo; Yêu cầu hỗ trợ → Yêu cầu của mẹ. |
@@ -408,7 +415,7 @@ Giữ ít nhất một tab đang hiện: server chỉ “tick” khi có client 
 | ID | Mốc thời gian | Kết quả mong đợi |
 |---|---|---|
 | K1 | 3 phút sau reset | “Uống thuốc theo đơn” đến giờ (D18). |
-| K2 | ~10 / ~15 phút sau reset | CB-001 / CB-003 “Bỏ ngỏ” (D19). |
+| K2 | 30 phút sau khi tạo một yêu cầu chưa được nhận | Yêu cầu đó “Bỏ ngỏ” (D19). |
 | K3 | 30 phút sau khi bà xác nhận việc của gia đình | Chuyển nhân viên (D8). |
 | K4 | 33 phút sau reset, không phản hồi lịch nhắc | “Chưa có xác nhận” (D18.4). |
 | K5 | ~5 giờ sau reset (mốc 6 giờ kể từ lần đo cuối; Huyết áp ~6 giờ) | Nhịp tim / Đường huyết / SpO₂ (rồi Huyết áp) thành “⚠ Thiếu dữ liệu”. Mỗi thiết bị **một** sự kiện “Thiếu dữ liệu: <tên thiết bị>”, không tạo lặp lại mỗi lần poll. |

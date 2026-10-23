@@ -1,4 +1,4 @@
-import { MIN, atVN, fmtTime, vnDay } from './helpers.js'
+import { MIN, atVN, vnDay } from './helpers.js'
 import type { Device, Reading, Reminder, State } from './types.js'
 
 const HOUR = 60 * MIN
@@ -26,7 +26,6 @@ export function seed(now: number): State {
     ...schedule.map((r) => (r.dueAt < now ? { ...r, response: 'received' as const, respondedAt: r.dueAt } : r)),
     { id: 'r-demo', dueAt: now + 3 * MIN, title: 'Uống thuốc theo đơn', note: 'Theo lịch nhắc đã cài đặt', kind: 'medicine' },
   ]
-  const c1 = now - 20 * MIN
   const devices: Device[] = [
     { id: 'bp', name: 'Máy đo huyết áp', unit: 'mmHg', connected: true,
       readings: [...week(now, [[126, 80], [122, 78], [130, 82], [124, 79], [128, 83], [125, 80], [127, 81]]), { at: now - 10 * MIN, value: [165, 100] }] }, // the reading behind EVT-001
@@ -48,55 +47,13 @@ export function seed(now: number): State {
     devices,
     cases: [
       {
-        id: 'CB-001', kind: 'request', service: 'medicine', title: 'Hỗ trợ lấy thuốc',
-        detail: 'Bác muốn lấy thuốc huyết áp ở hiệu thuốc.', source: 'elder', priority: 'normal',
-        priorityReason: 'Yêu cầu dịch vụ thông thường', createdAt: c1,
-        fields: { thuoc: 'Thuốc huyết áp' }, status: 'need_info', unclear: [], owner: 'staff',
-        history: [{ at: c1, by: 'ai', text: 'AI ghi nhận yêu cầu. Thiếu thông tin về địa điểm và thời gian.' }],
-      },
-      {
-        id: 'CB-002', kind: 'request', service: 'clinic', title: 'Đi khám bệnh',
-        detail: 'Hỗ trợ đưa bác đi khám định kỳ.', source: 'elder', priority: 'normal',
-        priorityReason: 'Yêu cầu dịch vụ thông thường', createdAt: now - 2 * DAY,
-        fields: { noi_kham: 'Bệnh viện E', thoi_gian: '08:30 hôm qua', di_lai: 'Cần người đưa đi bằng taxi' },
-        status: 'done', unclear: [], owner: 'staff', acceptedAt: now - 2 * DAY + 25 * MIN, completedAt: now - DAY,
-        confirmedAt: now - 2 * DAY + 10 * MIN, verifiedBy: 'Anh Nam', verifiedAt: now - 2 * DAY + 15 * MIN,
-        verifyNote: 'Đã gọi bác xác nhận lịch khám.', assignee: 'Anh Tuấn',
-        partnerReport: 'Đã đưa bác đi khám và về nhà.', partnerReportAt: now - DAY - 30 * MIN,
-        doneBy: 'Anh Nam',
-        history: [
-          { at: now - 2 * DAY, by: 'ai', text: 'AI ghi nhận yêu cầu, bác đã xác nhận nội dung.' },
-          { at: now - 2 * DAY + 10 * MIN, by: 'staff', text: 'Anh Nam xác nhận lại với bác.' },
-          { at: now - 2 * DAY + 15 * MIN, by: 'staff', text: 'Anh Nam đã xác minh yêu cầu.' },
-          { at: now - 2 * DAY + 25 * MIN, by: 'staff', text: 'Anh Nam giao Care Partner Anh Tuấn.' },
-          { at: now - DAY - 30 * MIN, by: 'staff', text: 'Anh Nam ghi nhận báo cáo của Care Partner Anh Tuấn: Đã đưa bác đi khám và về nhà.' },
-          { at: now - DAY, by: 'staff', text: 'Anh Nam xác nhận hoàn tất.' },
-        ],
-      },
-      {
-        id: 'CB-003', kind: 'request', service: 'groceries', title: 'Đi chợ giúp bác',
-        detail: 'Bác nhờ mua rau và trứng.', source: 'elder', priority: 'normal',
-        priorityReason: 'Yêu cầu dịch vụ thông thường', createdAt: now - 15 * MIN,
-        fields: { danh_sach: 'Rau cải, 10 quả trứng', thoi_gian: 'Sáng mai' },
-        status: 'await_staff', unclear: [], owner: 'staff', confirmedAt: now - 12 * MIN,
-        history: [
-          { at: now - 15 * MIN, by: 'ai', text: 'AI ghi nhận yêu cầu.' },
-          { at: now - 12 * MIN, by: 'elder', text: 'Bác đã xác nhận nội dung. Chờ nhân viên điều phối.' },
-        ],
-      },
-      {
         id: 'EVT-001', kind: 'event', title: 'Dữ liệu thiết bị vượt ngưỡng', detail: 'Máy đo huyết áp ghi nhận chỉ số vượt ngưỡng đã cấu hình.',
         source: 'device', priority: 'priority', priorityReason: 'Dữ liệu vượt ngưỡng đã cấu hình', createdAt: now - 10 * MIN,
         status: 'to_verify', unclear: [], owner: 'staff', deviceId: 'bp',
         history: [{ at: now - 10 * MIN, by: 'device', text: 'Tạo cảnh báo, chờ nhân viên xem.' }],
       },
     ],
-    notifications: [
-      { id: 'n1', at: c1, to: 'family', category: 'request', source: 'ai', caseId: 'CB-001', read: false,
-        text: `${fmtTime(c1)} – Yêu cầu lấy thuốc đã được ghi nhận. Chưa xác nhận có người thực hiện.` },
-      { id: 'n2', at: now - DAY, to: 'family', category: 'request', source: 'staff', caseId: 'CB-002', read: true,
-        text: 'Đi khám bệnh: nhân viên CAREBOX đã xác nhận hoàn tất.' },
-    ],
+    notifications: [],
     chat: {
       messages: [{ id: 'n3', from: 'ai', at: now, text: GREETING }],
       pending: null,
@@ -104,7 +61,7 @@ export function seed(now: number): State {
       recentMisses: [],
     },
     emergency: null,
-    seq: { cb: 4, evt: 2, n: 4 },
+    seq: { cb: 1, evt: 2, n: 4 },
   }
 }
 

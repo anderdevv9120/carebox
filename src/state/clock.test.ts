@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { seed } from './seed'
-import { seedBare } from './testing'
+import { seedBare, seedDemo } from './testing'
 import { reduce } from './reducer'
 import { MIN, atVN, fmtDayMonth, fmtTime, fmtWhen, vnDay } from './helpers'
 import { rollover, tick } from './clock'
@@ -47,7 +47,7 @@ describe('seed', () => {
   })
 
   test('seed cases read as recent: CB-001 created 20 min ago, CB-002 done yesterday by Anh Nam', () => {
-    const s = seed(NOW)
+    const s = seedDemo(NOW)
     const c1 = s.cases.find((c) => c.id === 'CB-001') as RequestCase
     const c2 = s.cases.find((c) => c.id === 'CB-002') as RequestCase
     expect(c1).toMatchObject({ status: 'need_info', createdAt: NOW - 20 * MIN })
@@ -69,7 +69,7 @@ describe('seed', () => {
   })
 
   test('seed CB-002 history and notification use the runtime wording', () => {
-    const s = seed(NOW)
+    const s = seedDemo(NOW)
     const c2 = s.cases.find((c) => c.id === 'CB-002')!
     expect(c2.history.slice(-2).map((h) => h.text)).toEqual([
       'Anh Nam ghi nhận báo cáo của Care Partner Anh Tuấn: Đã đưa bác đi khám và về nhà.',

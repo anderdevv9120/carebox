@@ -101,8 +101,10 @@ async function readJson(req: Request): Promise<unknown> {
 }
 
 async function login(req: Request): Promise<Response> {
-  const b = (await readJson(req)) as { user?: unknown; password?: unknown } | undefined
+  const b = (await readJson(req)) as { user?: unknown; password?: unknown; role?: unknown } | undefined
   if (!b || typeof b !== 'object' || !isAccount(b.user) || b.password !== PASSWORD) return json(401, { error: 'Sai tài khoản hoặc mật khẩu' })
+  // checked only after the password, so a wrong guess never reveals an account's role
+  if (b.role !== undefined && b.role !== ACCOUNTS[b.user].role) return json(401, { error: 'Tài khoản không thuộc vai trò đã chọn' })
   return json(200, { token: signToken(b.user), user: b.user, ...ACCOUNTS[b.user] })
 }
 

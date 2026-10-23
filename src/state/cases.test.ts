@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { seedBare } from './testing'
-import { seed } from './seed'
+import { seedBare, seedDemo } from './testing'
 import { reduce, type Action } from './reducer'
 import { MIN, addCase, fmtTime } from './helpers'
 import { can, effectivePriority, familyTodo, familyView, isAbandoned, nextOwner, ownerAtConfirm, staffBoard } from './cases'
@@ -481,7 +480,7 @@ describe('familyView: the daughter\'s "Yêu cầu của mẹ" list', () => {
 })
 
 describe('staff asks the family for help', () => {
-  const real = () => seed(Date.UTC(2026, 9, 18, 5, 0)) // CB-001 is the seeded staff-owned need_info request
+  const real = () => seedDemo(Date.UTC(2026, 9, 18, 5, 0)) // CB-001 is the seeded staff-owned need_info request
   const ask = (s: State, question = 'Chị giúp hỏi bác giờ lấy thuốc?', id = 'CB-001') => reduce(s, { type: 'staff/askFamily', id, question })
   const reply = (s: State, text = 'Chiều nay em hỏi bác.', id = 'CB-001') => reduce(s, { type: 'family/reply', id, text })
   const last = (s: State, to: 'family' | 'staff') => s.notifications.filter((n) => n.to === to).at(-1)
@@ -533,7 +532,7 @@ describe('staff asks the family for help', () => {
 })
 
 describe('staffBoard', () => {
-  const real = () => seed(Date.UTC(2026, 9, 18, 5, 0))
+  const real = () => seedDemo(Date.UTC(2026, 9, 18, 5, 0))
   const awaitStaff = (id: string, createdAt: number, owner: RequestCase['owner'] = 'staff', priority: RequestCase['priority'] = 'normal'): RequestCase => ({
     id, kind: 'request', service: 'groceries', title: 'Đi chợ', detail: '', source: 'elder', priority, priorityReason: '', createdAt,
     history: [], unclear: [], owner, fields: {}, status: 'await_staff', confirmedAt: createdAt,

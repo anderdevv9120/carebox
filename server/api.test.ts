@@ -3,6 +3,7 @@ import { ROLE_ACTIONS, handle } from './api'
 import * as ai from './ai'
 import { loadState, resetMemory, saveState } from './storage'
 import { seed } from '../src/state/seed'
+import { seedDemo } from '../src/state/testing'
 import type { State } from '../src/state/types'
 
 const send = (path: string, init: RequestInit = {}, token?: string) =>
@@ -43,7 +44,7 @@ describe('real AI chat', () => {
     expect(model).toHaveBeenCalledTimes(2)
     const s = await getState(elder)
     expect(s.chat.misses).toBe(0)
-    expect(s.cases).toHaveLength(4)
+    expect(s.cases).toHaveLength(1)
     const emergency: State = await (await post('/api/action', elder, { type: 'chat/say', text: 'Bác đau ngực' })).json()
     expect(emergency.emergency).not.toBeNull()
     expect(model).toHaveBeenCalledTimes(2)
@@ -169,6 +170,15 @@ describe('login', () => {
       expect(await bad.json()).toEqual({ error: 'Sai tài khoản hoặc mật khẩu' })
     }
   })
+
+  test('login: role must match the account; wrong password still hides the role', async () => {
+    expect((await post('/api/login', undefined, { user: 'con.gai', password: 'carebox', role: 'family' })).status).toBe(200)
+    const wrongRole = await post('/api/login', undefined, { user: 'con.gai', password: 'carebox', role: 'staff' })
+    expect(wrongRole.status).toBe(401)
+    expect(await wrongRole.json()).toEqual({ error: 'Tài khoản không thuộc vai trò đã chọn' })
+    const both = await post('/api/login', undefined, { user: 'con.gai', password: 'sai', role: 'staff' })
+    expect(await both.json()).toEqual({ error: 'Sai tài khoản hoặc mật khẩu' })
+  })
 })
 
 describe('auth', () => {
@@ -197,6 +207,7 @@ describe('auth', () => {
   })
 
   test('elder chat/resume reopens the seeded CB-001 at its next missing field', async () => {
+    await saveState(seedDemo(Date.now()))
     const r = await post('/api/action', elder, { type: 'chat/resume', id: 'CB-001' })
     expect(r.status).toBe(200)
     expect((await r.json()).chat.pending).toMatchObject({ caseId: 'CB-001', stage: 'collect', field: 'dia_diem' })
@@ -292,12 +303,13 @@ describe('shared state', () => {
       expect(r.status).toBe(200)
       const s: State = await r.json()
       expect(s.version).toBe(3)
-      expect(s.cases).toHaveLength(4)
+      expect(s.cases).toHaveLength(1)
       expect(((await loadState()) as State).version).toBe(3)
     }
   })
 
   test('GET with nothing due does not bump rev; a POST bumps rev by 1', async () => {
+    await saveState(seedDemo(Date.now())) // an unread family notification for readAll to change
     const a = await getState(elder)
     const b = await getState(family)
     expect(b.rev).toBe(a.rev)

@@ -16,8 +16,8 @@ async function call<T>(path: string, init: RequestInit, token?: string): Promise
   return body as T
 }
 
-export const login = (user: string, password: string) =>
-  call<Session>('/api/login', { method: 'POST', body: JSON.stringify({ user, password }) })
+export const login = (user: string, password: string, role: Role) =>
+  call<Session>('/api/login', { method: 'POST', body: JSON.stringify({ user, password, role }) })
 
 export const getState = (token: string) => call<State>('/api/state', { method: 'GET' }, token)
 
